@@ -61,10 +61,17 @@ def start(model: str | None = None) -> str:
                               "--max-tokens", "160"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     _current = model
     t0 = time.time()
-    while not _up() and time.time() - t0 < 120:
-        time.sleep(0.3)
-    warm()
-    return model
+    while time.time() - t0 < 180:                      # ready = it answers, not just that the port is open
+        try:
+            if _up():
+                warm()
+                return model
+        except Exception:
+            pass
+        if _proc.poll() is not None:
+            raise RuntimeError("brain server exited")
+        time.sleep(0.5)
+    raise RuntimeError("brain server did not start")
 
 
 def stop():
@@ -139,7 +146,7 @@ def stream(messages: list[dict], max_tokens: int = 120, temperature: float = 0.6
                 yield d
 
 
-_SENT = re.compile(r"(.+?[\.\!\؟\?…]+|.{50,}?[،,])(\s+|$)", re.S)
+_SENT = re.compile(r"(.+?[\.\!\؟\?…]+|.{22,}?[،,])(\s+|$)", re.S)
 
 
 def sentences(messages: list[dict]):
