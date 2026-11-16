@@ -30,9 +30,10 @@ REL_DB = 10.0            # speech must be at most this far below the caller's ow
 SNR_DB = 9.0             # ... and this far above the room's noise floor
 STOP_REL_DB = 8.0        # a stop needs the candidate's loudness within this of U0 (rejects side speech, TV)
 MIN_VOICED_MS = 100      # voiced audio before the first ASR read
-ASR_EVERY_MS = 220       # re-read the growing segment this often
+ASR_EVERY_MS = 150       # re-read the growing segment this often
 GAP_END_MS = 1300        # silence that closes a candidate
 CONTENT_MAX_AGE_S = 3.0  # content heard only after this much continuous sound, and quiet = background talk
+MIN_LOGPROB = -0.9       # content words count only if Whisper was reasonably sure
 CONTENT_MIN = 2          # new-content words that make a floor bid
 LONG_MS = 2000           # safety net: sustained loud speech this long -> stop even without words
 LONG_REL_DB = 3.0
@@ -44,12 +45,13 @@ NEVER_STOP = 0           # 1: only record features (used to build training data)
 USE_SPEAKER = 1          # compare with the caller's own voiceprint
 SPK_MIN = 0.40           # below this similarity it is someone else (TV, a child across the room)...
 SPK_LOUD_DB = -2.0       # ...unless it is clearly louder than the caller usually is
-USE_MODEL = 1            # 1: learned score (if models/policy.json exists), 0: rules only
+HYB_TH = 0.2            # hybrid: below this learned probability a rule-based stop is vetoed
+USE_MODEL = 2            # 1: learned score (if models/policy.json exists), 0: rules only
 MODEL_TH = 0.5
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "policy.json"
 FEATURES = ["bid", "content", "bc", "filler", "echoed", "repeated_ambig", "ambig_alone", "question", "n",
-            "voiced_s", "rel_db", "only_bc", "agent_q_prev", "since_agent_start_s", "first_word_bid", "spk_sim", "cand_age_s"]
+            "voiced_s", "rel_db", "only_bc", "agent_q_prev", "since_agent_start_s", "first_word_bid", "spk_sim", "cand_age_s", "logprob", "echo_ratio"]
 
 
 def _load_model():
@@ -205,7 +207,8 @@ class TurnTaker:
                 "agent_q_prev": int(self.prev_agent_question),
                 "since_agent_start_s": (self.ms - self.agent_start_ms) / 1000,
                 "first_word_bid": int(a["first_bid"] == 0), "spk_sim": c.get("spk", 0.6),
-                "cand_age_s": (self.ms - c["start"]) / 1000}
+                "cand_age_s": (self.ms - c["start"]) / 1000,
+                "logprob": c.get("logprob", -1.0), "echo_ratio": a["echoed"] / max(1, a["n"])}
 
     def score(self, f: dict) -> tuple[float, str]:
         """P(the caller wants the floor). Learned weights if available, else transparent rules."""
@@ -213,16 +216,27 @@ class TurnTaker:
             return 0.0, "too quiet for the caller (side speech / TV)"
         if f["spk_sim"] < SPK_MIN and f["rel_db"] < SPK_LOUD_DB:
             return 0.05, f"not the caller's voice (similarity {f['spk_sim']:.2f})"
-        if self.model:
-            z = self.model["bias"] + sum(self.model["w"][k] * (f[k] - self.model["mu"][k]) / self.model["sd"][k]
-                                         for k in FEATURES)
-            pr = 1 / (1 + np.exp(-z))
-            return float(pr), f"model p={pr:.2f}"
+        rp, why = self._rules(f)
+        if not self.model:
+            return rp, why
+        z = self.model["bias"] + sum(self.model["w"][k] * (f[k] - self.model["mu"][k]) / (self.model["sd"][k] or 1.0)
+                                     for k in FEATURES)
+        mp = float(1 / (1 + np.exp(-z)))
+        if USE_MODEL == 1:                       # learned score alone
+            return mp, f"model p={mp:.2f}"
+        # USE_MODEL == 2 (hybrid): the rules propose, the learned model can veto an unlikely stop
+        if rp >= MODEL_TH and mp < HYB_TH:
+            return 0.25, f"{why}, but the model doubts it (p={mp:.2f})"
+        return rp, f"{why} (model p={mp:.2f})"
+
+    def _rules(self, f: dict) -> tuple[float, str]:
         if f["bid"] >= 1:
             return 1.0, "floor-bid word"
         if f["repeated_ambig"]:
             return 0.9, "«خلاص/طيب» with more after it"
         if f["content"] >= CONTENT_MIN:
+            if f["logprob"] < MIN_LOGPROB:
+                return 0.3, f"words unclear (confidence {f['logprob']:.2f})"
             if f["cand_age_s"] > CONTENT_MAX_AGE_S and f["rel_db"] < -4:
                 return 0.2, "long, quiet, continuous talk without a floor bid: background"
             return 0.85, f"{f['content']} content words"
@@ -240,6 +254,7 @@ class TurnTaker:
         if c is None or tag[1] != c["id"]:
             return None
         text = res.get("text", "")
+        c["logprob"] = res.get("logprob", -1.0)
         if res.get("spk") is not None and self.ref_emb is not None:
             c["spk"] = float(np.dot(res["spk"], self.ref_emb))
         a = lexicon.analyse(text, self.agent_text)

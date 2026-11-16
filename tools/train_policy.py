@@ -59,7 +59,7 @@ def rows_for(data_dir: Path):
 
 def fit(X, y, C=1.0):
     from sklearn.linear_model import LogisticRegression
-    mu, sd = X.mean(0), X.std(0) + 1e-6
+    mu, sd = X.mean(0), np.maximum(X.std(0), 1e-3)
     clf = LogisticRegression(C=C, class_weight="balanced", max_iter=2000).fit((X - mu) / sd, y)
     return {"features": FEATURES, "mu": dict(zip(FEATURES, mu.round(5).tolist())), "sd": dict(zip(FEATURES, sd.round(5).tolist())),
             "w": dict(zip(FEATURES, clf.coef_[0].round(4).tolist())), "bias": float(clf.intercept_[0])}, clf, mu, sd

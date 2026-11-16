@@ -24,6 +24,7 @@ from pathlib import Path
 
 KIT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(KIT))
+os.environ["TT_SIM"] = "1"          # must be set before turn.clock / turn.asr are imported anywhere
 
 from ttbench.dataset import GAP_MS, lay_out_stream, load_split  # noqa: E402
 from ttbench.harness import build_stream  # noqa: E402

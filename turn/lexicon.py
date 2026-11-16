@@ -29,7 +29,7 @@ def squeeze(w: str) -> str:
 
 
 BACKCHANNEL = {norm(w) for w in """
-ايه ايوه ايوا ايوة اي اى ايي اها اه اهاه اهه مم ممم ام هم همم هيه هييه هي يب يس
+ايه ايوه ايوا ايوة ايو اي اى ايي اها اه اهاه اهه مم ممم ام هم همم هيه هييه هي يب يس
 نعم اكيد اكيده طبعا تمام زين صح صحيح مضبوط بالضبط معك معاك معاي معايا وياك فاهم فاهمه فاهمك
 اوكي اوك اوكيه اوكى ماشي حلو حلوه جميل ممتاز الله والله صادق صادقه عارف عارفه طيب
 هه ههه هههه ههههه ههههههه
@@ -42,6 +42,7 @@ BID = {norm(w) for w in """
 مو مب مش ما مافي ماني مابي مابغى
 سوري عفوا لوسمحت لو سمحت سمحت يااخي اخي اخوي خويي
 غلط خطا ماطلبت
+لاحظه لحضه افوان عفوان سوري
 """.split()} - {"اي"}
 # «خلاص» and «طيب» are the brief's ambiguous pair: repeated or followed by more words = floor bid
 AMBIG = {norm(w) for w in "خلاص طيب".split()}
@@ -51,6 +52,19 @@ HALLUCINATIONS = [norm(p) for p in [
     "اشتركوا في القناة", "اشترك في القناة", "شكرا للمشاهده", "ترجمه نانسي قنقر", "نانسي قنقر", "موسيقى",
     "السلام عليكم ورحمه الله", "تابعونا", "لا تنسوا الاشتراك", "سبحان الله", "قناه", "المترجم",
 ]]
+# endings Whisper tacks on to short clips (from subtitle training data): cut them, keep the rest
+TAILS = [norm(p) for p in ["شكرا لكم", "شكرا للمشاهده", "شكرا على المشاهده", "مع تحياتي", "الى اللقاء"]]
+POLITE = {norm(w) for w in "شكرا مشكور مشكوره يعطيك العافيه تسلم تسلمين الله يعافيك".split()}
+
+
+def _fuzzy_in(w: str, vocab: set[str]) -> bool:
+    """«مكباقة» ~ «باقة», «مطبقة» ~ «مطابقة»: the agent's own words coming back distorted (echo, saying along)."""
+    from difflib import SequenceMatcher
+    core = w[2:] if w.startswith(("ال", "وال", "بال")) and len(w) > 4 else w
+    for v in vocab:
+        if len(v) >= 3 and abs(len(v) - len(core)) <= 2 and SequenceMatcher(None, core, v).ratio() >= 0.75:
+            return True
+    return False
 
 
 def cut_loop(words: list[str]) -> list[str]:
@@ -67,6 +81,9 @@ def cut_loop(words: list[str]) -> list[str]:
 def analyse(text: str, agent_text: str = "") -> dict:
     """Turn the caller's words into simple, explainable features."""
     t = norm(text)
+    for tail in TAILS:
+        if t.endswith(tail) and len(t) > len(tail):
+            t = t[: -len(tail)].strip()
     halluc = any(h and h in t for h in HALLUCINATIONS)
     full = [squeeze(w) for w in t.split()]
     raw = cut_loop(full)
@@ -86,8 +103,10 @@ def analyse(text: str, agent_text: str = "") -> dict:
             bc += 1
         elif w in FILLER:
             fill += 1
-        elif len(w) >= 3 and w in agent_words:
+        elif len(w) >= 3 and (w in agent_words or _fuzzy_in(w, agent_words)):
             echoed += 1
+        elif w in POLITE:
+            bc += 1
         else:
             content += 1
     repeated_amb = amb >= 2 or (amb >= 1 and (content + bid) >= 1)
