@@ -188,6 +188,8 @@ async def ws_handler(ws):
             elif msg["type"] == "stopped":
                 await convo.on_stopped(msg.get("id", -1), msg.get("played", 0))
             elif msg["type"] == "convo_end":
+                from convo.engine import save_session
+                save_session(convo, KIT / "runs" / "live-calls")
                 convo.state = "ended"
                 if convo.task and not convo.task.done():
                     convo.task.cancel()
@@ -226,6 +228,10 @@ async def ws_handler(ws):
         elif msg["type"] == "save" and frames_a:
             sid = save_try(frames_a, frames_c, agent_text, msg["expected"], msg.get("agent_end_ms"), tt.trace)
             await ws.send(json.dumps({"type": "saved", "sid": sid}))
+
+    if convo is not None:                  # page closed or refreshed mid-call: keep the recording
+        from convo.engine import save_session
+        save_session(convo, KIT / "runs" / "live-calls")
 
 
 def _gender():

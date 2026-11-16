@@ -27,6 +27,7 @@ from . import brain, voice
 from .scenarios import SCENARIOS, as_male, system_prompt
 
 SILENCE_NUDGE_MS = 7000      # caller silent this long after the agent finished → a gentle «معي؟»
+ECHO_MARGIN = 8.0            # the caller must be this many times (≈9 dB) louder than the agent's echo
 FILLER_AFTER_S = 0.9         # if the first sentence is not ready by then, say «طيب…» like a person would
 
 
@@ -62,6 +63,12 @@ class Conversation:
         self.stats = []
         self.t_eot = None
         self.ending = False
+        self.agent_pow: list = []
+        self.coupling: list = []
+        self.gated = 0
+        self.echo_flags: list = []
+        self.rec_a: list = []
+        self.rec_c: list = []
         self.phase = "greeting"                  # greeting → point → free conversation
         self.stop_ms = None
         self.planned_done = True
@@ -214,18 +221,52 @@ class Conversation:
             self.history.append({"role": "assistant", "content": said + "…"})
         self.chunks.clear()
 
+    # ------------------------------------------------------------------ echo gate (laptop speakers)
+    def echo_gate(self, agent: np.ndarray, caller: np.ndarray) -> np.ndarray:
+        """Learn how much of the agent's own voice comes back into the mic (speaker→mic coupling), and while the
+        agent is audible treat the mic as the caller only when it is clearly louder than that echo."""
+        pa = float(np.mean(agent.astype(np.float64) ** 2))
+        pc = float(np.mean(caller.astype(np.float64) ** 2))
+        self.agent_pow.append(pa)
+        if len(self.agent_pow) > 25:                     # 500 ms of agent history: delay + room reverb
+            self.agent_pow.pop(0)
+        ref = max(self.agent_pow)
+        if pa > 1e5:                                     # agent clearly playing (> about -50 dBFS)
+            self.coupling.append(pc / pa)
+            if len(self.coupling) > 400:
+                self.coupling.pop(0)
+        echo_only = False
+        if ref >= 1e5 and len(self.coupling) >= 25:
+            k = float(np.percentile(self.coupling, 60))  # typical echo level relative to the agent
+            echo_only = pc < ECHO_MARGIN * k * ref
+        self.echo_flags.append(echo_only)
+        if len(self.echo_flags) > 1500:
+            self.echo_flags.pop(0)
+        self.gated += echo_only
+        return caller
+
     # ------------------------------------------------------------------ every 20 ms of audio
     async def on_frame(self, agent: np.ndarray, caller: np.ndarray):
         self.ms += 20
+        self.rec_a.append(agent.copy())
+        self.rec_c.append(caller.copy())
+        caller = self.echo_gate(agent, caller)
         d = self.tt.on_frame(agent, caller)
         dec = (d["decision"] if isinstance(d, dict) else d) if d else None
         while self.seen_trace < len(self.tt.trace):          # show the caller's acknowledgements as they happen
             r = self.tt.trace[self.seen_trace]
             self.seen_trace += 1
+            if self._is_echo(r):
+                continue                                  # the agent's own voice coming back: not the caller
             if r["kind"] == "candidate_end" and r.get("text") and self.state == "speaking":
                 await self.send({"type": "chat", "role": "caller", "text": r["text"], "note": "تأييد — كمّل"})
             if r["kind"] == "asr" and self.state in ("speaking", "listening"):
                 await self.send({"type": "hearing", "text": r.get("text", ""), "why": r.get("why", "")})
+        if dec == "STOP" and self.state in ("speaking", "thinking") and not self._real_words():
+            # demo guard: no clear caller words (the agent's own voice from the speakers, noise) → keep talking
+            self.tt.stopped, self.tt.cand = False, None
+            await self.send({"type": "hearing", "text": "", "why": "تجاهل صوت بدون كلام واضح (صدى/ضجيج)"})
+            dec = None
         if dec == "STOP" and self.state in ("speaking", "thinking"):
             c = self.tt.cand
             self.interrupted_at = c["start"] if c else self.ms - 600
@@ -249,6 +290,27 @@ class Conversation:
             self.listen_since = self.ms
             self.task = asyncio.create_task(self.reply("(العميل ساكت ما رد. تأكد بلطف إنه معك)", False))
 
+    def _is_echo(self, r: dict) -> bool:
+        text = r.get("text", "")
+        a = lexicon.analyse(text, self.turn_text) if text else None
+        if a and a["echoed"] / max(1, a["n"]) >= 0.5:
+            return True
+        n = 50                                            # the last second of audio
+        recent = self.echo_flags[-n:]
+        return bool(recent) and sum(1 for e in recent if not e) / len(recent) < 0.3
+
+    def _real_words(self) -> bool:
+        """Stop only for clear words from the caller that are not the agent's own sentence coming back."""
+        c = self.tt.cand
+        f = (c or {}).get("feats")
+        if not f or f["n"] < 1 or f["echo_ratio"] >= 0.5:
+            return False
+        n = max(1, int((self.ms - c["start"]) // 20))
+        recent = self.echo_flags[-n:]
+        if recent and sum(1 for e in recent if not e) / len(recent) < 0.3:
+            return False                                 # mostly the agent's own voice coming back
+        return f["bid"] >= 1 or f["repeated_ambig"] or f["content"] >= 2
+
     async def caller_finished(self, start_ms: float):
         audio = self.tt._audio_since(max(start_ms - 150, self.ms - 29000))
         interrupted = self.interrupted_at is not None
@@ -256,8 +318,9 @@ class Conversation:
         self.t_eot = self.t_answer = time.time()
         r = await asyncio.to_thread(transcribe, audio, False)
         text = r.get("text", "").strip()
-        a = lexicon.analyse(text)
-        if not text or a["hallucination"] or not a["words"]:
+        last_agent = next((m["content"] for m in reversed(self.history) if m["role"] == "assistant"), "")
+        a = lexicon.analyse(text, last_agent + " " + self.turn_text)
+        if not text or a["hallucination"] or not a["words"] or a["echoed"] / max(1, a["n"]) >= 0.6:
             self.tt.turn = None
             return                                            # noise, not words: keep listening
         await self.send({"type": "chat", "role": "caller", "text": text, "note": "قاطع" if interrupted else ""})
@@ -291,3 +354,19 @@ class Conversation:
         self.state = "thinking"
         self.planned_done = False
         await self.speak_lines(self.sc["opening"])
+
+
+def save_session(conv: "Conversation", folder):
+    """Keep the demo call (both channels + what the model decided) for diagnosis."""
+    import json
+    from pathlib import Path
+    from ttbench.dataset import write_wav_stereo
+    if not conv.rec_a:
+        return None
+    d = Path(folder) / time.strftime("%m%d-%H%M%S")
+    d.mkdir(parents=True, exist_ok=True)
+    write_wav_stereo(d / "call.wav", np.stack([np.concatenate(conv.rec_a), np.concatenate(conv.rec_c)], 1))
+    (d / "trace.json").write_text(json.dumps({"trace": [{k: v for k, v in r.items() if k != "f"} for r in conv.tt.trace],
+                                              "history": conv.history, "stats": conv.stats, "gated_frames": conv.gated},
+                                             ensure_ascii=False, indent=1), encoding="utf-8")
+    return d
