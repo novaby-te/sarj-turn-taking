@@ -45,17 +45,17 @@ table{width:100%;border-collapse:collapse;font-size:14px}td,th{border-bottom:1px
 .tl .asr{position:absolute;bottom:6px;width:8px;height:8px;border-radius:50%;background:var(--amber);transform:translateX(-4px)}
 .legend{font-size:12px;color:var(--muted)}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:middle}
 .hide{display:none}
+#chat{display:flex;flex-direction:column;gap:8px;max-height:460px;overflow:auto}
+.b{max-width:80%;padding:9px 13px;border-radius:14px;font-size:17px}
+.b.agent{align-self:flex-start;background:var(--soft);border-bottom-right-radius:4px}
+.b.caller{align-self:flex-end;background:var(--keep);color:#fff;border-bottom-left-radius:4px}
+.b.bc{align-self:flex-end;background:transparent;color:var(--muted);font-size:13px;padding:2px 8px;border:1px dashed var(--line)}
+.b .tag{display:block;font-size:11px;opacity:.75;margin-top:2px}
+.b.cut{border:2px solid var(--stop)}
 .big2{font-size:18px}
 </style></head><body><div class="wrap">
 <h1>جرّب نموذج «متى يسكت الوكيل»</h1>
 <div class="sub">النموذج نفسه اللي بيدخل التقييم، يشتغل على جهازك. اختر طريقة:</div>
-<div class="tabs">
-  <button class="tab on" data-t="mic">🎙️ كلّمه بنفسك<small>الوكيل يتكلم، وأنت تقاطعه بصوتك</small></button>
-  <button class="tab" data-t="replay">▶️ اسمع مكالمات سرج<small>شوف وش قرر النموذج على كل مكالمة</small></button>
-</div>
-
-<!-- ====================== MIC ====================== -->
-<section id="mic">
 <div class="card">
   <div class="step"><div class="num">٠</div><div style="flex:1"><b>جهّز المايك</b> <span class="sub">(مرة وحدة)</span>
   <div class="row" style="margin-top:8px">
@@ -65,6 +65,29 @@ table{width:100%;border-collapse:collapse;font-size:14px}td,th{border-bottom:1px
   <div class="row" style="margin-top:8px"><button id="mtest">🎙️ اختبر المايك</button><span class="sub" id="mtestinfo">اضغط وقل: «كم القيمة؟» (٣ ثواني)</span></div>
   <div id="mres" class="sub" style="margin-top:6px"></div></div></div>
 </div>
+<div class="tabs">
+  <button class="tab on" data-t="call">💬 مكالمة كاملة<small>تكلم معه كأنه موظف حقيقي: يسكت، يسمع، يرد، ويكمّل</small></button>
+  <button class="tab" data-t="mic">🎙️ تحديات القرار<small>اختبر «يسكت ولا يكمّل» جملة جملة</small></button>
+  <button class="tab" data-t="replay">▶️ اسمع مكالمات سرج<small>شوف وش قرر النموذج على كل مكالمة</small></button>
+</div>
+
+<!-- ====================== FULL CALL ====================== -->
+<section id="call">
+<div class="card"><div class="row">
+  <div style="flex:2;min-width:220px"><span class="sub">المكالمة</span><select id="scen"></select></div>
+  <div style="flex:1;min-width:160px"><span class="sub">صوت الوكيل</span><select id="eng"><option value="edge">طبيعي (يحتاج نت)</option><option value="say">بدون نت (آلي أكثر)</option></select></div>
+  <div style="flex:1;min-width:160px"><span class="sub">العقل</span><select id="model"></select></div>
+</div>
+<div class="row" style="margin-top:12px"><button class="go" id="cgo">📞 ابدأ المكالمة</button><button id="cend">إنهاء</button>
+<span class="sub">صوتك:</span><div class="meter"><i id="cmlvl"></i></div></div>
+<div class="sub" style="margin-top:8px">الوكيل يبدأ بالسلام ويسألك عن اسمك. رد عليه عادي، وبعدها قاطعه، اسأله، قل «إيه»، اعترض… مثل أي مكالمة. يفضّل سمّاعة رأس.</div></div>
+<div id="cstate" class="card" style="text-align:center;font-size:22px;font-weight:800">جاهز</div>
+<div class="card"><div id="chat"></div><div class="sub" id="chear" style="margin-top:6px"></div></div>
+<div class="card"><div class="row"><span class="sub">سرعة السكوت لما تقاطعه:</span><b id="cstop">—</b><span class="sub" style="margin-inline-start:16px">أول صوت بعد ما تخلص:</span><b id="creply">—</b><span class="sub" style="margin-inline-start:16px">أول جواب فعلي:</span><b id="cans">—</b></div></div>
+</section>
+
+<!-- ====================== MIC ====================== -->
+<section id="mic" class="hide">
 <div class="card">
   <div class="step"><div class="num">١</div><div style="flex:1"><b>وش تبي تجرب؟</b> <span class="sub">(اختر تحدي، والصفحة تقول لك هل النموذج نجح)</span>
   <div class="chips" id="chips" style="margin-top:8px"></div></div></div>
@@ -116,7 +139,7 @@ const $ = s => document.querySelector(s);
 const esc = t => String(t ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
-  $('#mic').classList.toggle('hide', b.dataset.t !== 'mic'); $('#replay').classList.toggle('hide', b.dataset.t !== 'replay');
+  for (const id of ['call', 'mic', 'replay']) $('#' + id).classList.toggle('hide', b.dataset.t !== id);
 });
 
 // ------------------------------------------------ challenges
@@ -155,16 +178,24 @@ fetch('/calls').then(r => r.json()).then(cs => {
 // ------------------------------------------------ audio worklet: plays the agent, records the mic, resamples both to 16 kHz in lockstep
 const worklet = `
 class P extends AudioWorkletProcessor {
-  constructor(){ super(); this.agent = new Float32Array(0); this.pos = 0; this.gain = 1; this.fading = false; this.ended = false;
+  constructor(){ super(); this.q = []; this.cur = null; this.pos = 0; this.gain = 1; this.fading = false;
     this.ratio = sampleRate / 16000; this.bA = []; this.bM = []; this.p = 0; this.fa = []; this.fc = [];
-    this.port.onmessage = e => { if (e.data.agent) { this.agent = e.data.agent; this.pos = 0; this.gain = 1; this.fading = false; this.ended = false; }
-                                 if (e.data.stop) this.fading = true; if (e.data.clear) { this.agent = new Float32Array(0); } }; }
+    this.port.onmessage = e => { const d = e.data;
+      if (d.agent) { this.q = [{id: -1, buf: d.agent}]; this.cur = null; this.fading = false; }
+      if (d.enqueue) this.q.push({id: d.id, buf: d.enqueue});
+      if (d.stop) this.fading = true; }; }
   process(inputs, outputs){
     const mic = inputs[0] && inputs[0][0] ? inputs[0][0] : null; const out = outputs[0][0];
     for (let i = 0; i < out.length; i++) {
+      if (!this.cur && this.q.length && !this.fading) { this.cur = this.q.shift(); this.pos = 0; this.gain = 1; this.port.postMessage({started: this.cur.id}); }
       let a = 0;
-      if (this.pos < this.agent.length) { a = this.agent[this.pos++] * this.gain; if (this.fading) this.gain = Math.max(0, this.gain - 1/(0.06*sampleRate)); }
-      else if (!this.ended && this.agent.length) { this.ended = true; this.port.postMessage({ended: true}); }
+      if (this.cur) {
+        a = this.cur.buf[this.pos++] * this.gain;
+        if (this.fading) { this.gain = Math.max(0, this.gain - 1/(0.06*sampleRate));
+          if (this.gain === 0) { this.port.postMessage({stopped: {id: this.cur.id, played: Math.round(this.pos / this.ratio)}}); this.cur = null; this.q = []; this.fading = false; } }
+        if (this.cur && this.pos >= this.cur.buf.length) { const id = this.cur.id; this.cur = null;
+          this.port.postMessage({chunkEnded: id}); if (id === -1) this.port.postMessage({ended: true}); if (!this.q.length) this.port.postMessage({idle: true}); }
+      } else if (this.fading) this.fading = false;
       out[i] = a; this.bA.push(a); this.bM.push(mic ? mic[i] : 0);
     }
     const r = this.ratio, w = Math.max(1, Math.round(r));
@@ -207,6 +238,7 @@ async function ensureAudio() {
   }
 }
 function onNode(e) {
+    if (cv.on) return cvNode(e);
     if (e.data.frame && testFrames) testFrames.push(new Int16Array(e.data.frame.slice(0)));
     if (e.data.frame && ws && ws.readyState === 1 && (running || testFrames)) ws.send(e.data.frame);
     if (e.data.ended && ws && ws.readyState === 1) { agentEnded = true; ws.send(JSON.stringify({type: 'agent_end'})); setTimeout(finish, 1500); }
@@ -314,6 +346,70 @@ function label(exp) {
 $('#lstop').onclick = () => label('STOP'); $('#lkeep').onclick = () => label('KEEP'); $('#lskip').onclick = () => label(null);
 $('#go').onclick = start;
 $('#end').onclick = () => { if (node) node.port.postMessage({stop: true}); finish(); };
+
+// ------------------------------------------------ full conversation
+const cv = {on: false, bubble: null, stops: [], replies: []};
+fetch('/scenarios').then(r => r.json()).then(d => {
+  for (const [k, v] of Object.entries(d.scenarios)) { const o = document.createElement('option'); o.value = k; o.textContent = v; $('#scen').append(o); }
+  const names = {'gemma-12b': 'Gemma 3 12B (عربي أقوى)', 'qwen3-14b': 'Qwen3 14B'};
+  for (const [k, ok] of Object.entries(d.models)) { const o = document.createElement('option'); o.value = k; o.textContent = names[k] + (ok ? '' : ' — لسا يتحمّل'); o.disabled = !ok; $('#model').append(o); }
+  const best = [...$('#model').options].find(o => !o.disabled); if (best) best.selected = true;
+});
+function cstate(t) { $('#cstate').textContent = t; }
+function bubble(role, text, tag, cls) {
+  const d = document.createElement('div'); d.className = 'b ' + role + (cls ? ' ' + cls : '');
+  d.innerHTML = esc(text) + (tag ? `<span class="tag">${esc(tag)}</span>` : ''); $('#chat').append(d); $('#chat').scrollTop = 1e9; return d;
+}
+function cvNode(e) {
+  const d = e.data;
+  if (d.frame && ws && ws.readyState === 1) ws.send(d.frame);
+  if (d.chunkEnded !== undefined) ws.send(JSON.stringify({type: 'played', id: d.chunkEnded}));
+  if (d.idle) ws.send(JSON.stringify({type: 'idle'}));
+  if (d.stopped) ws.send(JSON.stringify({type: 'stopped', id: d.stopped.id, played: d.stopped.played}));
+}
+$('#cgo').onclick = async () => {
+  try { await ensureAudio(); } catch (er) { cstate('المتصفح ما سمح بالمايك'); return; }
+  await ctx.resume();
+  $('#chat').innerHTML = ''; cv.bubble = null; cv.stops = []; cv.replies = []; $('#cstop').textContent = '—'; $('#creply').textContent = '—';
+  cv.on = true; $('#cgo').disabled = true;
+  ws = new WebSocket('ws://127.0.0.1:8771');
+  ws.onopen = () => ws.send(JSON.stringify({type: 'convo_start', scenario: $('#scen').value, engine: $('#eng').value, model: $('#model').value}));
+  ws.onmessage = async e => {
+    const m = JSON.parse(e.data);
+    if (m.type === 'status') {
+      if (m.state === 'loading') cstate('⏳ ' + m.text);
+      if (m.state === 'ready') cstate('📞 المكالمة بدأت (العقل: ' + m.model + ')');
+      if (m.state === 'speaking') cstate('🗣️ الوكيل يتكلم');
+      if (m.state === 'listening') { cstate('👂 يسمعك'); cv.bubble = null; }
+      if (m.state === 'thinking') cstate('🤔 يفكر…');
+      if (m.state === 'ended') { cstate('✅ انتهت المكالمة'); $('#cgo').disabled = false; cv.on = false; }
+    }
+    if (m.type === 'say') {
+      const bytes = Uint8Array.from(atob(m.wav), c => c.charCodeAt(0));
+      const buf = await ctx.decodeAudioData(bytes.buffer);
+      node.port.postMessage({enqueue: buf.getChannelData(0).slice(), id: m.id});
+      if (!cv.bubble) cv.bubble = bubble('agent', m.text, m.voice === 'say' ? 'صوت بدون نت' : '');
+      else cv.bubble.firstChild.textContent += ' ' + m.text;
+    }
+    if (m.type === 'stop') {
+      node.port.postMessage({stop: true});
+      cstate(`✋ سكت عشان يسمعك (بعد ${m.latency} ms)`);
+      if (cv.bubble) { cv.bubble.classList.add('cut'); cv.bubble.insertAdjacentHTML('beforeend', '<span class="tag">✋ قاطعته هنا</span>'); }
+      cv.bubble = null; cv.stops.push(m.latency); $('#cstop').textContent = Math.round(cv.stops.reduce((a, b) => a + b) / cv.stops.length) + ' ms';
+    }
+    if (m.type === 'chat') {
+      if (m.note === 'تأييد — كمّل') bubble('bc', m.text, 'سمعك وكمّل كلامه', '');
+      else bubble('caller', m.text, m.note === 'قاطع' ? 'قاطعته' : '');
+    }
+    if (m.type === 'hearing') $('#chear').textContent = m.text ? `يسمع: «${m.text}» — ${m.why}` : '';
+    if (m.type === 'meter') $('#cmlvl').style.width = Math.max(0, Math.min(100, (m.db + 70) * 1.6)) + '%';
+    if (m.type === 'stat' && m.kind === 'answer') { cv.ans = (cv.ans || []).concat(m.ms); $('#cans').textContent = Math.round(cv.ans.reduce((a, b) => a + b) / cv.ans.length) + ' ms'; }
+    if (m.type === 'stat' && m.kind === 'reply') { cv.replies.push(m.ms); $('#creply').textContent = Math.round(cv.replies.reduce((a, b) => a + b) / cv.replies.length) + ' ms'; }
+    if (m.type === 'error') bubble('bc', m.text, '', '');
+  };
+  ws.onclose = () => { cv.on = false; $('#cgo').disabled = false; };
+};
+$('#cend').onclick = () => { if (node) node.port.postMessage({stop: true}); if (ws) ws.send(JSON.stringify({type: 'convo_end'})); cv.on = false; $('#cgo').disabled = false; cstate('انتهت'); };
 
 // ------------------------------------------------ replay
 let ra = null, rdata = null, raf = null;

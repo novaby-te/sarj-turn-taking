@@ -7,6 +7,7 @@ while still charging the latency that was MEASURED the first time.
 from __future__ import annotations
 
 import hashlib
+import threading
 import json
 import os
 import time
@@ -19,6 +20,7 @@ EXT = Path.home() / "Downloads" / "sarj-ext-data"
 MODEL = os.environ.get("TT_ASR_MODEL", str(EXT / "whisper-large-v3-turbo-q4"))
 PROMPT = os.environ.get("TT_ASR_PROMPT", "إيه، أها، مم، هيه، زين، طيب، لا لا، لحظة، اسمع، خلاص.")
 CACHE_DIR = KIT / ".cache" / "asr"
+_LOCK = threading.Lock()      # one Whisper call at a time (live demo: the turn-taker and the dialogue share it)
 # Speed-up: Whisper always encodes 30 s of audio even for a 1 s «لحظة». With CTX_S > 0 we encode only a short
 # window (the encoder's positional embedding is sliced), which cuts the latency. 0 = standard Whisper.
 CTX_S = float(os.environ.get("TT_ASR_CTX", "10"))
@@ -36,7 +38,12 @@ def warmup():
 
 
 def transcribe(audio_i16: np.ndarray, use_cache: bool = True) -> dict:
-    """Returns {"text": str, "ms": compute time}. Never raises."""
+    """Returns {"text": str, "ms": compute time}. Never raises. Thread-safe."""
+    with _LOCK:
+        return _transcribe(audio_i16, use_cache)
+
+
+def _transcribe(audio_i16: np.ndarray, use_cache: bool = True) -> dict:
     if MODEL == "none":                       # acoustic-only mode (no words)
         return {"text": "", "no_speech": 1.0, "ms": 0.0}
     key = _key(audio_i16)

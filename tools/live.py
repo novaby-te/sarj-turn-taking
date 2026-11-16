@@ -98,6 +98,11 @@ class H(BaseHTTPRequestHandler):
         q = parse_qs(u.query)
         if u.path == "/":
             return self._send((KIT / "tools" / "live.html").read_bytes(), "text/html; charset=utf-8")
+        if u.path == "/scenarios":
+            from convo.scenarios import SCENARIOS
+            from convo import brain
+            return self._send(json.dumps({"scenarios": {k: v["title"] for k, v in SCENARIOS.items()},
+                                          "models": brain.available()}, ensure_ascii=False).encode(), "application/json")
         if u.path == "/calls":
             return self._send(json.dumps(dev_calls(), ensure_ascii=False).encode(), "application/json")
         if u.path == "/agent":
@@ -126,7 +131,20 @@ async def ws_handler(ws):
     decisions = []
     sent_trace = 0
     test_buf = None                      # mic test: collect a few seconds, transcribe, report clarity
+    convo = None                         # full conversation mode (convo/engine.py)
+    async def send(m):
+        try:
+            await ws.send(json.dumps(m, ensure_ascii=False))
+        except Exception:
+            pass
     async for raw in ws:
+        if isinstance(raw, bytes) and convo is not None:
+            fr = np.frombuffer(raw, dtype="<i2").reshape(-1, 2)
+            await convo.on_frame(fr[:, 0], fr[:, 1])
+            if convo.ms % 100 == 0:
+                lvl = 20 * np.log10(np.sqrt(np.mean(fr[:, 1].astype(np.float64) ** 2)) / 32768 + 1e-9)
+                await send({"type": "meter", "vad": round(convo.tt.vad.prob, 2), "db": round(float(lvl), 1)})
+            continue
         if isinstance(raw, bytes):
             if test_buf is not None:
                 test_buf.append(np.frombuffer(raw, dtype="<i2").reshape(-1, 2)[:, 1].copy())
@@ -151,6 +169,31 @@ async def ws_handler(ws):
                 sent_trace += 1
             continue
         msg = json.loads(raw)
+        if msg["type"] == "convo_start":
+            from convo import brain, voice
+            from convo.engine import Conversation
+            await send({"type": "status", "state": "loading", "text": "يجهز العقل (النموذج اللغوي)…"})
+            name = await asyncio.to_thread(brain.start, msg.get("model") or None)
+            await voice.warm_fillers(SCEN_GENDER.get(msg.get("scenario", "payment"), "f"), msg.get("engine", "edge"))
+            convo = Conversation(send, msg.get("scenario", "payment"), msg.get("engine", "edge"))
+            await send({"type": "status", "state": "ready", "model": name})
+            asyncio.create_task(convo.start())
+            continue
+        if convo is not None:
+            if msg["type"] == "played":
+                await convo.on_played(msg["id"])
+            elif msg["type"] == "idle":
+                convo.browser_idle = True
+                await convo.on_idle()
+            elif msg["type"] == "stopped":
+                await convo.on_stopped(msg.get("id", -1), msg.get("played", 0))
+            elif msg["type"] == "convo_end":
+                convo.state = "ended"
+                if convo.task and not convo.task.done():
+                    convo.task.cancel()
+                await send({"type": "summary", "stats": convo.stats})
+                convo = None
+            continue
         if msg["type"] == "start":
             tt = policy.TurnTaker()
             tt.on_scenario_start()
@@ -183,6 +226,14 @@ async def ws_handler(ws):
         elif msg["type"] == "save" and frames_a:
             sid = save_try(frames_a, frames_c, agent_text, msg["expected"], msg.get("agent_end_ms"), tt.trace)
             await ws.send(json.dumps({"type": "saved", "sid": sid}))
+
+
+def _gender():
+    from convo.scenarios import SCENARIOS
+    return {k: v["gender"] for k, v in SCENARIOS.items()}
+
+
+SCEN_GENDER = {}
 
 
 def clarity(x: np.ndarray) -> dict:
@@ -241,6 +292,7 @@ def save_try(fa, fc, agent_text, expected, agent_end_ms, trace):
 
 def main():
     from websockets.asyncio.server import serve
+    SCEN_GENDER.update(_gender())
     from turn.asr import warmup
     print("loading Whisper ...", flush=True)
     warmup()
@@ -261,6 +313,9 @@ def main():
         asyncio.run(run())
     except KeyboardInterrupt:
         pass
+    finally:
+        from convo import brain
+        brain.stop()
 
 
 if __name__ == "__main__":
