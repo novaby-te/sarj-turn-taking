@@ -147,11 +147,39 @@ def tts_batch(items):
     asyncio.run(go())
 
 
+OFFLINE = False            # --offline: no network; reuse cached utterances and perturb them locally
+PERTURB: dict = {}         # voice -> speed/pitch factor for the call being rendered (consistent within a call)
+_INDEX: dict = {}
+
+
+def _index():
+    if not _INDEX:
+        for js in TTS_CACHE.glob("*.json"):
+            m = json.loads(js.read_text(encoding="utf-8"))
+            _INDEX.setdefault((m["voice"], m["text"]), js.stem)
+            _INDEX.setdefault(("*", m["text"]), js.stem)
+    return _INDEX
+
+
+def perturb(x, words, f):
+    """Speed perturbation (Kaldi-style): factor f>1 = slower and lower-pitched. Word timings scale with it."""
+    if abs(f - 1) < 1e-3:
+        return x, words
+    from fractions import Fraction
+    fr = Fraction(f).limit_denominator(50)
+    y = signal.resample_poly(x, fr.numerator, fr.denominator).astype(np.float32)
+    return y, [{"w": w["w"], "s": w["s"] * f, "d": w["d"] * f} for w in words]
+
+
 def tts_get(voice, text, rate, pitch):
     key = _tts_key(voice, text, rate, pitch)
+    if not (TTS_CACHE / f"{key}.wav").exists() and OFFLINE:
+        key = _index().get((voice, text)) or _index().get(("*", text))
+        if key is None:
+            raise KeyError(f"no cached audio for «{text}»")
     x, _ = sf.read(TTS_CACHE / f"{key}.wav", dtype="float32")
     meta = json.loads((TTS_CACHE / f"{key}.json").read_text(encoding="utf-8"))
-    return x, meta["words"]
+    return perturb(x, meta["words"], PERTURB.get(voice, 1.0))
 
 
 # ---------------------------------------------------------------- audio helpers
@@ -300,6 +328,51 @@ def plan(i, rng):
     return p
 
 
+def offline_plan(i, rng):
+    """Like plan(), but only with sentences already synthesised FOR THAT VOICE (so a caller keeps one voice)."""
+    idx = _index()
+    by_voice: dict = {}
+    for (v, t) in idx:
+        if v != "*":
+            by_voice.setdefault(v, set()).add(t)
+    greet = lambda t: t.startswith(("السلام عليكم، معك", "مساء الخير، معك", "هلا، معك"))  # noqa: E731
+    for _ in range(200):
+        p = plan(i, rng)
+        cv, av = p["caller_voice"], p["agent_voice"]
+        T, A = by_voice.get(cv, set()), by_voice.get(av, set())
+        a0 = [t for t in A if greet(t)]
+        a1 = [t for t in A if t in (A1_QUESTIONS if p["kind"] == "EOT" else A1)]
+        u0 = [t for t in T if t in U0]
+        if not (a0 and a1 and u0):
+            continue
+        p["a0"], p["a1"], p["u0"] = rng.choice(a0), rng.choice(a1), rng.choice(u0)
+        bank = {"GI": STOP_LINES, "BC": BC_LINES, "AM": ["طيب.", "خلاص خلاص، *فهمت*.", "طيب؟ … *بس* كم المبلغ؟", "طيب طيب."],
+                "OVs": TALKOVER, "HTf": FILLERS}.get(p["kind"])
+        if bank is not None:
+            have = [t for t in bank if t in T]
+            if not have:
+                continue
+            p["u1"] = list(rng.choice(have, size=min(len(have), len(p.get("u1", [1]))), replace=False))
+        if p["kind"] == "OVk":
+            p["kind"], p["u1"] = "BC", [rng.choice([t for t in BC_LINES if t in T] or ["إيه."])]
+            if p["u1"][0] not in T:
+                continue
+        if p["kind"] == "BGside":
+            pairs = [(v, t) for (v, t) in idx if v != "*" and t in SIDE_SPEECH and v != cv]
+            if not pairs:
+                continue
+            p["side_voice"], p["side"] = pairs[rng.integers(len(pairs))]
+        if p["kind"] == "BGtv":
+            pairs = [(v, t) for (v, t) in idx if v != "*" and t in TV_LINES]
+            if not pairs:
+                continue
+            p["tv_voice"], p["tv"] = pairs[rng.integers(len(pairs))]
+        if p["kind"] == "EOT" and not all(c in T for c, _, _ in p["eot"]):
+            continue
+        return p
+    raise RuntimeError("could not build an offline plan")
+
+
 def tts_items(p):
     cv, av = p["caller_voice"], p["agent_voice"]
     r, pt = p["c_rate"], p["c_pitch"]
@@ -322,6 +395,10 @@ CAT = {"GI": "GI", "BC": "BC", "AM": "AM", "OVs": "OV", "OVk": "OV", "NV": "NV",
 def render(i, p, rng, prefix):
     sid = f"{CAT[p['kind']]}-{prefix}{i:03d}"
     cv, av = p["caller_voice"], p["agent_voice"]
+    PERTURB.clear()
+    if OFFLINE:                                   # a «new» caller and agent voice for this call
+        PERTURB[cv] = float(rng.uniform(0.88, 1.12))
+        PERTURB[av] = float(rng.uniform(0.94, 1.06))
     a0, a0w = tts_get(av, p["a0"], "+0%", "+0Hz")
     a1, a1w = tts_get(av, p["a1"], "+0%", "+0Hz")
     u0, u0w = tts_get(cv, p["u0"], p["c_rate"], p["c_pitch"])
@@ -484,12 +561,25 @@ def main(argv=None):
     ap.add_argument("--out", default=str(KIT / "data" / "synth"))
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--prefix", default="S")
+    ap.add_argument("--offline", action="store_true", help="no network: reuse cached voices, perturb them")
+    ap.add_argument("--voices", default=None, help="comma list of locale tags to keep, e.g. SA,KW,BH,AE")
+    ap.add_argument("--exclude-voices", default=None, help="comma list of locale tags to drop, e.g. QA,OM")
     a = ap.parse_args(argv)
+    global OFFLINE
+    OFFLINE = a.offline
+    keep = lambda v: (not a.voices or any(f"-{t}-" in v for t in a.voices.split(","))) and \
+        (not a.exclude_voices or not any(f"-{t}-" in v for t in a.exclude_voices.split(",")))  # noqa: E731
+    for v in [v for v in CALLER_VOICES if not keep(v)]:
+        CALLER_VOICES.pop(v)
     rng = np.random.default_rng(a.seed)
-    plans = [plan(i, rng) for i in range(a.n)]
-    items = [it for p in plans for it in tts_items(p)]
-    print(f"TTS: {len(set(items))} unique utterances")
-    tts_batch(items)
+    if OFFLINE:
+        plans = [offline_plan(i, rng) for i in range(a.n)]
+    else:
+        plans = [plan(i, rng) for i in range(a.n)]
+    if not OFFLINE:
+        items = [it for p in plans for it in tts_items(p)]
+        print(f"TTS: {len(set(items))} unique utterances")
+        tts_batch(items)
     out = Path(a.out)
     (out / "audio").mkdir(parents=True, exist_ok=True)
     (out / "labels").mkdir(parents=True, exist_ok=True)

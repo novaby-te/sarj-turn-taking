@@ -65,9 +65,20 @@ def fit(X, y, C=1.0):
             "w": dict(zip(FEATURES, clf.coef_[0].round(4).tolist())), "bias": float(clf.intercept_[0])}, clf, mu, sd
 
 
+def fit_lgbm(X, y):
+    import lightgbm as lgb
+    pos = max(1, int(y.sum()))
+    clf = lgb.LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, min_child_samples=10,
+                             subsample=0.8, subsample_freq=1, colsample_bytree=0.8, reg_lambda=1.0,
+                             scale_pos_weight=(len(y) - pos) / pos, verbose=-1).fit(X, y)
+    return {"type": "lgbm", "features": FEATURES, "booster": clf.booster_.model_to_string()}, clf
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--train", default="data/synth")
+    ap.add_argument("--model", default="lr", choices=["lr", "lgbm"])
+    ap.add_argument("--out", default=str(MODEL_PATH))
     ap.add_argument("--C", type=float, default=0.5)
     ap.add_argument("--no-save", action="store_true")
     a = ap.parse_args(argv)
@@ -78,14 +89,20 @@ def main(argv=None):
         Xs.append(X)
         ys.append(y)
     X, y = np.vstack(Xs), np.concatenate(ys)
-    model, clf, mu, sd = fit(X, y, a.C)
-    acc = (clf.predict((X - mu) / sd) == y).mean()
-    print(f"train accuracy {acc:.3f}")
-    for k, w in sorted(model["w"].items(), key=lambda kv: -abs(kv[1])):
-        print(f"  {k:22s} {w:+.3f}")
+    if a.model == "lgbm":
+        model, clf = fit_lgbm(X, y)
+        print(f"train accuracy {(clf.predict(X) == y).mean():.3f}")
+        imp = sorted(zip(FEATURES, clf.booster_.feature_importance("gain")), key=lambda kv: -kv[1])
+        for k, g in imp[:15]:
+            print(f"  {k:22s} gain {g:8.1f}")
+    else:
+        model, clf, mu, sd = fit(X, y, a.C)
+        print(f"train accuracy {(clf.predict((X - mu) / sd) == y).mean():.3f}")
+        for k, w in sorted(model["w"].items(), key=lambda kv: -abs(kv[1]))[:15]:
+            print(f"  {k:22s} {w:+.3f}")
     if not a.no_save:
-        MODEL_PATH.write_text(json.dumps(model, ensure_ascii=False, indent=1))
-        print("saved", MODEL_PATH)
+        Path(a.out).write_text(json.dumps(model, ensure_ascii=False, indent=1))
+        print("saved", a.out)
 
 
 if __name__ == "__main__":

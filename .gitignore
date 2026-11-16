@@ -9,3 +9,7 @@ __pycache__/
 data/synth/
 data/dev-aug/
 data/live/audio/
+data/synth-test/
+data/synth-big/
+data/synth-heldvoice/
+data/live-rejected/

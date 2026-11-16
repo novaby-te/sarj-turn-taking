@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>معمارية نموذج سرج</title>
+<style>
+:root{--bg:#f7f6f3;--card:#fff;--ink:#1b1b1b;--muted:#666;--line:#e4e1db;--acc:#3e3aa8;--soft:#ecebfa;--g:#2e9b63;--r:#d64045;--a:#c98a10;
+--l0:#eef2f7;--l1:#e8f3ff;--l2:#eaf7ef;--l3:#fff4e5;--l4:#f3ecfd;--l5:#fdecef;--l6:#e9f6f6}
+@media (prefers-color-scheme:dark){:root{--bg:#121214;--card:#1c1c20;--ink:#ececec;--muted:#a0a0a8;--line:#30303a;--acc:#a9a6ff;--soft:#26254a;
+--l0:#1d2330;--l1:#16263a;--l2:#16301f;--l3:#352a14;--l4:#2a1d3d;--l5:#381a20;--l6:#13302f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"SF Arabic","Geeza Pro",Tahoma,sans-serif;line-height:1.85;font-size:15.5px}
+.w{max-width:1040px;margin:0 auto;padding:26px 16px 80px}
+header{background:var(--acc);color:#fff;border-radius:18px;padding:24px 22px}@media (prefers-color-scheme:dark){header{color:#111}}
+header h1{margin:0 0 4px;font-size:26px}
+h2{font-size:21px;margin:36px 0 8px;border-bottom:2px solid var(--line);padding-bottom:4px}
+h3{font-size:17px;margin:18px 0 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--card)}th,td{border:1px solid var(--line);padding:6px 8px;text-align:right;vertical-align:top}th{background:var(--soft)}
+.tw{overflow-x:auto}
+.lv{border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin:10px 0}
+.lv h3{margin:0 0 6px}.L0{background:var(--l0)}.L1{background:var(--l1)}.L2{background:var(--l2)}.L3{background:var(--l3)}.L4{background:var(--l4)}.L5{background:var(--l5)}.L6{background:var(--l6)}
+.ok{color:var(--g);font-weight:700}.pl{color:var(--a);font-weight:700}.no{color:var(--r);font-weight:700}
+.muted{color:var(--muted)}code{background:var(--soft);padding:1px 5px;border-radius:5px;direction:ltr;unicode-bidi:isolate;font-size:12.5px}
+.pipe{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}.pipe span{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px}.pipe i{color:var(--muted);font-style:normal}
+</style></head><body><div class="w">
+<header><h1>المعمارية الكاملة الثابتة: من الصوت الخام إلى القرار</h1>
+<div>٧ مستويات، كل مستوى مقسّم لطبقات فرعية، ولكل طبقة: وش تسوي، وأي أداة، ووش الفلتر، وكيف تنقاس، وكم تاخذ وقت، ووين وصلت.</div></header>
+
+<h2>١) المبدأ</h2>
+<div class="card">
+<ul>
+<li><b>من فوق لتحت:</b> كل مستوى ينظّف أو يفهم شي، ويسلّم الأدنى منه مدخل أنظف. وإذا مستوى فوق حكم إن الصوت «مو العميل» أو «مو كلام»، ما نصرف وقت على المستويات تحت.</li>
+<li><b>كل شي نسبي لصوت العميل نفسه</b> (من أول رد له). هذا اللي يخلي أي مدخل، بأي جودة وأي مايك وأي خط، يعطي نفس السلوك.</li>
+<li><b>كل طبقة تنقاس لحالها</b> على بنك ٧٥٨ مقطع (<code>tools/layer_eval.py</code>)، وكل النظام ينقاس بحسبة سرج الرسمية. ونقبل التعديل فقط إذا تحسّن على البيانات اللي <b>ما شافها</b> النموذج.</li>
+<li><b>أدوات آمنة فقط:</b> رخص مفتوحة، أوزان safetensors/ONNX (ما فيها كود ينفّذ)، بدون <code>trust_remote_code</code>، وكل شي يشتغل بدون نت. الاختيارات جت من ٤ وكلاء بحث فحصوا الرخصة والأمان والسرعة لكل أداة.</li>
+</ul></div>
+
+<h2>٢) الصورة كاملة</h2>
+<div class="pipe"><span>٠ تهيئة المدخل</span><i>←</i><span>١ خصائص الصوت</span><i>←</i><span>٢ مصدر الصوت</span><i>←</i><span>٣ النبرة والانفعال</span><i>←</i><span>٤ الكلام والمعنى</span><i>←</i><span>٥ القرار المتعلّم</span><i>←</i><span>٦ نهاية الدور</span><i>←</i><span>٧ الفعل والوكيل</span></div>
+
+<div class="lv L0"><h3>المستوى ٠: تهيئة المدخل (أي جودة تدخل، نطلّعها قابلة للفهم)</h3>
+<div class="tw"><table><tr><th>الطبقة</th><th>وش تسوي</th><th>الأداة</th><th>الفلتر / الحارس</th><th>القياس</th><th>الوقت</th><th>الحالة</th></tr>
+<tr><td>0.1 الصيغة</td><td>١٦ كيلوهرتز، قناتين، كشف التشبّع</td><td>numpy</td><td>إطار ٢٠ ms بالضبط</td><td>—</td><td>~0</td><td class="ok">مبني</td></tr>
+<tr><td>0.2 ملف الخط</td><td>أرضية الضجيج (آخر ٥ ث)، عرض النطاق (هاتف ضيق؟)، الوضوح، مستوى العميل</td><td>numpy</td><td>كل العتبات نسبية لهالأرقام</td><td>اختبار المايك: وضوح/مستوى</td><td>&lt;0.1 ms</td><td class="ok">مبني</td></tr>
+<tr><td>0.3 صدى الوكيل</td><td>يشيل صوت الوكيل اللي يرجع للمايك (سبيكر/لابتوب)</td><td>حالياً طرح طيفي + قياس التسرّب · <b>الترقية:</b> WebRTC AEC3 (<code>pywebrtc-audio</code> أو LiveKit APM، Apache)</td><td>ما يحسب كلام إلا لو أعلى من الصدى المتوقع، وكلماته مو من جملة الوكيل</td><td>dev-aug نسخة «e» + تجارب المايك</td><td>0.1–0.3 ms</td><td class="pl">مبني + ترقية مخططة</td></tr>
+<tr><td>0.4 تنظيف الضجيج</td><td>نسخة منظّفة للخصائص فقط</td><td>GTCRN أو DPDFNet (sherpa-onnx)</td><td><b>ما ندخلها Whisper</b>: الأبحاث تقول التنظيف يضر التفريغ</td><td>AUC الطبقات ٢–٣ قبل/بعد</td><td>~1.4 ms</td><td class="pl">مخطط</td></tr>
+</table></div></div>
+
+<div class="lv L1"><h3>المستوى ١: خصائص الصوت (كل ٢٠ ms)</h3>
+<div class="tw"><table><tr><th>الطبقة</th><th>وش تقيس</th><th>الأداة</th><th>القياس</th><th>الوقت</th><th>الحالة</th></tr>
+<tr><td>1.1 العلو</td><td>ديسيبل لكل إطار</td><td>numpy</td><td>أقوى إشارة منفردة: العميل ولا غيره (AUC 0.93)</td><td>~0</td><td class="ok">مبني</td></tr>
+<tr><td>1.2 طبقة الصوت F0</td><td>التردد الأساسي + نسبة الأصوات المجهورة</td><td>YIN (مكتوب عندنا، دقيق ١٠٠٪ على النغمات) · بديل: SwiftF0 (MIT، الأدق في الضجيج)</td><td>دقة على نغمات معروفة</td><td>~1 ms/ث صوت</td><td class="ok">مبني</td></tr>
+<tr><td>1.3 نقاء الصوت</td><td>صوت منتظم (بشر) ولا ضجيج</td><td>من YIN</td><td>AUC</td><td>ضمن 1.2</td><td class="ok">مبني</td></tr>
+<tr><td>1.4 الطيف</td><td>الوضوح (٢–٧ كيلو)، <b>الجهد الصوتي (٢–٥ كيلو)</b>، الميل، المركز، التغيّر</td><td>numpy FFT</td><td>AUC</td><td>~0.5 ms</td><td class="ok">مبني</td></tr>
+</table></div></div>
+
+<div class="lv L2"><h3>المستوى ٢: مصدر الصوت</h3>
+<div class="tw"><table><tr><th>الطبقة</th><th>السؤال</th><th>الأداة</th><th>القياس (على بيانات ما شافها)</th><th>الوقت</th><th>الحالة</th></tr>
+<tr><td>2.1 كلام؟</td><td>بشر يتكلم ولا صوت</td><td>Silero VAD v6 (MIT)</td><td>كلام مقابل كحة/بوري: <b>0.98</b></td><td>&lt;1 ms</td><td class="ok">مبني</td></tr>
+<tr><td>2.2 وش الصوت؟</td><td>كحة، ضحك، بوري، تلفزيون، طفل يبكي…</td><td>CED-tiny (Apache، ONNX عبر sherpa-onnx)</td><td>دقة التسمية (مطلوب اختياري: «تسمية اللي انسمع»)</td><td>خلفي</td><td class="pl">مخطط</td></tr>
+<tr><td>2.3 مين؟</td><td>نفس العميل ولا شخص ثاني</td><td><b>CAM++</b> (Apache، 7M، ONNX) بدل Resemblyzer</td><td>البصمة لحالها 0.819 ← <b>0.855</b> · مع العلو والطيف: <b>0.99</b></td><td>10 ms (خلفي)</td><td class="ok">مبني (ترقية اليوم)</td></tr>
+<tr><td>2.4 قريب ولا بعيد؟</td><td>العميل ماسك الجوال ولا تلفزيون بآخر الغرفة</td><td>فقد الترددات العالية + صدى الغرفة (سرعة تلاشي الصوت) + المدى الديناميكي + العلو، كلها نسبةً للعميل</td><td><b>0.99</b> (صدى الغرفة لحاله 0.87)</td><td>3 ms</td><td class="ok">مبني</td></tr>
+<tr><td>2.5 صدى الوكيل؟</td><td>صوت الوكيل نفسه راجع</td><td>تسرّب متعلَّم + تطابق كلمات الوكيل</td><td>تجارب السبيكر</td><td>~0</td><td class="ok">مبني</td></tr>
+</table></div></div>
+
+<div class="lv L3"><h3>المستوى ٣: كيف قالها (النبرة والانفعال)</h3>
+<div class="tw"><table><tr><th>الطبقة</th><th>وش تعرف</th><th>الطريقة</th><th>القياس</th><th>الحالة</th></tr>
+<tr><td>3.1 الانفعال</td><td>هادي ↔ معصّب (من الأبحاث: علو أعلى من المعتاد + جهد صوتي + طبقة أعلى وأعرض + سرعة)</td><td>نسبي لصوت العميل. ما فيه نموذج مشاعر موثوق للخليجي، فنستخدم مقاييس الانفعال بدل تصنيف «زعلان/فرحان»</td><td>طلب الدور مقابل التأييد: <b>0.85</b> لحاله</td><td class="ok">مبني</td></tr>
+<tr><td>3.2 نبرة آخر الكلمة</td><td>طالعة (سؤال/دوري) ولا نازلة (تأييد)</td><td>ميل الطبقة في آخر ٣٠٠ ms</td><td>«طيب» طالعة/نازلة</td><td class="ok">مبني</td></tr>
+<tr><td>3.3 نبرة الوكيل قبل التداخل</td><td>الأبحاث (عربي): الصوت النازل يدعو المستمع للتأييد</td><td>ميل طبقة الوكيل آخر ٦٠٠ ms</td><td>وزنه في النموذج</td><td class="ok">مبني</td></tr>
+<tr><td>3.4 السرعة والتردد</td><td>«اممم» الممدودة، الكلام البطيء</td><td>قمم العلو/ث + القاموس</td><td>AUC</td><td class="ok">مبني</td></tr>
+</table></div></div>
+
+<div class="lv L4"><h3>المستوى ٤: الكلام والمعنى</h3>
+<div class="tw"><table><tr><th>الطبقة</th><th>الأداة</th><th>الفلتر</th><th>القياس</th><th>الوقت</th><th>الحالة</th></tr>
+<tr><td>4.1 القراءة السريعة (كل ١٥٠ ms)</td><td>Whisper turbo 4-bit بنافذة ١٠ ث · <b>المرشّح:</b> Cohere Transcribe Arabic (أدق بكثير على اللهجة السعودية حسب المراجع)</td><td>بوابة VAD قبلها</td><td>⟦ASR⟧</td><td>96 ms</td><td class="pl">مقارنة جارية</td></tr>
+<tr><td>4.2 تنقية التفريغ</td><td>قائمة التخيّلات، كشف التكرار، ثقة Whisper، حذف الذيول</td><td>قراءة فيها تكرار = مرفوضة كلها</td><td>نسبة الكلام الوهمي على الكحة/الضحك</td><td>~0</td><td class="ok">مبني</td></tr>
+<tr><td>4.3 المعنى</td><td>قاموس خليجي (تأييد/تردد/طلب/محيّر/كلام جديد) · <b>الترقية:</b> CAMeLBERT-DA (Apache) مدرّب على بادئات الجمل</td><td>مطابقة تقريبية لكلمات الوكيل</td><td>طلب مقابل تأييد من الكلمات: <b>0.94</b></td><td>&lt;1 ms</td><td class="pl">مبني + ترقية مخططة</td></tr>
+<tr><td>4.4 السياق</td><td>نص الوكيل: سأل؟ كم رقم طلب؟ كلمات يرددها العميل</td><td>—</td><td>حالات OV-D02 وHT-D02</td><td>~0</td><td class="ok">مبني</td></tr>
+</table></div></div>
+
+<div class="lv L5"><h3>المستوى ٥: القرار المتعلّم (يسكت ولا يكمّل)</h3>
+<ul>
+<li><b>المدخل:</b> ٣٢ خاصية من كل المستويات فوق، تنحسب كل ما تنقرأ الكلمات.</li>
+<li><b>النموذج:</b> القواعد تقترح، والنموذج المتعلّم <b>يرفض</b> السكتة الضعيفة (أقل من ٢٠٪) أو <b>يقرر لحاله</b> لما يكون متأكد ٩٥٪+، بشرط إنه عرف صوت العميل. قارنّا خطي (LogReg) وأشجار (LightGBM).</li>
+<li><b>الحواجز:</b> صوت أخفض من العميل بكثير، أو بصمة مختلفة، أو كلمات الوكيل نفسه ← ما يسكت. وكلام عالي متواصل ثانيتين بصوت العميل ← يسكت.</li>
+<li><b>التدريب:</b> ٧٦٠ مكالمة (١٦٠ + ٦٠٠ مولّدة بدون نت). <b>الاختبار</b> على أصوات ما سمعها أبداً (قطري وعُماني)، وعلى مكالمات سرج ونسخها الأصعب.</li>
+<li><b>المقياس على مستوى المقطع:</b> الكلمات لحالها 0.94 ← كل المستويات <b>0.98</b>. والنتيجة على مستوى المكالمة: ⟦BIG⟧</li>
+</ul></div>
+
+<div class="lv L6"><h3>المستوى ٦: نهاية الدور (متى يرد)</h3>
+<ul><li>اكتمال الكلام (آخر كلمة «اممم/يعني/و»؟، «لحظة أشوفه»، عدد الأرقام مقابل اللي طلبه الوكيل).</li>
+<li><b>Smart Turn v3.2</b> (BSD، 8 MB، عربي من ٢٣ لغة، 20 ms): يحكم من النبرة. على بياناتنا AUC 0.63 فقط: ممتاز في وقفات إملاء الأرقام (0.02) وضعيف في «اممم» (0.91). فهو <b>إشارة مساعدة</b> تطوّل الانتظار، مو حَكَم لحاله. النتيجة: ⟦EOT⟧</li></ul></div>
+
+<h2>٣) ميزانية الوقت (من لحظة ما يوضح قصد العميل)</h2>
+<div class="tw"><table><tr><th>الخطوة</th><th>الوقت</th></tr>
+<tr><td>المستويات ٠–٢ كل إطار</td><td>~0.4 ms لكل ٢٠ ms (مقاس في المحاكي)</td></tr>
+<tr><td>انتظار القراءة الجاية</td><td>0–150 ms</td></tr>
+<tr><td>قراءة الكلام</td><td>~96 ms (Whisper) · Cohere: ⟦ASRMS⟧</td></tr>
+<tr><td>البصمة + خصائص الصوت + القرار (بالتوازي)</td><td>~13 ms</td></tr>
+<tr><td><b>المجموع</b></td><td><b>~110–260 ms</b> ← داخل الدرجة الكاملة (٣٠٠ ms). والوسيط المقاس حالياً 0–140 ms</td></tr>
+</table></div>
+
+<h2>٤) كيف نضمن إن كل تعديل يحسّن فعلاً (الفيدباك لوب)</h2>
+<div class="card"><ol>
+<li><b>فرضية:</b> وش نتوقع ولأي طبقة (مثلاً: «CAM++ يفرّق التلفزيون أحسن»).</li>
+<li><b>قياس الطبقة لحالها</b> على بنك المقاطع (<code>tools.layer_eval</code>).</li>
+<li><b>قياس النظام كامل</b> (<code>tools.loop</code>) على ٥ مجموعات: سرج، الأصعب، الجديدة، أصوات ما سمعها، تسجيلاتكم.</li>
+<li><b>القرار:</b> نقبل فقط إذا تحسّن على اللي ما شافه. ونسجّل كل شي في <code>docs/EXPERIMENTS.md</code>: الفرضية والأرقام والقرار، حتى المرفوض.</li>
+</ol>
+<p class="muted">أمثلة رفضناها: Whisper الكامل (نفس الدقة وأبطأ)، النافذة ٦ ث (تخيّلات أكثر)، تعديل الضابط الآلي (حفظ التدريب). ومثال قبلناه رغم إنه نزّل درجة سرج: النموذج الهجين (رفع اللي ما شافه).</p></div>
+
+<h2>٥) الأدوات اللي اخترناها من بحث الوكلاء (وليش)</h2>
+<div class="tw"><table><tr><th>الحاجة</th><th>اخترنا</th><th>الرخصة/الأمان</th><th>ورفضنا</th></tr>
+<tr><td>تفريغ الكلام</td><td>Cohere Transcribe Arabic (MLX 8-bit) · Whisper احتياط</td><td>Apache · safetensors</td><td>Qwen3-ASR (يحوّل اللهجة لفصحى)، MMS (ضعيف)، Jais-ASR (يحتاج trust_remote_code)</td></tr>
+<tr><td>البصمة</td><td>CAM++</td><td>Apache · ONNX</td><td>Resemblyzer (أضعف)</td></tr>
+<tr><td>كشف الكلام</td><td>Silero v6</td><td>MIT · ONNX</td><td>TEN VAD (رخصته تمنع منافسة Agora)، WebRTC VAD (ضعيف)</td></tr>
+<tr><td>نهاية الدور</td><td>Smart Turn v3.2</td><td>BSD · ONNX</td><td>LiveKit turn-detector (رخصته محصورة في منصتهم، وما فيه عربي)، VAP (أكاديمي فقط)</td></tr>
+<tr><td>إزالة الصدى</td><td>WebRTC AEC3 (pywebrtc-audio / LiveKit)</td><td>Apache</td><td>SpeexDSP (قديم)، DTLN-aec (مهجور)</td></tr>
+<tr><td>الطبقة F0</td><td>YIN عندنا · SwiftF0 بديل</td><td>MIT</td><td>Praat (GPL)، PESTO (متدرّب على غناء)</td></tr>
+<tr><td>المشاعر</td><td>مقاييس الانفعال النسبية</td><td>كودنا</td><td>audeering (غير تجاري)، emotion2vec (ثقيل وترخيصه غامض)</td></tr>
+<tr><td>فهم النص</td><td>القاموس · CAMeLBERT-DA مخطط</td><td>Apache</td><td>MARBERT (بحثي فقط)، SaudiBERT (غير تجاري)</td></tr>
+<tr><td>عقل الوكيل (العرض)</td><td>Qwen3-14B · Gemma 3 12B</td><td>Apache / Gemma terms</td><td>نماذج أكبر من ١٠ GB</td></tr>
+<tr><td>بيانات</td><td>توليد ذاتي + RIRS_NOISES (Apache) · SADA للتقييم فقط</td><td>SADA غير تجاري ← ما ندرّب عليه بسبب بند ملكية سرج</td><td>XTTS، MMS-TTS (غير تجاري)</td></tr>
+</table></div>
+
+<h2>٦) وين وصلنا وش الجاي</h2>
+<div class="card">⟦STATUS⟧</div>
+</div></body></html>

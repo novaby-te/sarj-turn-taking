@@ -20,7 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import clock, lexicon
+from . import acoustic, clock, lexicon
 from .echo import EchoSuppressor
 from .vad import SileroVAD
 
@@ -43,17 +43,25 @@ EOT_BASE_MS = 600        # silence after a complete answer before TAKE_TURN
 EOT_LONG_MS = 2500       # silence allowed when the answer is unfinished
 NEVER_STOP = 0           # 1: only record features (used to build training data)
 USE_SPEAKER = 1          # compare with the caller's own voiceprint
-SPK_MIN = 0.40           # below this similarity it is someone else (TV, a child across the room)...
+SPK_MIN = 0.30           # below this similarity it is someone else (TV, a child across the room)... (CAM++ scale)
 SPK_LOUD_DB = -2.0       # ...unless it is clearly louder than the caller usually is
 HYB_TH = 0.2            # hybrid: below this learned probability a rule-based stop is vetoed
 PROMOTE_TH = 0.95        # hybrid: above this learned probability the model may stop on its own (1.01 = never)
 PROMOTE_REL_DB = 4.0     # ...only when the voice is about as loud as the caller's
+EOT_SMART = 0            # 1: also ask Smart Turn v3.2 (voice-based end-of-turn) before taking the turn
+EOT_SMART_TH = 0.5       # below this P(complete) the caller is probably mid-thought...
+EOT_MID_MS = 1500        # ...so wait this long instead of EOT_BASE_MS
 USE_MODEL = 2            # 1: learned score (if models/policy.json exists), 0: rules only
 MODEL_TH = 0.5
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "policy.json"
 FEATURES = ["bid", "content", "bc", "filler", "echoed", "repeated_ambig", "ambig_alone", "question", "n",
-            "voiced_s", "rel_db", "only_bc", "agent_q_prev", "since_agent_start_s", "first_word_bid", "spk_sim", "cand_age_s", "logprob", "echo_ratio"]
+            "voiced_s", "rel_db", "only_bc", "agent_q_prev", "since_agent_start_s", "first_word_bid", "spk_sim", "cand_age_s", "logprob", "echo_ratio",
+            # levels 1-3 (how it sounds, relative to the caller's own voice) + the agent's own intonation before the overlap
+            "ac_effort_rel", "ac_hf_rel", "ac_dyn_rel", "ac_decay_rel", "ac_per_rel", "ac_f0_rel", "ac_f0_range", "ac_f0_slope",
+            "ac_rate_rel", "ac_voiced", "ac_far_score", "ac_arousal", "agent_slope"]
+AC_KEYS = ["effort_rel", "hf_rel", "dyn_rel", "decay_rel", "per_rel", "f0_rel", "f0_range", "f0_slope", "rate_rel", "voiced",
+           "far_score", "arousal"]
 
 
 def _load_model():
@@ -73,8 +81,11 @@ class TurnTaker:
             r = dict((asr_fn or transcribe)(audio))
             e = speaker.embed(audio[-16000 * 3:]) if USE_SPEAKER else None
             r["spk"] = e
+            r["prof"] = acoustic.segment_profile(audio[-16000 * 3:]) if len(audio) >= 1600 else None
             return r
         self.asr = clock.Async(job)
+        from . import eot as _eot
+        self.eot_job = clock.Async(_eot.p_complete)
         self.vad = SileroVAD()
         self.echo = EchoSuppressor()
         self.model = _load_model() if USE_MODEL else None
@@ -90,6 +101,8 @@ class TurnTaker:
         self.ref_audio: list[np.ndarray] = []
         self.ref_emb = None
         self.ref_emb_n = 0
+        self.ref_prof = None                 # acoustic profile of the caller's own voice (levels 1-3 reference)
+        self.agent_ring = deque(maxlen=50)   # last 1 s of the agent's voice (its intonation before an overlap)
         self.ref_db = DEFAULT_REF_DB
         self.floor = deque(maxlen=250)
         self.ring = deque(maxlen=1500)      # last 30 s of caller audio, 20 ms frames
@@ -138,6 +151,7 @@ class TurnTaker:
         resid_db, echo_db = self.echo.process(agent, caller, self.agent_active)
         p = self.vad.push(caller)
         self.ring.append(caller.copy())
+        self.agent_ring.append(agent.copy())
         if p < 0.3:
             self.floor.append(raw_db)
         floor = self._floor_db()
@@ -157,11 +171,16 @@ class TurnTaker:
                 n = len(self.ref_audio)
                 if USE_SPEAKER and n >= 40 and n - self.ref_emb_n >= 25:
                     self.ref_emb = self._speaker.embed(np.concatenate(self.ref_audio))
+                    self.ref_prof = acoustic.segment_profile(np.concatenate(self.ref_audio))
                     self.ref_emb_n = n
 
         out = None
         for tag, res, ms in self.asr.poll():
             out = self._on_asr(tag, res, ms) or out
+        for tag, res, ms in self.eot_job.poll():
+            if self.turn is not None and tag[1] == self.turn["id"] and tag[2] == self.turn.get("pause_id"):
+                self.turn["p_complete"] = res
+                self._log("smart_turn", p=None if res is None else round(res, 2))
         if speaking:
             if not self.stopped:
                 out = self._while_agent_speaks(is_speech, resid_db) or out
@@ -179,7 +198,7 @@ class TurnTaker:
                 return None
             self.cand_id += 1
             c = self.cand = {"id": self.cand_id, "start": self.ms - 120, "voiced": 0, "last": self.ms,
-                             "levels": [], "sub": -1e9, "text": "", "feats": None}
+                             "levels": [], "sub": -1e9, "text": "", "feats": None, "agent_slope": self._agent_slope()}
             self._log("candidate", level_rel=round(db - self.ref_db, 1))
         if is_speech:
             c["voiced"] += FRAME_MS
@@ -202,6 +221,17 @@ class TurnTaker:
             return self._stop("sustained loud speech", c)
         return None
 
+    def _agent_slope(self) -> float:
+        """Pitch slope (semitones/s) of the agent's last 600 ms: a falling agent invites a backchannel."""
+        a = list(self.agent_ring)[-30:]
+        if len(a) < 15:
+            return 0.0
+        x = np.concatenate(a)
+        if np.sqrt(np.mean(x.astype(np.float64) ** 2)) < 100:
+            return 0.0
+        v = acoustic.segment_profile(x)["f0_slope"]
+        return 0.0 if v != v else float(np.clip(v, -200, 200))
+
     def _cand_rel(self, c) -> float:
         return float(np.percentile(c["levels"], 80)) - self.ref_db if c["levels"] else -99.0
 
@@ -214,7 +244,9 @@ class TurnTaker:
                 "since_agent_start_s": (self.ms - self.agent_start_ms) / 1000,
                 "first_word_bid": int(a["first_bid"] == 0), "spk_sim": c.get("spk", 0.6),
                 "cand_age_s": (self.ms - c["start"]) / 1000,
-                "logprob": c.get("logprob", -1.0), "echo_ratio": a["echoed"] / max(1, a["n"])}
+                "logprob": c.get("logprob", -1.0), "echo_ratio": a["echoed"] / max(1, a["n"]),
+                **{"ac_" + k: float(np.nan_to_num(np.clip(c.get("ac", {}).get(k, 0.0), -300, 300))) for k in AC_KEYS},
+                "agent_slope": c.get("agent_slope", 0.0)}
 
     def score(self, f: dict) -> tuple[float, str]:
         """P(the caller wants the floor). Learned weights if available, else transparent rules."""
@@ -225,9 +257,7 @@ class TurnTaker:
         rp, why = self._rules(f)
         if not self.model:
             return rp, why
-        z = self.model["bias"] + sum(self.model["w"][k] * (f[k] - self.model["mu"][k]) / (self.model["sd"][k] or 1.0)
-                                     for k in FEATURES)
-        mp = float(1 / (1 + np.exp(-z)))
+        mp = self._model_p(f)
         if USE_MODEL == 1:                       # learned score alone
             return mp, f"model p={mp:.2f}"
         # USE_MODEL == 2 (hybrid): the rules propose, the learned model can veto an unlikely stop
@@ -237,6 +267,17 @@ class TurnTaker:
         if rp < MODEL_TH and mp >= PROMOTE_TH and f["n"] >= 1 and f["rel_db"] > -PROMOTE_REL_DB and knows_caller:
             return mp, f"model is sure (p={mp:.2f}) although the words are unclear"
         return rp, f"{why} (model p={mp:.2f})"
+
+    def _model_p(self, f: dict) -> float:
+        m = self.model
+        feats = m.get("features", FEATURES)
+        if m.get("type") == "lgbm":
+            if not hasattr(self, "_booster"):
+                import lightgbm as lgb
+                self._booster = lgb.Booster(model_str=m["booster"])
+            return float(self._booster.predict(np.array([[f.get(k, 0.0) for k in feats]], float))[0])
+        z = m["bias"] + sum(m["w"][k] * (f.get(k, 0.0) - m["mu"][k]) / (m["sd"][k] or 1.0) for k in feats)
+        return float(1 / (1 + np.exp(-z)))
 
     def _rules(self, f: dict) -> tuple[float, str]:
         if f["bid"] >= 1:
@@ -264,6 +305,8 @@ class TurnTaker:
             return None
         text = res.get("text", "")
         c["logprob"] = res.get("logprob", -1.0)
+        if res.get("prof"):
+            c["ac"] = acoustic.relative(res["prof"], self.ref_prof)
         if res.get("spk") is not None and self.ref_emb is not None:
             c["spk"] = float(np.dot(res["spk"], self.ref_emb))
         a = lexicon.analyse(text, self.agent_text)
@@ -303,9 +346,15 @@ class TurnTaker:
         if silence >= 160 and self.ms - t["sub"] > 400 and t["sub"] < t["last"]:
             if self.asr.submit(("turn", t["id"], self.ms), self._audio_since(max(t["start"], self.ms - 29000))):
                 t["sub"] = self.ms
+        if EOT_SMART and silence >= 200 and t.get("pause_id") != t["last"]:
+            t["pause_id"], t["p_complete"] = t["last"], None
+            self.eot_job.submit(("eot", t["id"], t["last"]), self._audio_since(max(t["start"], self.ms - 8000)))
         need = lexicon.expected_digits(self.agent_text)
         unfinished = lexicon.is_incomplete(t["text"]) or (need is not None and lexicon.count_digits(t["text"]) < need)
         wait = EOT_LONG_MS if unfinished else EOT_BASE_MS
+        pc = t.get("p_complete")
+        if EOT_SMART and not unfinished and pc is not None and pc < EOT_SMART_TH:
+            wait = EOT_MID_MS                          # the voice says «not finished yet»
         if silence >= wait:
             t["done"] = True
             self._log("TAKE_TURN", text=t["text"], waited=silence)
