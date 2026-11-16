@@ -5,3 +5,7 @@ __pycache__/
 .pytest_cache/
 *-heard.wav
 .DS_Store
+.cache/
+data/synth/
+data/dev-aug/
+data/live/audio/
