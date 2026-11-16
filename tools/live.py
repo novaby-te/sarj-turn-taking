@@ -129,12 +129,14 @@ async def ws_handler(ws):
             frames_a, frames_c, decisions, sent_trace = [], [], [], 0
             agent_text = msg.get("text", "")
             if msg.get("calibrate"):
+                tt.calibrating = True
                 await ws.send(json.dumps({"type": "calibrating"}))   # caller says «هلا، معك» first (like U0)
             else:
                 tt.on_agent_start(agent_text)
                 await ws.send(json.dumps({"type": "started"}))
             t_start = time.time()
         elif msg["type"] == "agent_start" and tt:
+            tt.calibrating = False
             tt.on_agent_start(agent_text)
             await ws.send(json.dumps({"type": "started", "ref_db": round(tt.ref_db, 1),
                                       "voiceprint": tt.ref_emb is not None}))

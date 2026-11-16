@@ -103,6 +103,7 @@ class TurnTaker:
         self.cand_id = 0
         self.turn = None                     # caller turn while the agent is silent (end-of-turn track)
         self.prev_speech = False
+        self.calibrating = False             # live demo: the caller says a few words before the agent starts
 
     def on_scenario_start(self):
         self.reset_call()
@@ -145,7 +146,9 @@ class TurnTaker:
         is_speech = p > VAD_TH and (level_ok or (self.cand is not None and resid_db > floor + SNR_DB - 3))
 
         # learn the caller's own voice level from what they say while the agent is silent (U0 first)
-        if not speaking and p > 0.6 and raw_db > floor + 6:
+        # (only after the agent has spoken once: before that, a TV or a room could be mistaken for the caller)
+        heard_agent = self.agent_end_ms > 0 or self.calibrating
+        if not speaking and heard_agent and p > 0.6 and raw_db > floor + 6:
             self.ref_levels.append(raw_db)
             if len(self.ref_levels) >= 8:
                 self.ref_db = float(np.percentile(self.ref_levels[-150:], 80))
