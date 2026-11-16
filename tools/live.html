@@ -57,6 +57,15 @@ table{width:100%;border-collapse:collapse;font-size:14px}td,th{border-bottom:1px
 <!-- ====================== MIC ====================== -->
 <section id="mic">
 <div class="card">
+  <div class="step"><div class="num">٠</div><div style="flex:1"><b>جهّز المايك</b> <span class="sub">(مرة وحدة)</span>
+  <div class="row" style="margin-top:8px">
+    <label><input type="radio" name="out" value="head" checked> 🎧 سمّاعة رأس <span class="sub">(الأفضل: صوتك يوصل صافي)</span></label>
+    <label><input type="radio" name="out" value="spk"> 🔈 سمّاعات اللابتوب <span class="sub">(المتصفح يحاول يشيل صوت الوكيل من المايك)</span></label>
+  </div>
+  <div class="row" style="margin-top:8px"><button id="mtest">🎙️ اختبر المايك</button><span class="sub" id="mtestinfo">اضغط وقل: «كم القيمة؟» (٣ ثواني)</span></div>
+  <div id="mres" class="sub" style="margin-top:6px"></div></div></div>
+</div>
+<div class="card">
   <div class="step"><div class="num">١</div><div style="flex:1"><b>وش تبي تجرب؟</b> <span class="sub">(اختر تحدي، والصفحة تقول لك هل النموذج نجح)</span>
   <div class="chips" id="chips" style="margin-top:8px"></div></div></div>
 </div>
@@ -79,7 +88,8 @@ table{width:100%;border-collapse:collapse;font-size:14px}td,th{border-bottom:1px
   <div class="sub" id="why"></div>
   <div class="row" style="margin-top:8px"><span class="sub">سرعة القرار:</span><span class="score" id="lat">—</span><span class="sub" id="latd"></span></div>
   <div class="verdict" id="verdict"></div>
-  <label class="sub" style="display:block;margin-top:8px"><input type="checkbox" id="save" checked> احفظ المحاولة كبيانات تدريب (تدخل في القياس الجاي)</label>
+  <div id="labelbox" class="hide" style="margin-top:10px"><b>وش كان الصح في هالمحاولة؟</b> <span class="sub">(تنحفظ كبيانات تدريب بهالتسمية)</span>
+  <div class="row" style="margin-top:6px"><button id="lstop">✋ كان لازم يسكت</button><button id="lkeep">🗣️ كان لازم يكمّل</button><button id="lskip">ما أبي أحفظها</button><span class="sub" id="saved"></span></div></div>
 </div>
 
 <div class="card"><div class="row"><b>نتيجتك في هالجلسة</b><span class="score" id="tally">0 / 0</span></div>
@@ -111,6 +121,7 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
 
 // ------------------------------------------------ challenges
 const CH = [
+  {say: 'تكلّم بحرية', note: 'قل اللي تبي، وبعدها تحدد وش كان الصح', exp: null},
   {say: 'إيه', note: 'تأييد قصير', exp: 'KEEP'},
   {say: 'أها… تمام', note: 'متابعة', exp: 'KEEP'},
   {say: 'إيه والله صادق، صح', note: 'موافقة طويلة', exp: 'KEEP'},
@@ -127,7 +138,7 @@ const CH = [
 let cur = 0;
 CH.forEach((c, i) => {
   const d = document.createElement('div'); d.className = 'chip' + (i === 0 ? ' on' : '');
-  d.innerHTML = `<b dir="rtl">${esc(c.say)}</b><span>${esc(c.note)} · <span class="exp ${c.exp === 'STOP' ? 's' : 'k'}">${c.exp === 'STOP' ? 'لازم يسكت' : 'لازم يكمّل'}</span></span>`;
+  d.innerHTML = `<b dir="rtl">${esc(c.say)}</b><span>${esc(c.note)}${c.exp ? ` · <span class="exp ${c.exp === 'STOP' ? 's' : 'k'}">${c.exp === 'STOP' ? 'لازم يسكت' : 'لازم يكمّل'}</span>` : ''}</span>`;
   d.onclick = () => { cur = i; document.querySelectorAll('.chip').forEach((x, j) => x.classList.toggle('on', j === i)); };
   $('#chips').append(d);
 });
@@ -173,22 +184,60 @@ class P extends AudioWorkletProcessor {
 }
 registerProcessor('p', P);`;
 
+let calT0 = null, quietSince = null, spoke = false;
 let ctx, node, ws, firstSpeech = null, stopped = false, running = false, lastHeard = '', tries = [], agentEnded = false;
 const log = t => { const d = document.createElement('div'); d.textContent = t; $('#log').prepend(d); };
 function setState(cls, big, small) { $('#state').className = cls; $('#state').innerHTML = esc(big) + (small ? `<small>${esc(small)}</small>` : ''); }
 
+let srcNode = null, micMode = null, testFrames = null;
+const mode = () => document.querySelector('input[name=out]:checked').value;
 async function ensureAudio() {
-  if (ctx) return;
-  ctx = new AudioContext();
-  await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([worklet], {type: 'application/javascript'})));
-  const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: false, autoGainControl: true, channelCount: 1}});
-  node = new AudioWorkletNode(ctx, 'p', {numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]});
-  ctx.createMediaStreamSource(stream).connect(node); node.connect(ctx.destination);
-  node.port.onmessage = e => {
-    if (e.data.frame && ws && ws.readyState === 1) ws.send(e.data.frame);
-    if (e.data.ended && ws && ws.readyState === 1) { agentEnded = true; ws.send(JSON.stringify({type: 'agent_end'})); setTimeout(finish, 1500); }
-  };
+  if (!ctx) {
+    ctx = new AudioContext();
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([worklet], {type: 'application/javascript'})));
+    node = new AudioWorkletNode(ctx, 'p', {numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]});
+    node.connect(ctx.destination);
+    node.port.onmessage = onNode;
+  }
+  if (micMode !== mode()) {                 // headphones: raw microphone · speakers: browser echo cancellation
+    if (srcNode) { srcNode.mediaStream.getTracks().forEach(t => t.stop()); srcNode.disconnect(); }
+    const aec = mode() === 'spk';
+    const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: aec, noiseSuppression: false, autoGainControl: true, channelCount: 1}});
+    srcNode = ctx.createMediaStreamSource(stream); srcNode.connect(node); micMode = mode();
+  }
 }
+function onNode(e) {
+    if (e.data.frame && testFrames) testFrames.push(new Int16Array(e.data.frame.slice(0)));
+    if (e.data.frame && ws && ws.readyState === 1 && (running || testFrames)) ws.send(e.data.frame);
+    if (e.data.ended && ws && ws.readyState === 1) { agentEnded = true; ws.send(JSON.stringify({type: 'agent_end'})); setTimeout(finish, 1500); }
+}
+
+// ---- mic test
+$('#mtest').onclick = async () => {
+  try { await ensureAudio(); } catch (e) { $('#mres').textContent = 'المتصفح ما سمح بالمايك: اضغط أيقونة القفل جنب الرابط واسمح بالمايك'; return; }
+  await ctx.resume();
+  $('#mtest').disabled = true; let n = 3; $('#mtestinfo').textContent = `تكلّم الحين: «كم القيمة؟» … ${n}`;
+  ws = new WebSocket('ws://127.0.0.1:8771');
+  ws.onopen = () => { ws.send(JSON.stringify({type: 'test_start'})); testFrames = [];
+    const iv = setInterval(() => { n--; $('#mtestinfo').textContent = n > 0 ? `تكلّم الحين: «كم القيمة؟» … ${n}` : 'نحلل…';
+      if (n <= 0) { clearInterval(iv); ws.send(JSON.stringify({type: 'test_end'})); } }, 1000); };
+  ws.onmessage = e => {
+    const m = JSON.parse(e.data); if (m.type !== 'test_result') return;
+    const fr = testFrames; testFrames = null; $('#mtest').disabled = false; $('#mtestinfo').textContent = 'اختبرها مرة ثانية لو تبي';
+    let q;
+    if (m.clarity_db === null) q = '🔇 ما وصلنا صوت. تأكد إن المايك شغّال ومسموح للمتصفح';
+    else if (m.clarity_db > -22 && m.level_db > -34) q = '✅ صوتك واضح';
+    else if (m.clarity_db > -28) q = m.level_db <= -34 ? '🟡 صوتك واطي: قرّب من اللابتوب أو ارفع صوتك شوي' : '🟡 صوتك مكتوم شوي';
+    else q = '🔴 صوتك يوصل مكتوم جداً: جرّب الخيار الثاني فوق (سمّاعة/لابتوب)، أو من مركز التحكم في الماك: «وضع الميكروفون» ← «قياسي»، أو قرّب من اللابتوب';
+    $('#mres').innerHTML = `${q} <span class="sub">(وضوح ${m.clarity_db ?? '—'} dB، المستوى ${m.level_db} dB)</span><br>النموذج سمع: <b>«${esc(m.text || '…')}»</b> · وتسمع تسجيلك الحين`;
+    if (fr && fr.length) {                           // play back what the model received
+      const buf = ctx.createBuffer(1, fr.length * 320, 16000), ch = buf.getChannelData(0);
+      fr.forEach((f, i) => { for (let k = 0; k < 320; k++) ch[i * 320 + k] = f[2 * k + 1] / 32768; });
+      const b = ctx.createBufferSource(); b.buffer = buf; b.connect(ctx.destination); b.start();
+    }
+    try { ws.close(); } catch (er) {}
+  };
+};
 
 async function start() {
   if (running) return;
@@ -201,17 +250,27 @@ async function start() {
   const audio = await ctx.decodeAudioData(await (await fetch(url)).arrayBuffer());
   running = true; stopped = false; firstSpeech = null; lastHeard = ''; agentEnded = false; $('#go').disabled = true;
   $('#log').innerHTML = ''; $('#heard').textContent = '—'; $('#why').textContent = ''; $('#lat').textContent = '—'; $('#latd').textContent = '';
-  $('#verdict').className = 'verdict'; $('#verdict').textContent = '';
+  $('#verdict').className = 'verdict'; $('#verdict').textContent = ''; $('#labelbox').classList.add('hide');
+  $('#labelbox').querySelectorAll('button').forEach(b => b.disabled = false);
   ws = new WebSocket('ws://127.0.0.1:8771');
   ws.onopen = () => ws.send(JSON.stringify({type: 'start', text, calibrate: true}));
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
-    if (m.type === 'calibrating') { setState('cal', 'قل: «هلا، إيه معك»', 'نتعرّف على صوتك… (ثانيتين)'); setTimeout(() => ws.send(JSON.stringify({type: 'agent_start'})), 2600); }
+    if (m.type === 'calibrating') {
+      setState('cal', 'قل: «هلا، إيه معك»', 'نتعرّف على صوتك…'); calT0 = performance.now(); quietSince = null; spoke = false;
+      const iv = setInterval(() => {                      // start the agent only once you have spoken and then gone quiet
+        const el = performance.now() - calT0;
+        if (spoke && quietSince && performance.now() - quietSince > 600 || el > 6000) {
+          clearInterval(iv); ws.send(JSON.stringify({type: 'agent_start'}));
+        } else if (spoke && quietSince) setState('cal', 'تمام، اسكت لحظة…', 'الوكيل بيبدأ');
+      }, 100);
+    }
     if (m.type === 'started') {
       if (m.ref_db !== undefined) log(`تعرّفنا على صوتك: مستواه ${m.ref_db} dB${m.voiceprint ? '، وبصمته جاهزة' : ' (البصمة تحتاج كلام أطول)'}`);
-      node.port.postMessage({agent: audio.getChannelData(0).slice()});
+      calT0 = null; node.port.postMessage({agent: audio.getChannelData(0).slice()});
       setState('talk', 'الوكيل يتكلم…', `الحين قل: ${CH[cur].say}`);
     }
+    if (m.type === 'meter' && calT0 !== null) { if (m.vad > 0.5) { spoke = true; quietSince = null; } else if (spoke && !quietSince) quietSince = performance.now(); }
     if (m.type === 'meter') { $('#mlvl').style.width = Math.max(0, Math.min(100, (m.db + 70) * 1.6)) + '%'; $('#vad').textContent = m.vad > 0.5 ? 'يسمعك 🟢' : 'هادي'; }
     if (m.type === 'trace') {
       if (m.kind === 'candidate') { firstSpeech = firstSpeech ?? m.t; log(`${(m.t/1000).toFixed(2)}ث بدأ صوتك (${m.level_rel} dB عن صوتك المعتاد)`); }
@@ -224,25 +283,35 @@ async function start() {
       log(`${(m.t/1000).toFixed(2)}ث قرار: اسكت`);
       setTimeout(finish, 2500);
     }
-    if (m.type === 'saved') log('انحفظت كبيانات: ' + m.sid);
+    if (m.type === 'saved') { log('انحفظت كبيانات: ' + m.sid); $('#saved').textContent = '✓ انحفظت (' + m.sid + ')'; }
   };
 }
 
 function finish() {
   if (!running) return; running = false; $('#go').disabled = false;
-  const c = CH[cur], ok = (c.exp === 'STOP') === stopped;
   if (!stopped) setState('', agentEnded ? 'الوكيل كمّل كلامه للآخر' : 'انتهت المحاولة', 'ما سكت');
+  const c = CH[cur];
+  if (c.exp) record(c.exp); else { $('#verdict').className = 'verdict'; }
+  $('#labelbox').classList.toggle('hide', firstSpeech == null); $('#saved').textContent = '';
+}
+function record(exp) {                               // verdict against what SHOULD have happened
+  const c = CH[cur], ok = (exp === 'STOP') === stopped;
   $('#verdict').className = 'verdict ' + (ok ? 'ok' : 'bad');
-  $('#verdict').textContent = ok ? `✓ النموذج تصرّف صح (${c.exp === 'STOP' ? 'سكت' : 'كمّل'})`
-                                 : `✗ النموذج غلط: كان لازم ${c.exp === 'STOP' ? 'يسكت' : 'يكمّل'}`;
-  tries.push({c, ok, stopped, heard: lastHeard, lat: $('#lat').textContent});
+  $('#verdict').textContent = ok ? `✓ النموذج تصرّف صح (${exp === 'STOP' ? 'سكت' : 'كمّل'})` : `✗ النموذج غلط: كان لازم ${exp === 'STOP' ? 'يسكت' : 'يكمّل'}`;
+  tries.push({ok});
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td>${tries.length}</td><td>${esc(c.say)}</td><td>${c.exp === 'STOP' ? 'يسكت' : 'يكمّل'}</td><td>${ok ? '✓' : '✗'} ${stopped ? 'سكت' : 'كمّل'}</td><td>${esc(lastHeard)}</td><td>${stopped ? esc($('#lat').textContent) : '—'}</td>`;
+  tr.innerHTML = `<td>${tries.length}</td><td>${esc(c.say)}</td><td>${exp === 'STOP' ? 'يسكت' : 'يكمّل'}</td><td>${ok ? '✓' : '✗'} ${stopped ? 'سكت' : 'كمّل'}</td><td>${esc(lastHeard)}</td><td>${stopped ? esc($('#lat').textContent) : '—'}</td>`;
   $('#hist').append(tr);
   $('#tally').textContent = `${tries.filter(t => t.ok).length} / ${tries.length}`;
-  if ($('#save').checked && ws && ws.readyState === 1 && firstSpeech != null) ws.send(JSON.stringify({type: 'save', expected: c.exp}));
-  setTimeout(() => { try { ws.close(); } catch (e) {} }, 800);
 }
+function label(exp) {
+  if (!CH[cur].exp) record(exp);                     // free talk: your answer is the truth
+  if (exp && ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'save', expected: exp}));
+  else $('#saved').textContent = 'ما انحفظت';
+  $('#labelbox').querySelectorAll('button').forEach(b => b.disabled = true);
+  setTimeout(() => { try { ws.close(); } catch (e) {} }, 1500);
+}
+$('#lstop').onclick = () => label('STOP'); $('#lkeep').onclick = () => label('KEEP'); $('#lskip').onclick = () => label(null);
 $('#go').onclick = start;
 $('#end').onclick = () => { if (node) node.port.postMessage({stop: true}); finish(); };
 

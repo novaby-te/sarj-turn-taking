@@ -125,8 +125,12 @@ async def ws_handler(ws):
     t_start = None
     decisions = []
     sent_trace = 0
+    test_buf = None                      # mic test: collect a few seconds, transcribe, report clarity
     async for raw in ws:
         if isinstance(raw, bytes):
+            if test_buf is not None:
+                test_buf.append(np.frombuffer(raw, dtype="<i2").reshape(-1, 2)[:, 1].copy())
+                continue
             if tt is None:
                 continue
             fr = np.frombuffer(raw, dtype="<i2").reshape(-1, 2)
@@ -168,11 +172,31 @@ async def ws_handler(ws):
             tt.on_agent_end()
             agent_end_ms = len(frames_a) * 20
             await ws.send(json.dumps({"type": "agent_end", "t": agent_end_ms}))
-        elif msg["type"] == "calibrate":
-            pass
+        elif msg["type"] == "test_start":
+            test_buf = []
+        elif msg["type"] == "test_end" and test_buf is not None:
+            x = np.concatenate(test_buf) if test_buf else np.zeros(1600, np.int16)
+            test_buf = None
+            from turn.asr import transcribe
+            r = await asyncio.to_thread(transcribe, x, False)
+            await ws.send(json.dumps({"type": "test_result", "text": r.get("text", ""), **clarity(x)}, ensure_ascii=False))
         elif msg["type"] == "save" and frames_a:
             sid = save_try(frames_a, frames_c, agent_text, msg["expected"], msg.get("agent_end_ms"), tt.trace)
             await ws.send(json.dumps({"type": "saved", "sid": sid}))
+
+
+def clarity(x: np.ndarray) -> dict:
+    """How much of the voice's detail (2-4 kHz, where consonants live) reaches us. Normal speech: about -20 dB
+    relative to 0.3-1 kHz; a muffled microphone: -25 dB or worse."""
+    from scipy import signal
+    y = x.astype(np.float64)
+    if np.sqrt(np.mean(y ** 2)) < 100:
+        return {"clarity_db": None, "level_db": round(float(20 * np.log10(np.sqrt(np.mean(y ** 2)) / 32768 + 1e-9)), 1)}
+    f, P = signal.welch(y, 16000, nperseg=1024)
+    hi = P[(f >= 2000) & (f < 4000)].sum()
+    lo = P[(f >= 300) & (f < 1000)].sum()
+    return {"clarity_db": round(float(10 * np.log10(hi / lo)), 1),
+            "level_db": round(float(20 * np.log10(np.sqrt(np.mean(y ** 2)) / 32768)), 1)}
 
 
 def save_try(fa, fc, agent_text, expected, agent_end_ms, trace):

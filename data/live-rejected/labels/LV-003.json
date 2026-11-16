@@ -1,0 +1,58 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "LV-003",
+ "split": "live",
+ "category": "GI",
+ "subtype": "live",
+ "difficulty": 2,
+ "dialect": "live-user",
+ "elicitation": "naturalistic",
+ "speakers": [
+  {
+   "speaker_id": "U",
+   "role": "caller",
+   "source": "live microphone"
+  }
+ ],
+ "acoustic": {
+  "conditions": [
+   "live-mic"
+  ]
+ },
+ "audio": {
+  "file": "LV-003.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 8820
+ },
+ "context": {
+  "use_case": "live test",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A1",
+   "start_ms": 1000,
+   "end_ms": 8810,
+   "text": "هلا فيك. بس حبيت أوضح لك طريقة التقسيط: المبلغ الإجمالي ألف ومية وعشرين ريال، ينقسم على أربع دفعات، كل دفعة مئتين وثمانين ريال، أول دفعة تنخصم اليوم، والباقي كل شهر بنفس التاريخ، وقبل كل دفعة بيوصلك تذكير برسالة، وتقدر تشوف كل الدفعات من التطبيق."
+  }
+ ],
+ "user_segments": [],
+ "events": [
+  {
+   "event_id": "LV-003.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 4260,
+   "offset_ms": 6320,
+   "evident_ms": 4760,
+   "deadline_ms": 6260
+  }
+ ],
+ "provenance": {
+  "label_status": "user_labelled_live"
+ }
+}
