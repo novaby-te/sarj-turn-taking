@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نموذج سرج للفريق</title>
+<style>
+:root{--bg:#f7f6f3;--card:#fff;--ink:#1b1b1b;--muted:#666;--line:#e4e1db;--acc:#3e3aa8;--acc2:#ecebfa;--good:#2e9b63;--bad:#d64045;--warn:#c98a10;--code:#f1efea;--l1:#e8f3ff;--l2:#fff4e5;--l3:#eefaf2;--l4:#fdecef;--l5:#f3ecfd}
+@media (prefers-color-scheme:dark){:root{--bg:#121214;--card:#1c1c20;--ink:#ececec;--muted:#a0a0a8;--line:#30303a;--acc:#a9a6ff;--acc2:#26254a;--code:#26262c;--l1:#16263a;--l2:#352a14;--l3:#16301f;--l4:#381a20;--l5:#2a1d3d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"SF Arabic","Geeza Pro","Noto Naskh Arabic",Tahoma,sans-serif;line-height:1.9;font-size:16px}
+.wrap{max-width:980px;margin:0 auto;padding:28px 16px 90px}
+header{background:var(--acc);color:#fff;border-radius:18px;padding:28px 22px;margin-bottom:20px}
+@media (prefers-color-scheme:dark){header{color:#111}}
+header h1{margin:0 0 6px;font-size:28px}header p{margin:0;opacity:.92}
+h2{font-size:22px;margin:42px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+h3{font-size:18px;margin:24px 0 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.kpi .l{font-size:13px;color:var(--muted)}.kpi .v{font-size:28px;font-weight:800}.kpi .s{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card)}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:right;vertical-align:top}th{background:var(--acc2)}
+.tw{overflow-x:auto}
+code,pre{font-family:ui-monospace,Menlo,monospace;background:var(--code);border-radius:6px;direction:ltr;unicode-bidi:isolate}
+code{padding:1px 5px;font-size:13px}pre{padding:12px;overflow-x:auto;font-size:13px;text-align:left}
+.note{border-inline-start:4px solid var(--warn);background:var(--card);padding:10px 14px;border-radius:8px;margin:12px 0}
+.ok{border-inline-start-color:var(--good)}
+.flow{display:flex;flex-direction:column;gap:6px}
+.lay{border-radius:12px;padding:12px 14px;border:1px solid var(--line)}
+.lay b.t{font-size:16px}.lay .m{font-size:13px;color:var(--muted)}
+.L1{background:var(--l1)}.L2{background:var(--l2)}.L3{background:var(--l3)}.L4{background:var(--l4)}.L5{background:var(--l5)}
+.arrow{text-align:center;color:var(--muted);font-size:18px;line-height:1.1}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.two{grid-template-columns:1fr}}
+.tl{font-size:14px}.tl div{display:grid;grid-template-columns:90px 1fr;gap:10px;border-bottom:1px dashed var(--line);padding:4px 0}
+.tl b{font-family:ui-monospace,Menlo,monospace;direction:ltr;text-align:left}
+.states{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.states span{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}.states i{color:var(--muted);font-style:normal}
+ul{padding-inline-start:22px}li{margin:3px 0}.muted{color:var(--muted)}
+.toc a{color:var(--acc);text-decoration:none}
+.pill{display:inline-block;border-radius:999px;padding:0 9px;font-size:12px;background:var(--acc2)}
+</style>
+</head>
+<body><div class="wrap">
+
+<header>
+<h1>نموذج «متى يسكت الوكيل»: شرح كامل للفريق</h1>
+<p>وش بنينا، وكيف يسمع، وكيف يقرر، وكيف يرد ويكمّل المكالمة، وكل طبقة بالتفصيل. اقرأه مرة وحدة وبتفهم المشروع كامل.</p>
+</header>
+
+<div class="card toc"><b>المحتويات</b><ol>
+<li><a href="#a">القصة باختصار</a></li>
+<li><a href="#b">الصورة الكاملة (رسم)</a></li>
+<li><a href="#c">الجزء الأول: نموذج القرار، طبقة طبقة</a></li>
+<li><a href="#d">مثال حي: «لا لا، لحظة» بالملي ثانية</a></li>
+<li><a href="#e">كيف يتأقلم مع أي مكالمة جديدة</a></li>
+<li><a href="#f">الجزء الثاني: الوكيل اللي يرد ويكمّل (المكالمة الكاملة)</a></li>
+<li><a href="#g">النماذج المستخدمة وليش</a></li>
+<li><a href="#h">البيانات</a></li>
+<li><a href="#i">الأرقام</a></li>
+<li><a href="#j">كيف تجرب وكيف تشتغل عليه</a></li>
+<li><a href="#k">توزيع الشغل على الفريق</a></li>
+<li><a href="#l">قاموس المصطلحات</a></li>
+</ol></div>
+
+<h2 id="a">١) القصة باختصار</h2>
+<div class="card">
+<p><b>التحدي من سرج:</b> وكيل صوتي آلي يتكلم مع عميل بالتلفون. وهو يتكلم، العميل ممكن يقول «إيه» (يعني كمّل)، أو «لا لا لحظة» (يعني اسكت واسمعني)، أو يكح، أو التلفزيون شغّال وراه. المطلوب نظام يسمع المكالمة كل <b>٢٠ ملي ثانية</b> ويقرر: <b>يكمّل</b> الوكيل ولا <b>يسكت</b>؟ وبسرعة: الدرجة الكاملة لازم يسكت خلال <b>٠٫٣ ثانية</b> من اللحظة اللي يوضح فيها إن العميل يبي يتكلم.</p>
+<p><b>بنينا شيئين:</b></p>
+<ol>
+<li><b>نموذج القرار</b> (هذا اللي ينقيّم بالمسابقة، ٨٠٪ من الدرجة): يسمع ويقرر «اسكت» أو «كمّل» أو «دورك ترد».</li>
+<li><b>الوكيل المتكلم</b> (للعرض قدام الحكام، وهو اللي يبيّن إن فكرتنا «تشتغل في مكالمة حقيقية»): نموذج القرار + عقل (نموذج لغة على الجهاز) + صوت. تكلمه بالمايك، يسكت لما تقاطعه، يسمعك، يرد عليك، ويرجع يكمّل كلامه، مثل موظف بشري.</li>
+</ol>
+<p>كل شي يشتغل <b>على اللابتوب بدون إنترنت</b> (الإنترنت يوم النهائي مو مضمون). والإنترنت اختياري لصوت أطبع فقط.</p>
+</div>
+
+<h2 id="b">٢) الصورة الكاملة</h2>
+<div class="card">
+<svg viewBox="0 0 940 430" style="width:100%;height:auto" role="img" aria-label="مخطط النظام">
+<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 z" fill="currentColor"/></marker></defs>
+<style>
+.bx{stroke:currentColor;stroke-opacity:.35;rx:12}.tx{font:600 15px -apple-system,Tahoma;fill:currentColor;text-anchor:middle}.sm{font:12px -apple-system,Tahoma;fill:currentColor;opacity:.75;text-anchor:middle}
+.ln{stroke:currentColor;stroke-opacity:.55;stroke-width:1.6;fill:none}
+</style>
+<g style="color:var(--ink)">
+<rect x="770" y="20" width="160" height="70" class="bx" fill="var(--l1)"/><text x="850" y="50" class="tx">صوت العميل</text><text x="850" y="72" class="sm">مايك / خط هاتف</text>
+<rect x="770" y="110" width="160" height="70" class="bx" fill="var(--l1)"/><text x="850" y="140" class="tx">صوت الوكيل النظيف</text><text x="850" y="162" class="sm">مرجع لإزالة الصدى</text>
+
+<rect x="520" y="20" width="210" height="160" class="bx" fill="var(--l1)"/>
+<text x="625" y="48" class="tx">١. مين يتكلم؟</text>
+<text x="625" y="74" class="sm">إزالة الصدى · كاشف الكلام (VAD)</text>
+<text x="625" y="96" class="sm">مستوى الصوت مقارنة بصوت العميل</text>
+<text x="625" y="118" class="sm">بصمة صوت العميل</text>
+<text x="625" y="150" class="sm">كل ٢٠ ملي ثانية</text>
+
+<rect x="270" y="20" width="210" height="75" class="bx" fill="var(--l2)"/><text x="375" y="50" class="tx">٢. وش قال؟</text><text x="375" y="74" class="sm">Whisper على الجهاز · كل ١٥٠ ms</text>
+<rect x="270" y="105" width="210" height="75" class="bx" fill="var(--l3)"/><text x="375" y="135" class="tx">٣. وش يقصد؟</text><text x="375" y="159" class="sm">قاموس خليجي + نص الوكيل</text>
+
+<rect x="20" y="20" width="210" height="160" class="bx" fill="var(--l4)"/>
+<text x="125" y="48" class="tx">٤. القرار</text><text x="125" y="78" class="sm">قواعد واضحة تقترح</text><text x="125" y="100" class="sm">+ نموذج متعلّم يرفض أو يؤكد</text>
+<text x="125" y="132" class="tx" style="font-size:13px">كمّل · اسكت · دورك</text>
+
+<path d="M770,55 L732,80" class="ln" marker-end="url(#ar)"/><path d="M770,145 L732,120" class="ln" marker-end="url(#ar)"/>
+<path d="M520,70 L482,58" class="ln" marker-end="url(#ar)"/><path d="M375,95 L375,103" class="ln" marker-end="url(#ar)"/>
+<path d="M270,142 L232,120" class="ln" marker-end="url(#ar)"/><path d="M520,130 L232,100" class="ln" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+<text x="380" y="205" class="sm">مستوى الصوت والبصمة تدخل القرار مباشرة</text>
+
+<line x1="20" y1="232" x2="930" y2="232" stroke="currentColor" stroke-opacity=".2" stroke-dasharray="6 5"/>
+<text x="475" y="258" class="tx" style="font-size:14px">⬆ نموذج المسابقة (ينقيّم) ⬆ · ⬇ الوكيل المتكلم (للعرض) ⬇</text>
+
+<rect x="20" y="280" width="200" height="120" class="bx" fill="var(--l5)"/><text x="120" y="312" class="tx">«اسكت»</text><text x="120" y="338" class="sm">الوكيل يوقف بنص الكلمة</text><text x="120" y="360" class="sm">ويحفظ وش قال ووش ما قال</text>
+<rect x="250" y="280" width="200" height="120" class="bx" fill="var(--l2)"/><text x="350" y="312" class="tx">«دورك» (خلص كلامه)</text><text x="350" y="338" class="sm">Whisper يقرأ جملته كاملة</text>
+<rect x="480" y="280" width="200" height="120" class="bx" fill="var(--l3)"/><text x="580" y="312" class="tx">العقل</text><text x="580" y="338" class="sm">نموذج لغة على الجهاز</text><text x="580" y="360" class="sm">يجاوب ثم يكمّل نقطته</text>
+<rect x="710" y="280" width="220" height="120" class="bx" fill="var(--l1)"/><text x="820" y="312" class="tx">الصوت</text><text x="820" y="338" class="sm">جملة جملة، أول جملة تنقال</text><text x="820" y="360" class="sm">وهو لسا يكتب الثانية</text>
+<path d="M220,340 L248,340" class="ln" marker-end="url(#ar)"/><path d="M450,340 L478,340" class="ln" marker-end="url(#ar)"/><path d="M680,340 L708,340" class="ln" marker-end="url(#ar)"/>
+<path d="M820,400 C820,425 120,425 120,402" class="ln" stroke-dasharray="4 3" marker-end="url(#ar)"/><text x="470" y="422" class="sm">والوكيل يتكلم من جديد ← نموذج القرار يسمع من جديد (حلقة)</text>
+</g>
+</svg>
+</div>
+
+<h2 id="c">٣) الجزء الأول: نموذج القرار، طبقة طبقة</h2>
+<p>الكود في <code>turn/</code>. كل طبقة تقدر تقيسها لحالها، وكل رقم فيها «إعداد» نقدر نضبطه.</p>
+<div class="flow">
+
+<div class="lay L1"><b class="t">الطبقة ١: مين يتكلم؟</b> <span class="pill">turn/echo.py · turn/vad.py · turn/speaker.py</span>
+<ul>
+<li><b>إزالة الصدى:</b> لو العميل على السبيكر، صوت الوكيل نفسه يرجع للمايك. عندنا قناة الوكيل النظيفة، فالنظام يتعلّم <b>كم يتأخر الصدى وكم قوته</b> (يحسبها كل نص ثانية) ويطرحه. اللي يبقى = اللي أضافه العميل فعلاً.</li>
+<li><b>كاشف الكلام (Silero VAD):</b> نموذج صغير (٢ ميقا) يقول: هذا كلام بشر ولا صوت ثاني (بوري، باب، مكيف)؟</li>
+<li><b>المستوى مقارنة بصوت العميل:</b> أول ما يرد العميل («إيه نعم») نتعلّم علو صوته. بعدها كل صوت نقيسه <b>نسبةً له</b>. اكتشفنا من البيانات: المقاطعة الحقيقية بنفس علو العميل، والتأييد أخفض بـ٣–١٠ ديسيبل، والتلفزيون أخفض بـ١٣.</li>
+<li><b>بصمة الصوت (Resemblyzer):</b> نحفظ «بصمة» صوت العميل من أول كلامه. أي صوت جديد نقارنه فيها: التلفزيون تشابهه ٠٫٣٢، الطفل بالغرفة ٠٫٤٤، والعميل نفسه ٠٫٤٨–٠٫٨٢. والمقارنة تاخذ ٥ ملي ثانية.</li>
+</ul>
+<div class="m">النتيجة: لحالها، هالطبقة خلّت النظام ما يسكت غلط ولا مرة على مكالمات سرج (S=1.00)، بس كان ما يسكت أبداً. يعني تعرف «مين»، ما تعرف «وش يبي».</div></div>
+<div class="arrow">↓</div>
+
+<div class="lay L2"><b class="t">الطبقة ٢: وش قال؟</b> <span class="pill">turn/asr.py</span>
+<ul>
+<li>أول ما يبدأ صوت العميل، نرسل المقطع لـ<b>Whisper</b> (نموذج OpenAI لتحويل الكلام لنص، نسخة turbo مضغوطة ٤٦٤ ميقا) ونعيد القراءة كل ١٥٠ ملي ثانية والمقطع يكبر: «لا» ← «لا لا» ← «لا لا، لحظة».</li>
+<li><b>سرّعناه ٣٫٥ مرات:</b> Whisper بالأصل يعالج ٣٠ ثانية صوت حتى لو الكلمة نص ثانية. قصّرنا «نافذة الاستماع» لـ١٠ ثواني، فصارت القراءة ~٩٦ ملي ثانية بدل ٣٥٠.</li>
+<li><b>نلقّنه كلمات الخليج</b> القصيرة («إيه، أها، مم، هيه، لحظة، خلاص…») عشان ما يسقطها.</li>
+<li><b>نصفّي تخيّلاته:</b> Whisper لما يسمع ضجيج يكتب أشياء من ترجمات الأفلام اللي تدرّب عليها («ترجمة نانسي قنقر»، «اشتركوا في القناة»)، أو يعلّق ويكرر («بس، بس، بس…»). نكشفها ونرميها، ونستخدم درجة ثقته.</li>
+<li>يشتغل في «خيط» منفصل، فاستقبال الصوت ما يتعطّل أبداً.</li>
+</ul></div>
+<div class="arrow">↓</div>
+
+<div class="lay L3"><b class="t">الطبقة ٣: وش يقصد؟</b> <span class="pill">turn/lexicon.py</span>
+<div class="two">
+<div><b>كل كلمة تتصنّف:</b>
+<ul>
+<li><b>تأييد</b> = كمّل: إيه، أيوه، إي، أها، مم، هيه، زين، صح، والله، تمام، معك، فاهم عليك…</li>
+<li><b>تردد</b>: اممم، ااا، يعني</li>
+<li><b>طلب الدور</b> = اسكت: لا، لحظة، بس، اسمع، استنى، كم، وش، متى، ليش، ممكن، أبي، سوري، يا أخي…</li>
+<li><b>محيّر</b>: «طيب» و«خلاص» لحالها تأييد. «خلاص خلاص» = كفاية. «طيب؟ بس كم…» = طلب</li>
+<li><b>كلام جديد</b>: كلمتين جديدة وأكثر بثقة كافية = يبي يتكلم</li>
+</ul></div>
+<div><b>ذكاء السياق (من نص الوكيل اللي يوصلنا مقدماً):</b>
+<ul>
+<li>إذا العميل ردد كلمة من جملة الوكيل («الوطنية… أيوه») = يشاركه، مو يقاطعه. حتى لو انسمعت مشوّهة (مطابقة تقريبية).</li>
+<li>«ماتا ماتا» (كلمة غير مفهومة مكررة) = تأييد مشوّه، لأن التأييد يتكرر عادة.</li>
+<li>«مش» لحالها = غالباً «مم» انسمعت غلط.</li>
+<li>الوكيل قال «هو سبع أرقام»؟ ننتظر لين العميل يقول ٧ أرقام قبل ما نرد.</li>
+</ul></div></div></div>
+<div class="arrow">↓</div>
+
+<div class="lay L4"><b class="t">الطبقة ٤: القرار</b> <span class="pill">turn/policy.py · models/policy.json</span>
+<ul>
+<li><b>القواعد تقترح</b> (واضحة وتنشرح للحكام): كلمة طلب ← اسكت. تأييد بس ← كمّل…</li>
+<li><b>نموذج متعلّم يراجع:</b> Logistic Regression على ٢٠ خاصية (علو الصوت النسبي، البصمة، عدد كلمات الطلب والتأييد، ثقة Whisper، مدة الكلام، هل الكلام من جملة الوكيل…). دربناه على ١٤٤٠ لحظة من مكالمات ولّدناها.
+ <ul><li>لو القواعد قالت «اسكت» والنموذج متأكد أقل من ٢٠٪ ← <b>يرفض</b> السكتة.</li>
+ <li>لو النموذج متأكد ٩٥٪+ إن العميل يبي يتكلم والكلمات مو واضحة ← <b>يسكت لحاله</b>. بشرط إنه يكون عرف صوت العميل.</li></ul></li>
+<li><b>شبكة أمان:</b> كلام عالي ومتواصل ثانيتين بصوت العميل نفسه ← اسكت حتى لو ما فهم الكلمات.</li>
+<li><b>الحواجز:</b> صوت أخفض من العميل بكثير (تلفزيون) أو بصمة مختلفة ← ما يسكت مهما كان الكلام.</li>
+</ul></div>
+<div class="arrow">↓</div>
+
+<div class="lay L5"><b class="t">الطبقة ٥: نهاية الدور (متى يرد الوكيل)</b>
+<ul>
+<li>العميل سكت ٠٫٦ ثانية وكلامه مكتمل ← «دورك».</li>
+<li>كلامه ناقص (آخر كلمة «اممم» أو «يعني» أو «و»، أو قال «لحظة أشوفه»، أو الأرقام ناقصة) ← ينتظر لين ٢٫٥ ثانية.</li>
+</ul></div>
+</div>
+
+<h2 id="d">٤) مثال حي: «لا لا … لحظة، بكرة أنا مو بالرياض» (مكالمة GI-D01 من سرج)</h2>
+<div class="card tl">
+<div><b>16,630 ms</b><span>العميل يبدأ «لا لا» والوكيل يتكلم. الطبقة ١: VAD = كلام ✓، العلو +٢ ديسيبل عن صوته ✓، يفتح «مرشّح».</span></div>
+<div><b>16,780 ms</b><span>أول قراءة Whisper: «لا». <i>(لا لحالها ممكن تكون تأييد، فما يستعجل)</i></span></div>
+<div><b>17,050 ms</b><span>«لحظة» تخلص. هنا حكم سرج إن القصد «وضح».</span></div>
+<div><b>17,120 ms</b><span>القراءة: «لا لا، لحظة». الطبقة ٣: كلمة طلب ✓. الطبقة ٤: القواعد «اسكت» والنموذج يوافق (٠٫٩٩) ← <b>STOP</b>.</span></div>
+<div><b>النتيجة</b><span>سكت بعد ٧٠ ملي ثانية من لحظة الوضوح ← درجة كاملة (المسموح ٣٠٠).</span></div>
+</div>
+<p>وبالمقابل في BC-D02 العميل قال «أها»، «إيه إيه»، «مم» ثلاث مرات والوكيل يشرح، فالنظام قرأ كل وحدة، صنّفها «تأييد»، وكمّل كلامه ولا مرة سكت.</p>
+
+<h2 id="e">٥) كيف يتأقلم مع أي مكالمة جديدة؟</h2>
+<div class="card">
+<p>النموذج <b>ما يحفظ المكالمات</b>. يتعلّم قواعد عامة، ومع كل مكالمة جديدة يعاير نفسه من أول ثانيتين:</p>
+<ul>
+<li><b>صوت العميل:</b> علوه وبصمته من أول رد له. فيشتغل مع أي شخص وأي مايك وأي خط.</li>
+<li><b>المكان:</b> يتتبع مستوى الضجيج باستمرار (آخر ٥ ثواني).</li>
+<li><b>السبيكر:</b> يحسب تأخير الصدى وقوته لحظياً.</li>
+<li><b>الموضوع:</b> يقرأ نص الوكيل الجديد كل مرة، فيعرف هل سأل، وكم رقم طلب، ووش الكلمات اللي ممكن يرددها العميل.</li>
+<li><b>اللهجة:</b> Whisper متدرّب على آلاف الساعات، والقاموس فيه صيغ كل الخليج.</li>
+</ul>
+<p><b>الدليل:</b> جربناه على ٦٠ مكالمة بأصوات ومواقف ما شافها أبداً، وطلع <b>٩٥٫١</b> من أول مرة، ثم <b>٩٩٫٣</b> بعد تحسينات عامة. ولو كان يحفظ كان طاح.</p>
+</div>
+
+<h2 id="f">٦) الجزء الثاني: الوكيل اللي يرد ويكمّل (المكالمة الكاملة)</h2>
+<p>الكود في <code>convo/</code>. هذا اللي يخلي العرض «مكالمة بشرية»: تكلمه بالمايك وهو يتصرف مثل موظف.</p>
+<h3>حالات الوكيل</h3>
+<div class="states"><span>🗣️ يتكلم</span><i>← تقاطعه →</i><span>✋ يسكت بنص الكلمة</span><i>←</i><span>👂 يسمع لين تخلص</span><i>←</i><span>🤔 يفكر (ويقول «طيب…»)</span><i>←</i><span>🗣️ يجاوب ثم يكمّل نقطته</span></div>
+<h3>خطوة خطوة</h3>
+<ol>
+<li><b>البداية:</b> يسلّم ويسأل «معي الأستاذ؟». ردك الأول هو اللي يتعلّم منه صوتك (مثل U0 في بيانات سرج).</li>
+<li><b>يطرح موضوعه</b> (مثلاً: «عندك دفعة بقيمة ثلاث مية وخمسين ريال مستحقة يوم الخميس…»)، مقسّم لجمل.</li>
+<li><b>وهو يتكلم</b>، نموذج القرار يسمعك كل ٢٠ ms:
+ <ul><li>قلت «إيه» ← يكمّل، ويظهر في الشاشة «سمعك وكمّل».</li>
+ <li>قلت «كم القيمة؟» ← <b>يسكت فوراً</b> (يتلاشى صوته خلال ٦٠ ms مثل الإنسان). ويحسب بالضبط <b>وش لحق يقول ووش ما قال</b>.</li></ul></li>
+<li><b>يسمعك لين تخلص</b> (طبقة نهاية الدور)، ثم Whisper يقرأ جملتك كاملة من أولها، حتى الجزء اللي قلته وهو يتكلم.</li>
+<li><b>العقل يكتب الرد</b> وهو يعرف: معلومات المكالمة، كل اللي انقال، وإنك قاطعته قبل ما يقول «…». والتعليمات: جاوب على سؤاله أول باختصار، ثم ارجع لنقطتك لو لسا مهمة («وزي ما كنت أقول…»).</li>
+<li><b>الصوت:</b> أول جملة تنقال وهو لسا يكتب الثانية. ولو الرد تأخر أكثر من ٠٫٩ ثانية يقول «طيب…» أو «أبشر» مثل أي إنسان، بدل الصمت.</li>
+<li>إذا سكتّ ٧ ثواني بعد كلامه: «معي؟». وإذا خلص الموضوع: يودّعك «مع السلامة» وتنتهي المكالمة.</li>
+</ol>
+<h3>قواعد شخصية الوكيل (التعليمات اللي يمشي عليها العقل)</h3>
+<div class="card">
+<ul>
+<li>لهجة سعودية بيضاء طبيعية، مو فصحى رسمية. جملة أو جملتين بس.</li>
+<li><b>ما يخترع معلومة</b>: يعرف معلومات المكالمة بس. إذا سألته شي ما يعرفه يقول «بتأكد وأرجع لك».</li>
+<li>الأرقام بالكلمات، بدون رموز ولا قوائم، وما يكرر نفسه.</li>
+<li>إذا الكلام مو واضح يطلب منك تعيد بلطف.</li>
+</ul>
+<p class="muted">فيه ٤ مكالمات جاهزة: تذكير بدفعة، تأكيد موعد عيادة، توصيل طلب، عرض باقة اتصالات (<code>convo/scenarios.py</code>). وإضافة مكالمة جديدة = تكتب معلوماتها وأول جملتين.</p>
+</div>
+<h3>السرعة اللي قسناها (مكالمة تجريبية آلية)</h3>
+<div class="grid">
+<div class="kpi"><div class="l">من بداية مقاطعتك لين يسكت</div><div class="v">٠٫٣–٠٫٨ ث</div><div class="s">يعتمد متى يوضح قصدك</div></div>
+<div class="kpi"><div class="l">من نهاية كلامك لأول صوت</div><div class="v">~١ ث</div><div class="s">«طيب…» أو بداية الجواب</div></div>
+<div class="kpi"><div class="l">لأول جواب فعلي</div><div class="v">⟦ANS⟧</div><div class="s">⟦ANS_NOTE⟧</div></div>
+</div>
+
+<h2 id="g">٧) النماذج المستخدمة وليش</h2>
+<div class="tw"><table>
+<tr><th>الدور</th><th>النموذج</th><th>الحجم</th><th>ليش هو</th></tr>
+<tr><td>كشف الكلام</td><td>Silero VAD v5</td><td>٢ MB</td><td>دقيق وسريع جداً (أقل من ملي ثانية)</td></tr>
+<tr><td>بصمة الصوت</td><td>Resemblyzer (GE2E)</td><td>١٧ MB</td><td>٥ ms للمقارنة، يكفي يفرّق التلفزيون والطفل</td></tr>
+<tr><td>تحويل الكلام لنص</td><td>Whisper large-v3-turbo (4-bit، MLX)</td><td>٤٦٤ MB</td><td>جربنا النسخة الكاملة (١٫٦ GB) وطلعت نفس الدقة، فاخترنا المضغوطة لأنها أسرع</td></tr>
+<tr><td>قرار السكوت</td><td>Logistic Regression (دربناه إحنا)</td><td>كيلوبايتات</td><td>بيانات قليلة ← نموذج بسيط ما «يحفظ». ونقدر نشرح كل وزن فيه</td></tr>
+<tr><td>العقل (الرد)</td><td><b>Gemma 3 12B</b> (4-bit، من Google) · احتياط: Qwen3 14B</td><td>~٨ GB</td><td>أقوى بالعربي من اللي يتحمّلها جهاز ٢٤ GB. Qwen3 كان يجاوب صح لكن بفصحى رسمية، ومرة خلط لهجة مغربية («ديال»)</td></tr>
+<tr><td>الصوت</td><td>صوت الماك «ماجد» (على الجهاز، نص ثانية) · أو صوت مايكروسوفت السعودي (طبيعي أكثر، يحتاج نت، ١–٣ ث)</td><td>—</td><td>للمحادثة الطبيعية السرعة أهم. ونصيحة: نزّلوا «ماجد (محسّن)» من إعدادات الماك (تحت)</td></tr>
+<tr><td>الخيار الأخير</td><td>Claude (أنا) كعقل</td><td>سحابي</td><td>لو كل النماذج المحلية ما نفعت. يركب بنفس المكان (<code>convo/brain.py</code>)، بس يحتاج نت ومفتاح</td></tr>
+</table></div>
+<div class="note">نماذج LM Studio (Qwen3-14B وOrnith-9B) نماذج نص ما تسمع صوت. فما تنفع لقرار السكوت (بطيئة على ٣٠٠ ms). لكن Qwen3 ينفع «عقل» احتياطي للمكالمة.</div>
+
+<h2 id="h">٨) البيانات</h2>
+<div class="tw"><table>
+<tr><th>المجموعة</th><th>العدد</th><th>وش هي</th><th>تستخدم لـ</th></tr>
+<tr><td>dev (من سرج)</td><td>٢٤ مكالمة</td><td>٨ مواقف × ٣، أصوات مولّدة (Gemini)، ٩ لهجات</td><td>القياس الرسمي</td></tr>
+<tr><td>dev-aug</td><td>٩٦</td><td>نفس مكالمات سرج بظروف أصعب: هاتف، سيارة، صدى سبيكر، مقهى، أصوات مفاجئة</td><td>قياس المتانة</td></tr>
+<tr><td>synth</td><td>١٦٠</td><td>مكالمات ولّدناها: ١٢ صوت خليجي، ٢٧ جملة مقاطعة، ٢٢ تأييد، تلفزيون، أطفال، كحة… (ESC-50)</td><td>تدريب طبقة القرار</td></tr>
+<tr><td>synth-test</td><td>٦٠</td><td>نفس المولّد بأصوات ومواقف جديدة</td><td>اختبار ما شافه أبداً</td></tr>
+<tr><td>live</td><td>تكبر</td><td>تجاربكم بالمايك مع تقييمكم «كان لازم يسكت/يكمّل»</td><td>أول بيانات بشرية حقيقية</td></tr>
+</table></div>
+
+<h2 id="i">٩) الأرقام (الدرجة من ١٠٠، بنفس حسبة سرج الرسمية)</h2>
+<div class="tw"><table>
+<tr><th></th><th>مكالمات سرج</th><th>ظروف أصعب</th><th>ما شافها أبداً</th></tr>
+<tr><td>البدائي اللي عطتنا إياه سرج</td><td>41.0</td><td>7.8</td><td>50.9</td></tr>
+<tr><td><b>نموذجنا</b></td><td><b>96.5</b> (الاختبار الرسمي بالوقت الحقيقي)</td><td><b>97.6</b></td><td><b>95.1</b> أول مرة · <b>99.3</b> الحين</td></tr>
+</table></div>
+<p class="muted">أضعف نقطة الحين: التأييد الطويل لما ينسمع مشوّه (مثلاً «إيه والله صادق، صح» انسمعت «إيه، ولا صحة») فيسكت غلط. وتشتغل عليها كل مرة نضيف أصوات بشرية.</p>
+
+<h2 id="j">١٠) كيف تجرب وكيف تشتغل عليه</h2>
+<div class="card">
+<p><b>للتجربة:</b> دبل كلك على <b>«جرّب نموذج سرج.command»</b> في Downloads (يفتح كروم). فيه ٣ تبويبات:</p>
+<ul>
+<li><b>💬 مكالمة كاملة:</b> اختر مكالمة، واضغط «ابدأ المكالمة»، وتكلم معه عادي. تشوف المحادثة مكتوبة، ومتى قاطعته، و«سمعك وكمّل»، وسرعة السكوت والرد.</li>
+<li><b>🎙️ تحديات القرار:</b> جمل محددة («إيه»، «لا لا لحظة»…) والصفحة تقول لك نجح ولا لا، ومجموع نتيجتك.</li>
+<li><b>▶️ اسمع مكالمات سرج:</b> المكالمات الرسمية مع خط زمني يوضح وش سمع النموذج ومتى قرر.</li>
+</ul>
+<p>ابدأ دايماً بـ<b>«اختبر المايك»</b>: يقول لك هل صوتك يوصل واضح. <b>استخدم سمّاعة رأس</b> إذا تقدر.</p>
+<p><b>لتحسين صوت الوكيل بدون نت:</b> إعدادات الماك ← تسهيلات الاستخدام ← المحتوى المنطوق ← صوت النظام ← إدارة الأصوات ← العربية ← نزّل «ماجد (محسّن)». النظام يختاره تلقائياً.</p>
+</div>
+<div class="card">
+<p><b>للمطوّرين:</b> كله من مجلد <code>~/Downloads/sarj-turn-taking-starter-kit-0.1</code></p>
+<pre>.venv/bin/python -m tools.loop --note "وش غيّرت"   # القياس الكامل + لوحة القياس (دقيقتين)
+.venv/bin/python -m tools.sim --calls GI-D01        # مكالمة وحدة بسرعة
+.venv/bin/python -m tools.train_policy              # إعادة تدريب طبقة القرار
+.venv/bin/python -m ttbench.play --calls all        # الاختبار الرسمي بالوقت الحقيقي (١٠ دقايق)
+python my_system.py --host 0.0.0.0                  # يوم فحص الاتصال والنهائي</pre>
+<p><b>قاعدة الفريق:</b> أي تعديل نقيسه بـ<code>tools.loop</code>. إذا رفع «سرج» ونزّل «ظروف أصعب» أو «ما شافها»، معناه حفظنا البيانات بدل ما نتحسن، فما نعتمده.</p>
+<p>الملفات المهمة: <code>turn/policy.py</code> (القرار وكل الإعدادات) · <code>turn/lexicon.py</code> (القاموس) · <code>convo/scenarios.py</code> (مكالمات العرض) · <code>convo/engine.py</code> (منطق المكالمة) · المستودع الخاص <code>o6lq/sarj-turn-taking</code>.</p>
+</div>
+
+<h2 id="k">١١) توزيع الشغل على الفريق</h2>
+<div class="tw"><table>
+<tr><th>المهمة</th><th>ليش مهمة</th><th>كيف</th></tr>
+<tr><td><b>تسجيل أصوات حقيقية</b> (الكل)</td><td>التقييم فيه ١٦ مكالمة لبشر حقيقيين، وكل بياناتنا أصوات مولّدة</td><td>كل واحد ٢٠–٣٠ محاولة في «تحديات القرار» أو «تكلّم بحرية» ويقيّمها. لهجات مختلفة أفضل</td></tr>
+<tr><td>مراجعة القاموس (حسب لهجة كل واحد)</td><td>صيغ الجنوب والشمال والحجاز</td><td>أضف كلمات التأييد وطلب الدور في <code>turn/lexicon.py</code> ثم <code>tools.loop</code></td></tr>
+<tr><td>التقرير (٢–٤ صفحات)</td><td>إلزامي، ومعه ٥ حالات فشل</td><td>المادة كلها في هالملف وفي «نموذج سرج - التحليل والبناء.html»</td></tr>
+<tr><td>العرض (٧ دقايق)</td><td>٢٠٪ من الدرجة للحكام</td><td>دقيقة الفكرة، ودقيقتين مكالمة حية قدامهم (تقاطع، «إيه»، سؤال)، ودقيقتين الأرقام واللوحة، ودقيقة حالات الفشل وش تعلّمنا منها</td></tr>
+<tr><td>فحص الاتصال مع سرج</td><td>آخر موعد اليوم ٤</td><td><code>python my_system.py --host 0.0.0.0</code></td></tr>
+</table></div>
+
+<h2 id="l">١٢) قاموس المصطلحات</h2>
+<div class="tw"><table>
+<tr><td><b>STOP / اسكت</b></td><td>قرار إن الوكيل يوقف كلامه لأن العميل يبي يتكلم</td></tr>
+<tr><td><b>KEEP / كمّل</b></td><td>العميل قال تأييد أو فيه صوت مو له: الوكيل يكمّل</td></tr>
+<tr><td><b>TAKE_TURN / دورك</b></td><td>العميل خلص كلامه، والوكيل يرد</td></tr>
+<tr><td><b>R</b></td><td>نسبة «سكت لما لازم يسكت، وبسرعة»</td></tr>
+<tr><td><b>S</b></td><td>نسبة «كمّل لما لازم يكمّل، وما سكت بدون سبب»</td></tr>
+<tr><td><b>الدرجة</b></td><td>متوسط توافقي بين R وS. أضعفهم يسحب الثاني، فما ينفع تقوي واحد بس</td></tr>
+<tr><td><b>لحظة الوضوح</b></td><td>اللحظة اللي يصير فيها واضح للمستمع البشري إن العميل يبي الدور. الدرجة الكاملة لو سكت خلال ٣٠٠ ms منها</td></tr>
+<tr><td><b>VAD</b></td><td>كاشف الكلام: هل هذا الصوت كلام بشر؟</td></tr>
+<tr><td><b>ASR / Whisper</b></td><td>تحويل الكلام لنص</td></tr>
+<tr><td><b>LLM / العقل</b></td><td>نموذج لغة يكتب رد الوكيل</td></tr>
+<tr><td><b>TTS / الصوت</b></td><td>تحويل النص لصوت الوكيل</td></tr>
+<tr><td><b>U0</b></td><td>أول رد للعميل («إيه نعم») ونتعلّم منه صوته</td></tr>
+</table></div>
+
+</div></body></html>

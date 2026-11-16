@@ -4,6 +4,9 @@
  "scenarios": [
   {
    "scenario_id": "LV-001"
+  },
+  {
+   "scenario_id": "LV-002"
   }
  ],
  "thresholds": {

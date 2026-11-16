@@ -1,5 +1,5 @@
 {
- "model": "/Users/saud/Downloads/sarj-ext-data/whisper-large-v3-turbo-q4",
+ "model": "~/Downloads/sarj-ext-data/whisper-large-v3-turbo-q4",
  "rows": [
   {
    "scenario_id": "AM-D01-p",

@@ -141,6 +141,9 @@ async def ws_handler(ws):
         if isinstance(raw, bytes) and convo is not None:
             fr = np.frombuffer(raw, dtype="<i2").reshape(-1, 2)
             await convo.on_frame(fr[:, 0], fr[:, 1])
+            if convo.ms % 5000 == 0:              # autosave every 5 s so any odd moment can be inspected
+                from convo.engine import save_session
+                convo.save_dir = save_session(convo, KIT / "runs" / "live-calls", getattr(convo, "save_dir", None))
             if convo.ms % 100 == 0:
                 lvl = 20 * np.log10(np.sqrt(np.mean(fr[:, 1].astype(np.float64) ** 2)) / 32768 + 1e-9)
                 await send({"type": "meter", "vad": round(convo.tt.vad.prob, 2), "db": round(float(lvl), 1)})

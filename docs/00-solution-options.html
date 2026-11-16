@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>حلول تحدي سرج</title>
+<style>
+:root{
+  --bg:#f7f6f3; --card:#ffffff; --ink:#1d1d1f; --muted:#5f6368; --line:#e3e1dc;
+  --accent:#0b6e4f; --accent-soft:#e3f2ec; --warn:#a14d00; --warn-soft:#fdf0e1;
+  --bad:#b3261e; --bad-soft:#fbe9e7; --code:#f1efea; --blue:#1a5fb4; --blue-soft:#e6eefb;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121212; --card:#1c1c1e; --ink:#ededed; --muted:#a1a1a6; --line:#2e2e31;
+    --accent:#4cc79a; --accent-soft:#16302a; --warn:#f0a35e; --warn-soft:#33240f;
+    --bad:#ff8a80; --bad-soft:#3a1c1a; --code:#26262a; --blue:#8ab4f8; --blue-soft:#1b2638;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121212; --card:#1c1c1e; --ink:#ededed; --muted:#a1a1a6; --line:#2e2e31;
+  --accent:#4cc79a; --accent-soft:#16302a; --warn:#f0a35e; --warn-soft:#33240f;
+  --bad:#ff8a80; --bad-soft:#3a1c1a; --code:#26262a; --blue:#8ab4f8; --blue-soft:#1b2638;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,"SF Arabic","Geeza Pro","Segoe UI",Tahoma,sans-serif;line-height:1.85;font-size:16.5px}
+.wrap{max-width:1000px;margin:0 auto;padding:32px 16px 80px}
+header{padding:24px 0 16px;border-bottom:1px solid var(--line);margin-bottom:24px}
+header h1{margin:0 0 6px;font-size:30px;line-height:1.35}
+header p{margin:0;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav a{font-size:14px;text-decoration:none;color:var(--accent);background:var(--accent-soft);padding:4px 12px;border-radius:99px}
+h2{font-size:23px;margin:42px 0 12px}
+h3{font-size:19px;margin:0 0 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+.tldr{border-right:5px solid var(--accent)}
+.rec{border:2px solid var(--accent)}
+.warn{background:var(--warn-soft);border-color:transparent;border-right:5px solid var(--warn)}
+.num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:var(--code);font-weight:700;margin-left:8px;font-size:15px}
+.rec .num{background:var(--accent);color:#fff}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px}
+.pill{font-size:13px;padding:2px 10px;border-radius:99px;background:var(--code);color:var(--muted)}
+.pill b{color:var(--ink)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.pro{background:var(--accent-soft);border-radius:10px;padding:10px 14px}
+.con{background:var(--bad-soft);border-radius:10px;padding:10px 14px}
+.pro b{color:var(--accent)} .con b{color:var(--bad)}
+.tbl{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:15px;background:var(--card)}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:center;vertical-align:middle}
+th{background:var(--code);font-weight:600}
+td.l{text-align:right}
+.y{color:var(--accent);font-weight:700} .m{color:var(--warn);font-weight:700} .n{color:var(--bad);font-weight:700}
+code{font-family:ui-monospace,Menlo,monospace;font-size:13.5px;background:var(--code);padding:1px 6px;border-radius:5px;direction:ltr;unicode-bidi:isolate;display:inline-block}
+pre{background:var(--code);padding:12px 14px;border-radius:10px;overflow-x:auto;font-size:14px;line-height:1.7;white-space:pre-wrap}
+ul{padding-right:22px;margin:6px 0} li{margin:3px 0}
+.ar{font-weight:600}
+.muted{color:var(--muted)}
+.phase{display:grid;grid-template-columns:70px 1fr;gap:14px;align-items:start;border-bottom:1px solid var(--line);padding:14px 0}
+.phase:last-child{border-bottom:0}
+.phase .p{background:var(--blue-soft);color:var(--blue);border-radius:12px;text-align:center;padding:8px 0;font-weight:700;font-size:15px}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}
+.box{background:var(--blue-soft);color:var(--ink);border-radius:10px;padding:8px 12px;font-size:14.5px;text-align:center}
+.box small{display:block;color:var(--muted);font-size:12.5px}
+.arrow{color:var(--muted);font-size:20px}
+footer{margin-top:50px;color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>تحدي سرج: كل الحلول الممكنة، ووش أنصح فيه</h1>
+  <p>المشكلة بجملة: <b>وقت ما الوكيل يتكلم، المتصل صدر منه صوت. هل الوكيل يكمل أو يسكت؟</b></p>
+  <nav>
+    <a href="#idea">الفكرة الأساسية</a><a href="#all">الحلول التسعة</a><a href="#compare">المقارنة</a>
+    <a href="#rec">رأيي</a><a href="#phases">المراحل</a><a href="#risks">المخاطر</a>
+  </nav>
+</header>
+
+<!-- ======== IDEA ======== -->
+<section id="idea">
+<div class="card tldr">
+<p style="margin-top:0"><b>كل حل يجاوب على سؤالين، بالترتيب:</b></p>
+<ol style="padding-right:22px">
+  <li><b>هل الصوت هذا من المتصل نفسه؟</b> ولا هو تلفزيون، أو طفل، أو بوري سيارة، أو صدى صوت الوكيل يرجع من السماعة؟ <span class="muted">(فئات BG وNV)</span></li>
+  <li><b>إذا من المتصل: يبي ياخذ الكلام، ولا بس يتابع؟</b> «إيه»، «أها»، «إيه والله صادق» متابعة. «لا لا لحظة»، «بس أبغى»، «اسمع اسمع» يبي يتكلم. <span class="muted">(فئات GI وBC وAM وOV وDV)</span></li>
+</ol>
+<p style="margin-bottom:0">النظام البدائي ما يسأل ولا سؤال، يسكت عند أي صوت، وعشان كذا طلعت درجته <b>41</b>. ونقطة ضعفه الكبيرة إنه <b>يسكت غلط</b> (درجة الانضباط ٠٫٢٢ فقط)، مو إنه بطيء.</p>
+</div>
+
+<div class="card">
+<h3>ثلاث حقائق من قواعد التقييم تحدد الاختيار</h3>
+<ul>
+  <li><b>الإصابة أهم من السرعة.</b> لو سكتّ متأخر ٠٫٨ ث تاخذ ٧٥٪ من الدرجة، لكن لو سكتّ على «إيه» تاخذ صفر. فيستاهل ننتظر كلمة أو كلمتين نفهم منها.</li>
+  <li><b>الدرجة متوسط توافقي</b>: لازم «يسكت لما لازم» و«يكمل لما لازم» الاثنين عاليين. التفوق في وحدة ما يعوّض الثانية.</li>
+  <li><b>عندنا ٣ أدوات مجانية ما يستخدمها البدائي:</b>
+    <ul>
+      <li>قناة الوكيل نظيفة، فنقدر نعرف ونشيل صداه من مايك المتصل.</li>
+      <li>المتصل يتكلم لحاله في البداية («إيه نعم، تفضل»)، فناخذ منها <b>بصمة صوته</b> ونقارن فيها كل صوت بعدها.</li>
+      <li>نص كلام الوكيل يوصلنا قبل ما يقوله، فنعرف <b>هل سأل سؤال</b> أو <b>يكرر كلامه</b>.</li>
+    </ul>
+  </li>
+</ul>
+</div>
+</section>
+
+<!-- ======== ALL ======== -->
+<section id="all">
+<h2>الحلول التسعة</h2>
+
+<div class="card">
+<h3><span class="num">١</span>قواعد صوتية بحتة</h3>
+<div class="meta"><span class="pill">التأخير: <b>شبه صفر</b></span><span class="pill">الصعوبة: <b>سهل</b></span><span class="pill">الأصالة: <b>ضعيفة</b></span></div>
+<p>نطوّر النظام البدائي: بدل «أي صوت = اسكت» نحسب علو الصوت ومدته ونبرته وتوقيته (هل جا في نهاية جملة الوكيل؟). مثلًا: صوت قصير وناعم عند نهاية جملة غالبًا «إيه»، وصوت عالي يستمر غالبًا مقاطعة.</p>
+<div class="cols">
+  <div class="pro"><b>يميزه:</b> ما يحتاج أي نموذج، ويشتغل على أي جهاز، وسهل تفهمه.</div>
+  <div class="con"><b>يعيبه:</b> ما يفهم الكلام. «لحظة» كلمة قصيرة ومعناها «وقف»، و«إيه والله صادق، صح» طويلة ومعناها «كمّل». القاعدة الصوتية تغلط في الاثنتين.</div>
+</div>
+</div>
+
+<div class="card">
+<h3><span class="num">٢</span>«مين يتكلم؟»: الصدى + كاشف الكلام + بصمة الصوت</h3>
+<div class="meta"><span class="pill">التأخير: <b>~٥٠–١٥٠ ملي ثانية</b></span><span class="pill">الصعوبة: <b>متوسط</b></span><span class="pill">الأصالة: <b>جيدة</b></span></div>
+<p>ثلاث أدوات صغيرة تشتغل كل ٢٠ ملي ثانية:</p>
+<ul>
+  <li><b>شيل الصدى:</b> نعرف صوت الوكيل بالضبط من قناته، فنحسب كم منه رجع في مايك المتصل ونطرحه.</li>
+  <li><b>كاشف كلام (VAD):</b> نموذج صغير جدًا (Silero، حجمه ~٢ ميقا) يقول «هذا كلام بشري» أو «هذا بوري أو ضجيج».</li>
+  <li><b>بصمة الصوت:</b> من أول رد للمتصل ناخذ بصمة صوته. لو جا صوت ما يطابقها (طفل، مذيع أخبار) نتجاهله. ونقارن العلو بعلو المتصل الأصلي، لأن التلفزيون في المكالمات أخفض بـ١٢ ديسيبل والطفل أخفض بـ٦.</li>
+</ul>
+<div class="cols">
+  <div class="pro"><b>يميزه:</b> يحل التلفزيون والشارع والطفل والكحة والصدى، وهي أكثر شي أسقط البدائي. وسريع ويشتغل بدون إنترنت.</div>
+  <div class="con"><b>يعيبه:</b> لحاله ما يفرّق «إيه» عن «لا لا لحظة»، الاثنين المتصل نفسه. فهو <b>نص الحل</b>.</div>
+</div>
+</div>
+
+<div class="card">
+<h3><span class="num">٣</span>نفرّغ كلام المتصل ونقرأ كلماته (Whisper + قاموس لهجات)</h3>
+<div class="meta"><span class="pill">التأخير: <b>~٣٠٠–٨٠٠ ملي ثانية</b> (لازم نقيسه)</span><span class="pill">الصعوبة: <b>متوسط</b></span><span class="pill">الأصالة: <b>جيدة لو القاموس عربي ذكي</b></span></div>
+<p>أول ما يبدأ المتصل يتكلم، نرسل صوته لـ Whisper (نموذج تفريغ مفتوح يشتغل على جهازك بدون إنترنت) ويرجع لنا النص كل ~٢٠٠ ملي ثانية. بعدها نطابق الكلمات بقاموسين نكتبهم بأنفسنا بكل اللهجات:</p>
+<div class="tbl"><table>
+<tr><th>كلمات «أتابع، كمّل»</th><th>كلمات «أبي أتكلم»</th></tr>
+<tr><td class="ar">إيه، إي، أيوه، هيه، أها، مم، زين، صح، صادق، والله، تمام، أوكي</td><td class="ar">لا، لحظة، بس، اسمع، يا أخي، خلاص (بشروط)، وش، كم، متى، ليش، أبغى، أبي، عندي سؤال</td></tr>
+</table></div>
+<div class="cols">
+  <div class="pro"><b>يميزه:</b> يفهم «بس» في «أيوه… بس أبغى أغيّر الموعد» ويسكت عندها بالضبط. وسهل تشرحه للحكام بأمثلة عربية.</div>
+  <div class="con"><b>يعيبه:</b> Whisper مو مصمم للتدفق المباشر وفيه تأخير. وأحيانًا «يتخيّل» كلام من الضجيج (وعشان كذا نحط الحل ٢ قبله كبوّاب). وجودته باللهجات الخليجية متفاوتة.</div>
+</div>
+</div>
+
+<div class="card">
+<h3><span class="num">٤</span>تفريغ + نموذج لغوي يفكر (Qwen محلي أو سحابي)</h3>
+<div class="meta"><span class="pill">التأخير: <b>~٠٫٨–٢ ث</b></span><span class="pill">الصعوبة: <b>متوسط</b></span><span class="pill">الأصالة: <b>متوسطة</b> (فرق كثير بتسويها)</span></div>
+<p>نعطي النموذج اللغوي سطرين: «الوكيل كان يقول: …» و«المتصل قال: …»، ونسأله «يبي الكلام؟ نعم/لا». Qwen3-14B موجود أصلًا على جهازك في LM Studio.</p>
+<div class="cols">
+  <div class="pro"><b>يميزه:</b> يفهم السياق، مثل إن «إيه الأحد زين» جواب على سؤال، أو إن «خلاص خلاص» معناها «كفاية، فهمت» لأن الوكيل يكرر.</div>
+  <div class="con"><b>يعيبه:</b> بطيء. لو تجاوز ١٫٥ ث تنحسب المقاطعة <b>فاتتك</b>. ونموذج بحجم 14B ممكن يتأخر. فالأنسب نستخدمه <b>للحالات الغامضة بس</b>.</div>
+</div>
+</div>
+
+<div class="card">
+<h3><span class="num">٥</span>مصنّف صغير ندرّبه بأنفسنا</h3>
+<div class="meta"><span class="pill">التأخير: <b>~٥٠–١٥٠ ملي ثانية</b></span><span class="pill">الصعوبة: <b>صعب</b></span><span class="pill">الأصالة: <b>عالية</b></span></div>
+<p>نولّد مئات المقاطع («إيه»، «لحظة»، «طيب↗»…) بأصوات ولهجات وضجيج مختلف (نستخدم ElevenLabs أو Gemini، ونقدر نسجل بأصوات ناس موافقين)، وندرّب نموذج صغير يسمع الصوت ويطلع «متابعة / مقاطعة / ضجيج».</p>
+<div class="cols">
+  <div class="pro"><b>يميزه:</b> سريع وقت التشغيل، ويسمع النبرة اللي يضيّعها التفريغ.</div>
+  <div class="con"><b>يعيبه:</b> يحتاج بيانات كثيرة ووقت تدريب، والأيام ٦. والخطر الأكبر إنه يتعلم «صوت الذكاء الاصطناعي» ويطيح مع البشر الحقيقيين في المكالمات المخفية.</div>
+</div>
+</div>
+
+<div class="card">
+<h3><span class="num">٦</span>نموذج يسمع الصوت مباشرة (صوتي-لغوي)</h3>
+<div class="meta"><span class="pill">التأخير: <b>١–٣ ث</b></span><span class="pill">الصعوبة: <b>صعب</b></span><span class="pill">الأصالة: <b>عالية</b></span></div>
+<p>نماذج مثل Qwen2.5-Omni تسمع الصوت وتفهمه بدون تفريغ. نعطيها المقطع ونسألها «هل المتصل يقاطع؟».</p>
+<div class="cols">
+  <div class="pro"><b>يميزه:</b> يسمع النبرة والكلام سوا، وفكرته لافتة للحكام.</div>
+  <div class="con"><b>يعيبه:</b> ثقيل على اللابتوب وبطيء جدًا على حد ١٫٥ ث. يصلح تجربة جانبية أو للعرض الحي، مو حل أساسي.</div>
+</div>
+</div>
+
+<div class="card">
+<h3><span class="num">٧</span>نموذج تنبؤي (يتوقع بدل ما يتفاعل)</h3>
+<div class="meta"><span class="pill">التأخير: <b>منخفض</b></span><span class="pill">الصعوبة: <b>صعب جدًا</b></span><span class="pill">الأصالة: <b>عالية جدًا</b></span></div>
+<p>في الأبحاث فيه نموذج اسمه VAP يسمع الطرفين ويتوقع «مين بيتكلم بعد ثانية». نقدر نستلهم منه بشكل أبسط: نستخدم نص الوكيل لنعرف <b>وين نهايات جمله</b> (وهي الأماكن اللي تجي فيها «إيه» طبيعيًا)، ووين سأل سؤال (يعني اللي بعده جواب، مو متابعة).</p>
+<div class="cols">
+  <div class="pro"><b>يميزه:</b> الحكام يحبون هالنوع من التفكير، والنسخة المبسطة (السياق من النص) رخيصة وتفيد.</div>
+  <div class="con"><b>يعيبه:</b> النسخة الكاملة مدرّبة على إنجليزي وياباني وتحتاج تدريب. فناخذ <b>الفكرة</b> مو النموذج.</div>
+</div>
+</div>
+
+<div class="card">
+<h3><span class="num">٨</span>«اسكت بسرعة وارجع بسرعة» (STOP ثم RESUME)</h3>
+<div class="meta"><span class="pill">التأخير: <b>صفر تقريبًا</b></span><span class="pill">الصعوبة: <b>سهل</b></span><span class="pill">الأصالة: <b>ضعيفة</b></span></div>
+<p>نسكت أول ما نسمع صوت، ولو طلع «إيه» نرجع نكمل خلال نص ثانية. هذي حيلة المثال اللي في الحزمة، ورفعته من 41 إلى 58.6.</p>
+<div class="cols">
+  <div class="pro"><b>يميزه:</b> بسيط ويلحق كل المقاطعات.</div>
+  <div class="con"><b>يعيبه:</b> الحسبة تحدّه: «إيه» اللي نرجع بعدها تاخذ <b>نص الدرجة بالكثير</b>. والموافقة الطويلة ما نقدر نرجع منها خلال نص ثانية فتاخذ صفر. ولو رجعنا والمتصل لسا يتكلم تنحسب <b>مقاطعة فاتتنا</b>. فيصلح <b>شبكة أمان</b> بس، مو حل أساسي.</div>
+</div>
+</div>
+
+<div class="card rec">
+<h3><span class="num">٩</span>السلسلة الهجينة: رأيي ✓</h3>
+<div class="meta"><span class="pill">التأخير: <b>~٣٠٠–٩٠٠ ملي ثانية</b></span><span class="pill">الصعوبة: <b>متوسط، على مراحل</b></span><span class="pill">الأصالة: <b>عالية لأن التركيب عربي ومدروس</b></span></div>
+<p>ناخذ أحسن شي في كل حل ونركبها طبقات. كل طبقة تفلتر اللي قبلها:</p>
+<div class="flow">
+  <div class="box">الصوت كل ٢٠ ملي ثانية</div><span class="arrow">←</span>
+  <div class="box">هل هو المتصل؟<small>الحل ٢: صدى + كاشف كلام + بصمة</small></div><span class="arrow">←</span>
+  <div class="box">وش قال؟<small>الحل ٣: Whisper + قاموس</small></div><span class="arrow">←</span>
+  <div class="box">السياق والنبرة<small>الحل ٧: سؤال؟ تكرار؟ «طيب↗»؟</small></div><span class="arrow">←</span>
+  <div class="box">محتار؟<small>الحل ٤: Qwen للغامض فقط</small></div><span class="arrow">←</span>
+  <div class="box">غلطت؟<small>الحل ٨: RESUME سريع</small></div>
+</div>
+<div class="cols">
+  <div class="pro"><b>يميزه:</b> يغطي الفئات الثمان، وكل طبقة نقيس فايدتها بالأرقام قبل ما نضيف اللي بعدها، ويشتغل بالكامل على جهازك بدون إنترنت. وقصته للحكام واضحة: «أول نتأكد مين يتكلم، بعدها نفهم وش يبي، بالعربي».</div>
+  <div class="con"><b>يعيبه:</b> أجزاؤه كثيرة. وعشان كذا نبنيه مرحلة مرحلة، وأي مرحلة ما ترفع الدرجة نشيلها.</div>
+</div>
+</div>
+</section>
+
+<!-- ======== COMPARE ======== -->
+<section id="compare">
+<h2>المقارنة: أي حل يغطي أي فئة؟</h2>
+<p class="muted">✓ يحلها غالبًا · ~ جزئيًا · ✗ لا. هذا تقدير مني من طبيعة كل حل، والأرقام الحقيقية نطلعها من التجربة.</p>
+<div class="tbl"><table>
+<tr><th>الحل</th><th>GI<br><small>مقاطعة</small></th><th>BC<br><small>«إيه»</small></th><th>HT<br><small>تردد</small></th><th>BG<br><small>ضجيج</small></th><th>NV<br><small>كحة/صدى</small></th><th>AM<br><small>غامض</small></th><th>OV<br><small>تداخل</small></th><th>DV<br><small>لهجات</small></th><th>بدون إنترنت</th></tr>
+<tr><td class="l">١ قواعد صوتية</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="m">~</td><td class="m">~</td><td class="y">✓</td></tr>
+<tr><td class="l">٢ مين يتكلم</td><td class="m">~</td><td class="n">✗</td><td class="m">~</td><td class="y">✓</td><td class="y">✓</td><td class="n">✗</td><td class="m">~</td><td class="n">✗</td><td class="y">✓</td></tr>
+<tr><td class="l">٣ تفريغ + قاموس</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="y">✓</td><td class="y">✓</td></tr>
+<tr><td class="l">٤ نموذج لغوي</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="m">~</td><td class="m">~</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="m">~</td></tr>
+<tr><td class="l">٥ مصنّف مدرّب</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="y">✓</td></tr>
+<tr><td class="l">٦ يسمع مباشرة</td><td class="m">~</td><td class="y">✓</td><td class="y">✓</td><td class="m">~</td><td class="y">✓</td><td class="y">✓</td><td class="m">~</td><td class="m">~</td><td class="m">~</td></tr>
+<tr><td class="l">٧ تنبؤي</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="n">✗</td><td class="n">✗</td><td class="m">~</td><td class="y">✓</td><td class="n">✗</td><td class="y">✓</td></tr>
+<tr><td class="l">٨ اسكت وارجع</td><td class="y">✓</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="m">~</td><td class="y">✓</td></tr>
+<tr style="background:var(--accent-soft)"><td class="l"><b>٩ الهجينة</b></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+</table></div>
+</section>
+
+<!-- ======== REC ======== -->
+<section id="rec">
+<h2>ليش أنصح بالهجينة؟</h2>
+<div class="card">
+<ul>
+  <li><b>تضرب نقطة الضعف الحقيقية.</b> البدائي يخسر في «يكمل لما لازم»، والطبقة الأولى (مين يتكلم) وحدها تحل نص هالمشكلة.</li>
+  <li><b>تفهم العربي فعلًا.</b> كثير من الحالات ما تنحل بالصوت بس: «أيوه… <b>بس</b>»، «<b>لا لا</b> لحظة»، «<b>اسمع</b> اسمع»، «إيه والله صادق».</li>
+  <li><b>تناسب ٦ أيام.</b> كل مرحلة تاخذ يوم تقريبًا، وكل وحدة تطلع بنظام شغّال ودرجة أحسن من اللي قبلها. ولو وقفنا في أي نقطة، يكون عندنا شي نسلّمه.</li>
+  <li><b>بدون إنترنت.</b> مو مؤكد إن فيه إنترنت يوم النهائي، وكل شي هنا يشتغل على جهازك (M5 بذاكرة 24GB يكفي).</li>
+  <li><b>تنحكي بسهولة.</b> الحكام يعطون ٢٠٪ على الأصالة والوضوح، وعندنا قصة واضحة بأمثلة عربية لكل طبقة.</li>
+</ul>
+</div>
+</section>
+
+<!-- ======== PHASES ======== -->
+<section id="phases">
+<h2>المراحل: كيف نبنيها طبقة طبقة</h2>
+<p class="muted">بعد كل مرحلة نشغّل الـ٢٤ مكالمة بالوقت الحقيقي ونقارن الدرجة. أي طبقة ما تفيد، نشيلها.</p>
+<div class="card">
+  <div class="phase"><div class="p">٠</div><div><b>التجهيز</b> (ساعة تقريبًا)<br>نثبّت Python أحدث وبيئة المشروع، ونسوي مستودع git خاص على حساب o6lq، ونشغّل البدائي ونتأكد إنه يطلع 41.</div></div>
+  <div class="phase"><div class="p">١</div><div><b>مين يتكلم؟</b> شيل الصدى + كاشف الكلام + بصمة صوت المتصل.<br><span class="muted">المفروض يحل:</span> التلفزيون، والشارع، والطفل، والكحة، والضحكة، والسماعة الخارجية.</div></div>
+  <div class="phase"><div class="p">٢</div><div><b>وش قال؟</b> نبدأ بتجربة قصيرة: نقيس سرعة Whisper ودقته على مقاطع المتصلين. بعدها التفريغ المباشر والقاموس العربي.<br><span class="muted">المفروض يحل:</span> «إيه» و«أها» و«هيه» ضد «لا لا» و«لحظة» و«بس» و«اسمع».</div></div>
+  <div class="phase"><div class="p">٣</div><div><b>السياق والنبرة.</b> هل سأل الوكيل سؤال؟ هل يكرر كلامه؟ هل «طيب» طالعة ولا نازلة؟ هل المتصل يصارخ؟<br><span class="muted">المفروض يحل:</span> الكلمات الغامضة (AM) والتداخل (OV).</div></div>
+  <div class="phase"><div class="p">٤</div><div><b>شبكات الأمان.</b> RESUME سريع لو غلطنا، وQwen للحالات المحيّرة فقط (ونقيس هل يستاهل تأخيره).</div></div>
+  <div class="phase"><div class="p">٥</div><div><b>متى نرد؟ (اختياري، له ترتيب مستقل)</b> سكوت + «هل الجواب كامل؟». مثلًا الوكيل طلب ٧ أرقام، فما نرد لين تكتمل السبعة.</div></div>
+  <div class="phase"><div class="p">٦</div><div><b>المتانة والتسليم.</b> نجرب على مكالمات بأصوات غير اللي في الحزمة حتى ما نفصّل النظام عليها، ونقيس التأخير والحمل على الجهاز، ونكتب التقرير (٥ حالات فشل)، ونسوي فحص الجاهزية.</div></div>
+</div>
+</section>
+
+<!-- ======== RISKS ======== -->
+<section id="risks">
+<h2>المخاطر وكيف نتعامل معها</h2>
+<div class="card warn">
+<ul style="margin:0">
+  <li><b>Whisper يطلع بطيء أو ضعيف باللهجات:</b> نعرف هذا من تجربة المرحلة ٢ قبل ما نبني عليه. البدائل: نموذج أصغر، أو كشف كلمات مفتاحية بس بدل تفريغ كامل، أو تفريغ سحابي إذا تأكد الإنترنت.</li>
+  <li><b>المكالمات المخفية فيها بشر حقيقيين ونحن نجرب على أصوات مولّدة:</b> ما نضبط الأرقام على الـ٢٤ صوت، ونجرب على أصوات ثانية، ونحط قواعد عامة مو مفصّلة على مكالمة معينة.</li>
+  <li><b>نعطّل استقبال الصوت بالشغل الثقيل:</b> التفريغ والنموذج اللغوي يشتغلون في خيط جانبي، ونراقب رقم «max send lag» بعد كل تشغيل.</li>
+  <li><b>بند الملكية:</b> سرج تاخذ ترخيص دائم ومجاني على حلك. قرارك قبل ما نسلّم.</li>
+</ul>
+</div>
+</section>
+
+<footer>مبني على قراءة كاملة لحزمة سرج (sarj-turn-taking-starter-kit-0.1). الخطوة الجاية: المرحلة ٠ (التجهيز).</footer>
+</div>
+</body>
+</html>

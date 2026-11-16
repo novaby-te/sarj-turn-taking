@@ -43,7 +43,12 @@ def wav_b64(x: np.ndarray) -> str:
 
 class Conversation:
     def __init__(self, send, scenario: str = "payment", engine: str = "edge"):
-        self.send = send                         # async fn(dict) → browser
+        self.events: list = []
+        async def _send(m, _orig=send):
+            if m.get("type") in ("say", "stop", "status", "chat"):
+                self.events.append({"t": self.ms, **{k: v for k, v in m.items() if k != "wav"}})
+            await _orig(m)
+        self.send = _send                        # async fn(dict) → browser (and logged)
         self.engine = engine
         self.sc = SCENARIOS[scenario] if engine == "edge" else as_male(SCENARIOS[scenario])
         self.tt = policy.TurnTaker()
@@ -356,17 +361,18 @@ class Conversation:
         await self.speak_lines(self.sc["opening"])
 
 
-def save_session(conv: "Conversation", folder):
+def save_session(conv: "Conversation", folder, d=None):
     """Keep the demo call (both channels + what the model decided) for diagnosis."""
     import json
     from pathlib import Path
     from ttbench.dataset import write_wav_stereo
     if not conv.rec_a:
         return None
-    d = Path(folder) / time.strftime("%m%d-%H%M%S")
+    d = Path(d) if d else Path(folder) / time.strftime("%m%d-%H%M%S")
     d.mkdir(parents=True, exist_ok=True)
     write_wav_stereo(d / "call.wav", np.stack([np.concatenate(conv.rec_a), np.concatenate(conv.rec_c)], 1))
     (d / "trace.json").write_text(json.dumps({"trace": [{k: v for k, v in r.items() if k != "f"} for r in conv.tt.trace],
                                               "history": conv.history, "stats": conv.stats, "gated_frames": conv.gated},
                                              ensure_ascii=False, indent=1), encoding="utf-8")
+    (d / "events.json").write_text(json.dumps(conv.events, ensure_ascii=False), encoding="utf-8")
     return d

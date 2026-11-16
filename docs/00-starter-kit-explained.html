@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>شرح حزمة سرج</title>
+<style>
+:root{
+  --bg:#f7f6f3; --card:#ffffff; --ink:#1d1d1f; --muted:#5f6368; --line:#e3e1dc;
+  --accent:#0b6e4f; --accent-soft:#e3f2ec; --warn:#a14d00; --warn-soft:#fdf0e1;
+  --bad:#b3261e; --bad-soft:#fbe9e7; --code:#f1efea;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121212; --card:#1c1c1e; --ink:#ededed; --muted:#a1a1a6; --line:#2e2e31;
+    --accent:#4cc79a; --accent-soft:#16302a; --warn:#f0a35e; --warn-soft:#33240f;
+    --bad:#ff8a80; --bad-soft:#3a1c1a; --code:#26262a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121212; --card:#1c1c1e; --ink:#ededed; --muted:#a1a1a6; --line:#2e2e31;
+  --accent:#4cc79a; --accent-soft:#16302a; --warn:#f0a35e; --warn-soft:#33240f;
+  --bad:#ff8a80; --bad-soft:#3a1c1a; --code:#26262a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,"SF Arabic","Geeza Pro","Segoe UI",Tahoma,sans-serif;line-height:1.85;font-size:16.5px}
+.wrap{max-width:980px;margin:0 auto;padding:32px 16px 80px}
+header{padding:28px 0 18px;border-bottom:1px solid var(--line);margin-bottom:26px}
+header h1{margin:0 0 6px;font-size:30px;line-height:1.35}
+header p{margin:0;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0}
+nav a{font-size:14px;text-decoration:none;color:var(--accent);background:var(--accent-soft);padding:4px 12px;border-radius:99px}
+h2{font-size:22px;margin:40px 0 12px;padding-top:8px}
+h3{font-size:18px;margin:24px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+.tldr{border-right:5px solid var(--accent)}
+.warn{background:var(--warn-soft);border-color:transparent;border-right:5px solid var(--warn)}
+.bad{background:var(--bad-soft);border-color:transparent;border-right:5px solid var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat b{display:block;font-size:26px;color:var(--accent)}
+.stat span{color:var(--muted);font-size:14px}
+.tbl{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:15px;background:var(--card)}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:right;vertical-align:top}
+th{background:var(--code);font-weight:600}
+code,.mono{font-family:ui-monospace,Menlo,monospace;font-size:13.5px;background:var(--code);padding:1px 6px;border-radius:5px;direction:ltr;unicode-bidi:isolate;display:inline-block}
+pre{background:var(--code);padding:12px 14px;border-radius:10px;overflow-x:auto;direction:ltr;text-align:left;font-size:13.5px;line-height:1.6}
+.tag{display:inline-block;font-size:12.5px;padding:1px 9px;border-radius:99px;font-weight:600}
+.t-stop{background:var(--bad-soft);color:var(--bad)}
+.t-keep{background:var(--accent-soft);color:var(--accent)}
+.t-either{background:var(--warn-soft);color:var(--warn)}
+.muted{color:var(--muted)}
+ul{padding-right:22px;margin:6px 0}
+li{margin:4px 0}
+.ar{font-weight:600}
+footer{margin-top:50px;color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>حزمة «سرج» لتحدي تبادل الأدوار: شرح كل ملف فيها</h1>
+  <p>المجلد <code>~/Downloads/sarj-turn-taking-starter-kit-0.1</code> · 104 ملفات · 35 ميقا · قرأت كل ملفات النصوص والكود، والملفات الصوتية فحصت بياناتها فقط</p>
+  <nav>
+    <a href="#tldr">الخلاصة</a><a href="#problem">المشكلة</a><a href="#io">المدخلات والمخرجات</a>
+    <a href="#score">التقييم</a><a href="#data">البيانات</a><a href="#files">الملفات</a>
+    <a href="#cmds">الأوامر</a><a href="#timeline">الجدول والتسليم</a><a href="#notes">ملاحظاتي</a>
+  </nav>
+</header>
+
+<!-- ============ TLDR ============ -->
+<section id="tldr">
+<div class="card tldr">
+  <h3 style="margin-top:0">باختصار</h3>
+  <p>هذي <b>حزمة بداية لهاكاثون من شركة سرج (Sarj AI)</b>، مدته ٦ أيام، و٥ فرق في كل فريق ٥ طلاب. المطلوب تبني نظام يسمع مكالمة هاتف عربية <b>مباشرة، كل ٢٠ ملي ثانية</b>، ويقرر لحظة بلحظة: <b>هل الوكيل الصوتي (البوت) يكمل كلامه، أو يسكت لأن المتصل يبي يتكلم؟</b></p>
+  <p>الحزمة فيها: شرح التحدي، وقواعد التقييم بالتفصيل، و<b>٢٤ مكالمة تجريبية</b> (أصواتها مولّدة بالذكاء الاصطناعي بلهجات سعودية وخليجية)، و«حَكَم» يشغّل المكالمات على نظامك ويعطيك الدرجة، ونظام بدائي (يسكت عند أي صوت) لازم تتفوق عليه.</p>
+  <p class="muted" style="margin-bottom:0">الطريقة مفتوحة بالكامل: تحليل صوتي، أو تفريغ كلام مع منطق أو نموذج لغوي، أو نموذج صوتي، أو خليط منها. كل شيء يشتغل على اللابتوب بدون حسابات ولا سحابة.</p>
+</div>
+
+<div class="grid">
+  <div class="stat"><b>٢٤</b><span>مكالمة تجريبية، مجموعها ٩٫٣ دقيقة</span></div>
+  <div class="stat"><b>٨</b><span>أنواع مواقف (مقاطعة، «إيه»، تردد، ضجيج…)</span></div>
+  <div class="stat"><b>٦٤–٨٠</b><span>مكالمة مخفية في النهائي (٢٥–٣٠ دقيقة)</span></div>
+  <div class="stat"><b>٨٠٪ + ٢٠٪</b><span>درجة آلية + درجة لجنة التحكيم</span></div>
+</div>
+</section>
+
+<!-- ============ PROBLEM ============ -->
+<section id="problem">
+<h2>١. وش المشكلة اللي يبونك تحلها؟</h2>
+<p>البوتات الصوتية تعرف <b>وش تقول</b>، لكنها ما تعرف <b>متى</b>. تسكت إذا أحد كحّ، وتكمل كلامها فوق متصل يقول «لا لا لحظة»، وتقاطعك وأنت تفكر. والعربي يصعّبها أكثر، لأن كلمة وحدة مثل <span class="ar">«طيب»</span> أو <span class="ar">«خلاص»</span> ممكن تعني «كمّل» وممكن تعني «دوري أتكلم».</p>
+
+<div class="tbl"><table>
+<tr><th>الموقف</th><th>الوكيل الجيد</th><th>نظامك يرسل</th><th>أهميته</th></tr>
+<tr><td>الوكيل يتكلم، والمتصل قال «إيه» أو كحّ أو التلفزيون شغّال</td><td>يكمل</td><td>لا شيء</td><td><b>قلب التحدي</b></td></tr>
+<tr><td>الوكيل يتكلم، والمتصل فعلًا يبي يتكلم</td><td>يسكت، بسرعة</td><td><code>STOP</code></td><td><b>قلب التحدي</b></td></tr>
+<tr><td>المتصل يتكلم ووقف يفكر</td><td>ينتظره</td><td>لا شيء</td><td>اختياري</td></tr>
+<tr><td>المتصل خلّص كلامه</td><td>يرد فورًا</td><td><code>TAKE_TURN</code></td><td>اختياري، وله ترتيب مستقل</td></tr>
+</table></div>
+
+<h3>أمثلة من ملف التحدي (CHALLENGE.md) على السلوك الصحيح</h3>
+<div class="tbl"><table>
+<tr><th>المتصل يقول وقت كلام الوكيل…</th><th>الصح</th><th>ليش</th></tr>
+<tr><td class="ar">«إيه» بهدوء آخر الجملة</td><td><span class="tag t-keep">يكمل</span></td><td>المتصل متابع</td></tr>
+<tr><td class="ar">«إيه والله صادق، صح»</td><td><span class="tag t-keep">يكمل</span></td><td>طويلة، لكنها موافقة فقط</td></tr>
+<tr><td class="ar">«لا لا لحظة، بكرة أنا مو بالرياض»</td><td><span class="tag t-stop">يسكت</span></td><td>تصحيح</td></tr>
+<tr><td class="ar">«لحظة» بحزم، كلمة وحدة</td><td><span class="tag t-stop">يسكت</span></td><td>طلب توقف</td></tr>
+<tr><td class="ar">«أيوه… بس أبغى أغيّر الموعد»</td><td><span class="tag t-stop">يسكت عند «بس»</span></td><td>النية تتضح في النص</td></tr>
+<tr><td class="ar">«طيب» بنبرة نازلة ثم سكوت</td><td><span class="tag t-either">الاثنين مقبول</span></td><td>غامض فعلًا</td></tr>
+<tr><td>كحة، ضحكة، طفل يصارخ «يُمّه!»</td><td><span class="tag t-keep">يكمل</span></td><td>مو المتصل يطلب الكلام</td></tr>
+<tr><td>سماعة خارجية، صوت الوكيل يرجع صدى</td><td><span class="tag t-keep">يكمل</span></td><td>ما أحد جديد تكلم</td></tr>
+</table></div>
+
+<h3>شروط إلزامية</h3>
+<ul>
+  <li><b>العربي إلزامي.</b> ما فيه مسار إنجليزي، لكن كلمات مثل «أوكي» و«سوري» و«yes yes» تجي داخل الكلام العربي.</li>
+  <li><b>اللهجات:</b> نجدي، حجازي، جنوبي، شرقي، شمالي، كويتي، إماراتي، بحريني، قطري. <b>النجدي ما يتجاوز ٤٠٪</b> من بيانات التقييم.</li>
+  <li><b>كلام عفوي:</b> «إيه»، «أها»، «مم»، «اممم»، «اسمع»، تمطيط، وقفات طويلة، وتصحيح للنفس. وجزء من المكالمات المخفية من متصلين حقيقيين بدون نص مكتوب.</li>
+  <li><b>صوت واقعي:</b> ٤٠٪ على الأقل بجودة هاتف ضيقة النطاق، والباقي فيه سيارة وشارع ومقهى وبيت وتلفزيون وسماعة خارجية.</li>
+</ul>
+</section>
+
+<!-- ============ IO ============ -->
+<section id="io">
+<h2>٢. كيف توصلك المكالمة وكيف ترد (الواجهة)</h2>
+<p>هذا الجزء الوحيد الثابت (INTERFACE.md و CHALLENGE.md §6). نظامك يكون <b>سيرفر WebSocket</b> على المنفذ <code>8765</code>، و«الحَكَم» (harness) هو اللي يتصل فيه.</p>
+
+<div class="card">
+<h3 style="margin-top:0">الصوت الداخل</h3>
+<ul>
+  <li>رسالة ثنائية <b>كل ٢٠ ملي ثانية</b> بالوقت الحقيقي: ١٦ كيلوهرتز، ١٦ بت، <b>قناتين</b>.</li>
+  <li><b>القناة ٠ = الوكيل</b>: صوت البوت نظيف (مرجع).</li>
+  <li><b>القناة ١ = مايك المتصل</b>: صوته، والضجيج، وأحيانًا صدى صوت الوكيل.</li>
+  <li>كل رسالة ١٢٨٠ بايت (٣٢٠ عينة × قناتين × ٢ بايت). بين كل مكالمة والثانية ١٫٥ ثانية سكوت.</li>
+</ul>
+<h3>رسائل السياق (JSON)</h3>
+<ul>
+  <li><code>scenario_start</code>: بداية مكالمة، ومعها نوع الخدمة (تذكير موعد، توصيل…).</li>
+  <li><code>agent_utterance_start</code>: الوكيل بدأ جملة، و<b>يجيك نص الجملة كاملًا من البداية</b> ومدتها، لأن البوت الحقيقي يعرف وش بيقول.</li>
+  <li><code>agent_utterance_end</code> و <code>scenario_end</code> و <code>ping</code> (لازم ترد بـ <code>pong</code>).</li>
+</ul>
+<h3>اللي ترسله أنت</h3>
+<ul>
+  <li><code>hello</code> أول ما ينفتح الاتصال، <b>خلال ١٠ ثواني</b> (يعني حمّل نماذجك قبل).</li>
+  <li><code>STOP</code>: الوكيل يسكت الحين. <code>RESUME</code> (اختياري): يرجع يكمل. <code>TAKE_TURN</code>: المتصل خلّص.</li>
+  <li>ممكن تضيف <code>label</code> و <code>confidence</code> و <code>transcript</code>، تنعرض بس <b>ما تأثر على الدرجة</b>.</li>
+</ul>
+</div>
+
+<div class="card warn">
+<b>نقطتين حاسمتين:</b>
+<ul style="margin-bottom:0">
+  <li><b>القرار ينحسب وقت وصوله</b>، فوقت تفكير نظامك (تفريغ كلام، نموذج لغوي، إنترنت) جزء من التأخير، مثل المكالمة الحقيقية.</li>
+  <li><b>التسجيل ما يتأثر فيك</b>: لو أرسلت STOP يكمل الصوت عادي، والمقيّم يحسب «وش كان بيصير» من قراراتك.</li>
+</ul>
+</div>
+</section>
+
+<!-- ============ SCORE ============ -->
+<section id="score">
+<h2>٣. كيف تنحسب الدرجة</h2>
+<p>من SCORING.md والكود <code>ttbench/score.py</code> (قرأته سطر سطر، ويطابق الوصف).</p>
+
+<h3>كل لحظة معلّمة في المكالمة لها نوع</h3>
+<div class="tbl"><table>
+<tr><th>النوع</th><th>تنجح إذا</th><th>الدرجة</th></tr>
+<tr><td><span class="tag t-stop">STOP</span> المتصل يبي الكلام</td><td>سكتّ قبل «لحظة الوضوح + ١٫٥ ث» <b>وظليت ساكت لين يخلص المتصل</b></td><td>١٫٠ لو خلال ٠٫٣ ث، تنزل تدريجيًا لين ٠٫٤ عند ١٫٥ ث، وبعدها صفر. ولو رجعت تكمل فوقه = صفر</td></tr>
+<tr><td><span class="tag t-keep">KEEP</span> «إيه»، تردد، ضجيج، صدى</td><td>كمّلت من بداية الصوت إلى نص ثانية بعد نهايته</td><td>١٫٠، ولو سكتّ ورجعت خلال ٠٫٥ ث (RESUME) تاخذ ٠٫٥، غير كذا صفر</td></tr>
+<tr><td><span class="tag t-either">EITHER</span> غامض</td><td>أي تصرف</td><td>المفضّل ١٫٠ والثاني ٠٫٦</td></tr>
+<tr><td><code>TAKE_TURN</code> نهاية كلام المتصل</td><td>ما تقاطع في الوقفات المطلوبة، وترد بعد ما يخلص</td><td>١٫٠ لو خلال ٠٫٦ ث، ٠٫٤ عند ٢ ث، صفر عند ٣ ث</td></tr>
+</table></div>
+
+<p><b>«لحظة الوضوح» (evident)</b> هي اللحظة اللي لو سمع فيها شخص عربي الصوت لين هالنقطة بيقول «هذا يبي يتكلم». مثلًا في «أيوه… بس أبغى…» اللحظة عند «بس»، مو عند «أيوه». ولو سكتّ قبلها (بعد ما يبدأ المتصل) تنحسب لك تأخير صفر، لكنك بتدفع الثمن في مكالمات الـ KEEP اللي كانت «إيه» فيها مجرد متابعة.</p>
+<p><b>السكتات العشوائية:</b> لو سكتّ وما فيه أي شيء يصير، كل مرة تنخصم منك في «الانضباط».</p>
+
+<h3>الأرقام الرئيسية</h3>
+<div class="tbl"><table>
+<tr><th>الرمز</th><th>معناه</th><th>كيف ينحسب</th></tr>
+<tr><td><b>R</b> الاستجابة</td><td>هل تسكت لما لازم، وبسرعة؟</td><td>متوسط درجات STOP لكل فئة، ثم متوسط الفئات</td></tr>
+<tr><td><b>S</b> الانضباط</td><td>هل تكمل لما لازم؟</td><td>لكل فئة: (متوسط KEEP) × (متوسط «بدون سكتة عشوائية»)، ثم متوسط الفئات</td></tr>
+<tr><td><b>F</b></td><td>يجمع الاثنين</td><td><code>2RS/(R+S)</code> متوسط توافقي، يرتفع بس إذا الاثنين عاليين</td></tr>
+<tr><td><b>A</b> الغموض</td><td>تعاملك مع الحالات الغامضة</td><td>متوسط درجات EITHER</td></tr>
+<tr><td><b>الدرجة الأساسية</b></td><td>الرقم اللي يرتبك</td><td><code>100 × (0.9F + 0.1A)</code></td></tr>
+</table></div>
+<p class="muted">يعني «اسكت عند أي صوت» و«لا تسكت أبدًا» الاثنين يطلعون تحت ١٠ تقريبًا. وعتبات الوقت (٣٠٠ و١٥٠٠ ملي ثانية…) <b>مؤقتة</b> وبتتعدل بعد قياس سرعة الموظفين الحقيقيين.</p>
+
+<h3>الترتيب النهائي</h3>
+<ul>
+  <li><b>٨٠٪</b>: الدرجة الأساسية على المكالمات المخفية.</li>
+  <li><b>٢٠٪</b> لجنة التحكيم: الأصالة والتفكير (١٠)، قابلية التطبيق الحقيقي من سرعة وتكلفة (٥)، وضوح العرض والتحليل (٥). <b>يكافئون الاختلاف</b>، مو التشابه مع أي منتج.</li>
+  <li>مسار TAKE_TURN له لوحة ترتيب مستقلة و<b>صفر٪</b> من المجموع.</li>
+  <li>سرج بتشغّل نظامها الخاص على نفس المكالمات لأبحاثها، لكنه <b>مو منافس ولا يظهر في الترتيب</b>.</li>
+</ul>
+
+<h3>نتائج جاهزة في مجلد example-results (على الـ ٢٤ مكالمة)</h3>
+<div class="tbl"><table>
+<tr><th>النظام</th><th>الدرجة</th><th>R</th><th>S</th><th>TAKE_TURN</th><th>سكتات خاطئة/دقيقة</th><th>مقاطعات فاتته</th></tr>
+<tr><td>B0: ما يسكت أبدًا</td><td>8.0</td><td>0.00</td><td>1.00</td><td>–</td><td>0</td><td>7 من 7</td></tr>
+<tr><td>B1: يسكت عند أي صوت (my_system.py كما هو)</td><td>41.0</td><td>0.81</td><td>0.22</td><td>28.5</td><td>3.5</td><td>2</td></tr>
+<tr><td>المثال example_server.py (عتبة صوت + RESUME)</td><td><b>58.6</b></td><td>0.83</td><td>0.40</td><td>28.3</td><td>2.2</td><td>1</td></tr>
+</table></div>
+<p>لاحظ إن النظام البدائي B1 ينجح في المقاطعات لكنه <b>فاشل في الانضباط</b>: سكت في كل «إيه» وكل ضجيج تلفزيون وشارع وطفل. وفجوة اللهجات عنده كبيرة (F نجدي ٠٫٦٧ مقابل ٠٫١٢ لباقي اللهجات)، وكذلك فجوة الضجيج (٠٫٧٣ هادئ مقابل ٠٫٣٥ مزعج). هنا مكان التحسين.</p>
+</section>
+
+<!-- ============ DATA ============ -->
+<section id="data">
+<h2>٤. البيانات: الـ ٢٤ مكالمة</h2>
+<div class="card warn">
+<b>مهم:</b> كل المكالمات <b>اصطناعية</b>: أصوات مولّدة بـ Gemini TTS (<code>gemini-3.8-flash-tts</code>) وضجيج مولّد برمجيًا. والتصنيفات مأخوذة من النصوص المكتوبة، <b>وما راجعها أحد من أهل اللهجة</b>. المكالمات المخفية أصوات ثانية، وبعضها بشر حقيقيين. يعني <b>لا تفصّل نظامك على هالأصوات</b>.
+</div>
+
+<p>كل مكالمة ملف WAV ستيريو (يسار = الوكيل، يمين = هاتف المتصل) + ملف JSON فيه النصوص والتوقيتات والسلوك المطلوب. وكلها تمشي على نفس الشكل:</p>
+<pre>A0  الوكيل يفتتح (٢–٤ ث)       "السلام عليكم، معك ريم من متجر نوّار…"
+U0  رد المتصل (١–٢ ث)          عيّنة نظيفة من صوت هذا المتصل (تقدر تتعرف عليه منها)
+A1  جملة الوكيل الطويلة (٦–١٥ ث)  هنا يصير الاختبار
+U1  صوت المتصل تحت الاختبار     "إيه" / "لا لا لحظة" / كحة / سكوت مع تلفزيون…
+ذيل (٢ ث أو أكثر)              عشان تبان القرارات المتأخرة</pre>
+<p class="muted">الشركات والأسماء كلها وهمية: متجر نوّار، عيادات رِفاه، سَنا للاتصالات، مركز صيانة الوادي، خدمة توصيل مِرسال، و«البنك».</p>
+
+<h3>الفئات الثمان، مع المكالمات الثلاث لكل وحدة</h3>
+<div class="tbl"><table>
+<tr><th>الفئة</th><th>المكالمة</th><th>المطلوب</th><th>اللهجة / الصوت</th><th>وش يصير</th></tr>
+<tr><td rowspan="3"><b>GI</b> مقاطعة حقيقية</td><td>GI-D01</td><td><span class="tag t-stop">STOP</span></td><td>نجدي / هادئ</td><td class="ar">«لا لا لحظة، بكرة أنا مو بالرياض»</td></tr>
+<tr><td>GI-D02</td><td><span class="tag t-stop">STOP</span></td><td>حجازي / هاتف + شارع</td><td class="ar">«أيوه~… بس أبغى أغيّر الموعد» (يبدأ كأنه «إيه» عادية)</td></tr>
+<tr><td>GI-D03</td><td><span class="tag t-stop">STOP</span></td><td>نجدي / سيارة</td><td class="ar">«لحظة.» كلمة وحدة بحزم (صعوبة ٤)</td></tr>
+<tr><td rowspan="3"><b>BC</b> «إيه» ومتابعة</td><td>BC-D01</td><td><span class="tag t-keep">KEEP</span></td><td>نجدي / هادئ</td><td class="ar">«إيه.» خفيفة</td></tr>
+<tr><td>BC-D02</td><td><span class="tag t-keep">KEEP ×3</span></td><td>شرقي / هاتف</td><td class="ar">«أها» … «إيه إيه» … «مم»</td></tr>
+<tr><td>BC-D03</td><td><span class="tag t-keep">KEEP</span></td><td>نجدي / مكيف</td><td class="ar">«إيه والله صادق، صح» (طويلة لكنها موافقة)</td></tr>
+<tr><td rowspan="3"><b>HT</b> تردد وتفكير</td><td>HT-D01</td><td>TAKE_TURN</td><td>نجدي / هادئ</td><td class="ar">«اممم~ … بعد المغرب … يعني الساعة سبع»</td></tr>
+<tr><td>HT-D02</td><td>TAKE_TURN</td><td>حجازي / هاتف</td><td>تملي رقم طلب على دفعات بوقفات طويلة</td></tr>
+<tr><td>HT-D03</td><td><span class="tag t-keep">KEEP</span></td><td>بحريني / هادئ</td><td class="ar">«اممم~» وهي تسمع الخيارات</td></tr>
+<tr><td rowspan="3"><b>BG</b> ضجيج خلفي</td><td>BG-D01</td><td><span class="tag t-keep">KEEP</span></td><td>قطري / تلفزيون</td><td>أخبار بالفصحى طول المكالمة، والمتصل ساكت</td></tr>
+<tr><td>BG-D02</td><td><span class="tag t-keep">KEEP ×2</span></td><td>جنوبي / شارع + هاتف</td><td>بوري سيارة ودباب</td></tr>
+<tr><td>BG-D03</td><td><span class="tag t-keep">KEEP</span></td><td>نجدي / بيت</td><td class="ar">طفل: «يُمّه! وين الشاحن؟» والمتصلة ساكتة (صعوبة ٤)</td></tr>
+<tr><td rowspan="3"><b>NV</b> أصوات غير كلام</td><td>NV-D01</td><td><span class="tag t-keep">KEEP</span></td><td>شمالي / هادئ</td><td>كحّتين</td></tr>
+<tr><td>NV-D02</td><td><span class="tag t-keep">KEEP</span></td><td>حجازي / هادئ</td><td>ضحكة «ههههه»</td></tr>
+<tr><td>NV-D03</td><td><span class="tag t-keep">KEEP</span></td><td>نجدي / سماعة خارجية</td><td>صدى صوت الوكيل نفسه + تنفس (صعوبة ٤)</td></tr>
+<tr><td rowspan="3"><b>AM</b> كلمات غامضة</td><td>AM-D01</td><td><span class="tag t-either">EITHER، يُفضّل KEEP</span></td><td>نجدي / هادئ</td><td class="ar">«طيب↘» نازلة وبعدها سكوت</td></tr>
+<tr><td>AM-D02</td><td><span class="tag t-stop">STOP</span></td><td>نجدي / هاتف</td><td class="ar">«طيب↗… بس كم المبلغ بالضبط؟» (زوج مع AM-D01)</td></tr>
+<tr><td>AM-D03</td><td><span class="tag t-either">EITHER، يُفضّل STOP</span></td><td>نجدي / هادئ</td><td class="ar">«خلاص خلاص، فهمت» والوكيل يعيد كلامه</td></tr>
+<tr><td rowspan="3"><b>OV</b> تداخل</td><td>OV-D01</td><td><span class="tag t-stop">STOP</span></td><td>نجدي / هادئ</td><td class="ar">يبدأون سوا: «إيه الأحد زين، احجزه» (جواب على سؤال)</td></tr>
+<tr><td>OV-D02</td><td><span class="tag t-keep">KEEP</span></td><td>حجازي / هادئ</td><td class="ar">تكمل كلمة الوكيل معه: «الوطنية، أيوه، معايا»</td></tr>
+<tr><td>OV-D03</td><td><span class="tag t-stop">STOP</span></td><td>نجدي / مكيف</td><td class="ar">«يا أخي هذا ثالث مرة أسمع نفس الكلام!» بصوت عالي</td></tr>
+<tr><td rowspan="3"><b>DV</b> لهجات</td><td>DV-D01</td><td><span class="tag t-keep">KEEP</span></td><td>كويتي / هاتف</td><td class="ar">«إي إي… زين»</td></tr>
+<tr><td>DV-D02</td><td><span class="tag t-keep">KEEP</span></td><td>إماراتي / سيارة</td><td class="ar">«هيه… هيه» (يعني نعم)</td></tr>
+<tr><td>DV-D03</td><td><span class="tag t-stop">STOP</span></td><td>كويتي / هادئ</td><td class="ar">«اسمع اسمع، أنا ما طلبت هالشي أصلاً»</td></tr>
+</table></div>
+
+<h3>تقرير فحص الجودة (data/dev/qa_report.md)</h3>
+<p>فحص آلي بنموذج Gemini يتأكد إن كل مقطع يقول الكلام المكتوب: ١٠٠ مقطع، متوسط التطابق ٠٫٩٩، و<b>٣ مقاطع منبَّهة</b>:</p>
+<ul>
+  <li><b>HT-D02</b> (٠٫٤١): الأرقام انكتبت أرقامًا «3 7 9…» بدل كلمات. مشكلة في الفحص نفسه، مو في الصوت.</li>
+  <li><b>NV-D02</b> (٠٫٠): ضحكة، طبيعي ما يطلع لها نص.</li>
+  <li><b>DV-D02</b> (٠٫٤): المكتوب «هيه… هيه» (إماراتي)، <b>والمسموع «إي إي»</b>. يعني الصوت المولّد غالبًا ما نطق الكلمة الإماراتية صح.</li>
+</ul>
+<p class="muted">وفيه شي ما انبَّه عليه: في HT-D01 النص المسموع ما فيه «اممم» أصلًا، فالـ «اممم» يمكن تكون ضعيفة أو ناقصة في الصوت.</p>
+</section>
+
+<!-- ============ FILES ============ -->
+<section id="files">
+<h2>٥. الملفات واحد واحد</h2>
+
+<h3>الوثائق (في الجذر)</h3>
+<div class="tbl"><table>
+<tr><th>الملف</th><th>وش فيه</th></tr>
+<tr><td><code>README.md</code></td><td>البداية: المشكلة، أول درجة لك خلال ١٠ دقائق، كيف تشوف المكالمات، كيف تعدل نظامك، نصائح للمكونات البطيئة (لا توقف الصوت، حمّل النماذج قبل، وقت التفكير = تأخير)، وجدول الأوامر.</td></tr>
+<tr><td><code>CHALLENGE.md</code></td><td>الكتيّب الكامل للتحدي: المشكلة، شروط العربي، السلوك الصحيح، المطلوب الإلزامي والإضافي، الواجهة، التقييم، الجدول الزمني ٦ أيام، القوانين، وبند الملكية الفكرية، والأسئلة الشائعة.</td></tr>
+<tr><td><code>SCORING.md</code></td><td>قواعد الدرجة بالضبط (شرحتها فوق في القسم ٣).</td></tr>
+<tr><td><code>INTERFACE.md</code></td><td>مواصفات WebSocket نسخة 1.0: صيغة الصوت، رسائل الحكم، رسائلك، قواعد التوقيت.</td></tr>
+<tr><td><code>DATA.md</code></td><td>وصف مجموعة الـ ٢٤ مكالمة، وإنها اصطناعية، وجدول المكالمات.</td></tr>
+<tr><td><code>SCRIPTS.md</code></td><td>أطول ملف: مواصفات التسجيلات، تعريف الفئات، النقاط الزمنية الأربع (onset / evident / offset / deadline)، رموز اللهجات والأصوات والصعوبة، <b>نص كل مكالمة من الـ ٢٤ كاملًا</b> مع سبب اختيارها، وقواعد تركيب المكالمات المخفية.</td></tr>
+<tr><td><code>SUBMISSION.md</code></td><td>وش تسلّم ومتى، وكيف يصير التشغيل النهائي.</td></tr>
+<tr><td><code>WRITEUP.md</code></td><td><b>قالب فاضي</b> لتقريرك (٢–٤ صفحات): الفكرة، ليش، كيف تشتغل، السرعة والتكلفة، النتائج، <b>٥ حالات فشل على الأقل</b>، نقاط القوة والضعف، الخدمات الخارجية، الفريق.</td></tr>
+<tr><td><code>TROUBLESHOOTING.md</code></td><td>جدول مشاكل شائعة وحلولها (النظام ما اشتغل، ما وصل hello، تأخير، المنظمين ما يوصلون لجهازك…).</td></tr>
+<tr><td><code>requirements.txt</code></td><td>ثلاث مكتبات فقط: numpy و websockets و pytest.</td></tr>
+<tr><td><code>.gitignore</code></td><td>يتجاهل مجلد runs/ والبيئة الافتراضية وملفات الصوت المولّدة.</td></tr>
+</table></div>
+
+<h3>نظامك والمثال</h3>
+<div class="tbl"><table>
+<tr><th>الملف</th><th>وش فيه</th></tr>
+<tr><td><code>my_system.py</code></td><td><b>الملف اللي تشتغل عليه</b>، ٧٧ سطر. كلاس <code>MySystem</code> فيه <code>on_agent_start</code> و<code>on_agent_end</code> و<code>on_frame(agent, caller)</code> اللي ينادى كل ٢٠ ملي ثانية. حاليًا هو النظام البدائي: يسكت لو صوت المتصل أعلى من −42 ديسيبل لمدة ٢٠٠ ملي ثانية، ويرد بعد ٧٠٠ ملي ثانية سكوت. اسم الفريق <code>TEAM = "my-team"</code> لازم يتغير.</td></tr>
+<tr><td><code>examples/example_server.py</code></td><td>سيرفر WebSocket خام بدون أدوات الحزمة، كمرجع لو بتكتب بلغة ثانية. منطقه: يسكت بعد ٣٠٠ ملي ثانية صوت، و<b>يرجع يكمل (RESUME) بعد ٥٠٠ ملي ثانية سكوت</b>. هذي الإضافة البسيطة رفعته من ٤١ إلى ٥٨٫٦.</td></tr>
+</table></div>
+
+<h3>مجلد ttbench (الحكم والأدوات، ما تحتاج تعدّله)</h3>
+<div class="tbl"><table>
+<tr><th>الملف</th><th>وش يسوي</th></tr>
+<tr><td><code>server.py</code></td><td>يحوّل كلاسك لسيرفر: يرسل hello، يرد على ping، يقسم الصوت لقناتين، ويطلع رقم الكوميت من git (أو "dev" لو ما فيه git).</td></tr>
+<tr><td><code>harness.py</code></td><td><b>الحكم نفسه</b>: يتصل بنظامك، يبث الصوت بالوقت الحقيقي بساعة دقيقة ما تنحرف، يرسل رسائل السياق، ويسجل كل قرار بوقت وصوله.</td></tr>
+<tr><td><code>score.py</code></td><td>المقيّم: يبني من قراراتك متى كان الوكيل ساكت ومتى يتكلم، ويقارنها بالتصنيفات، ويحسب R و S و F والدرجة، والتأخير، وتقسيم النتائج حسب اللهجة والضجيج.</td></tr>
+<tr><td><code>play.py</code></td><td><b>الأمر الأساسي</b>: يشغّل نظامك + الحكم + المقيّم بأمر واحد، ويحفظ كل تجربة في runs/history.csv ويقارنها بالسابقة. الوضع السريع يختار ٨ مكالمات (وحدة لكل فئة).</td></tr>
+<tr><td><code>summary.py</code></td><td>ملخص بكلام بسيط لكل قرار صح وغلط، وجدول الفشل جاهز تلصقه في WRITEUP.md.</td></tr>
+<tr><td><code>report.py</code></td><td>يكتب report.md المفصل (لكل فئة، لكل حدث، لكل شريحة).</td></tr>
+<tr><td><code>render.py</code></td><td>يطلع لك ملف صوت «وش سمع المتصل»: صوت الوكيل يختفي عند STOP ويرجع عند RESUME، وصفّارة عند TAKE_TURN.</td></tr>
+<tr><td><code>show.py</code></td><td>يعرض المكالمات: سطر لكل وحدة، أو خط زمني لمكالمة وحدة (مين قال وش ومتى، ووش الصح).</td></tr>
+<tr><td><code>check.py</code></td><td>فحص الاتصال (شرط دخول): ٦ مكالمات، ولازم يخلص بدون أخطاء ووقت الذهاب والإياب أقل من ٥٠ ملي ثانية.</td></tr>
+<tr><td><code>ready.py</code></td><td>«هل أنا جاهز للتسليم؟» يفحص اسم الفريق، الكوميت، WRITEUP، ٥ حالات فشل، الخدمات الخارجية، وفحص الاتصال.</td></tr>
+<tr><td><code>leaderboard.py</code></td><td>يقارن عدة تجارب في جدول ترتيب (Markdown + CSV) وجدول لكل حدث.</td></tr>
+<tr><td><code>baselines.py</code></td><td>الأنظمة المرجعية: B0 ما يسكت، B1 يسكت عند أي صوت، و«always» يسكت من البداية (للاختبارات).</td></tr>
+<tr><td><code>dataset.py</code></td><td>يقرأ الـ manifest والتصنيفات والصوت، ويرتب المكالمات في بث واحد متصل.</td></tr>
+<tr><td><code>protocol.py</code></td><td>الثوابت (١٦ كيلوهرتز، ٢٠ ملي ثانية، ١٢٨٠ بايت) والتحقق من رسائلك.</td></tr>
+<tr><td><code>__init__.py</code></td><td>رقم النسخة 0.1.0 فقط.</td></tr>
+</table></div>
+
+<h3>البيانات والمخططات والنتائج والاختبارات</h3>
+<div class="tbl"><table>
+<tr><th>المسار</th><th>وش فيه</th></tr>
+<tr><td><code>data/dev/audio/</code></td><td>٢٤ ملف WAV ستيريو (أغلب حجم المجلد).</td></tr>
+<tr><td><code>data/dev/labels/</code></td><td>٢٤ ملف JSON: المتحدثين، اللهجة، الضجيج ومستواه، جمل الوكيل بتوقيتها، مقاطع المتصل بنصها، الأحداث والسلوك المطلوب وسببه، وملاحظة إنها «غير مراجعة».</td></tr>
+<tr><td><code>data/dev/events.csv</code></td><td>٢٧ حدث في جدول واحد (سطر لكل حدث) بكل التوقيتات.</td></tr>
+<tr><td><code>data/dev/manifest.json</code></td><td>قائمة الملفات مع بصمة sha256، والعتبات الزمنية المعمول فيها (مكتوب عليها «مؤقتة»).</td></tr>
+<tr><td><code>data/dev/qa_report.md</code></td><td>فحص جودة الأصوات المولّدة (شرحته فوق).</td></tr>
+<tr><td><code>schema/</code></td><td>مخططين JSON Schema: واحد لصيغة ملف المكالمة، وواحد لكل رسائل البروتوكول.</td></tr>
+<tr><td><code>example-results/</code></td><td>نتائج جاهزة لـ B0 و B1 والمثال على الـ ٢٤ مكالمة، وجدول ترتيبهم، وملف صوت «وش سمع المتصل» لمكالمة BC-D03.</td></tr>
+<tr><td><code>tests/</code></td><td>٢٤ اختبار pytest على بيانات وهمية صغيرة (نغمات وضجيج): «ما يسكت» و«يسكت دايم» يطلعون قرب الصفر، النظام المثالي يطلع كامل، منحنى التأخير، الـ RESUME فوق المتصل = فشل، وغيرها. تثبت إن المقيّم منطقي.</td></tr>
+</table></div>
+</section>
+
+<!-- ============ CMDS ============ -->
+<section id="cmds">
+<h2>٦. الأوامر المهمة</h2>
+<pre>cd ~/Downloads/sarj-turn-taking-starter-kit-0.1
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+git init && git add -A && git commit -qm start      # لازم، التسليم برقم كوميت
+
+python -m ttbench.play                  # ٨ مكالمات بالوقت الحقيقي (~٣٫٥ دقيقة)
+python -m ttbench.play --fast           # نفسها أسرع ٤ مرات (~دقيقة)، التوقيت تقريبي
+python -m ttbench.play --calls all      # الـ ٢٤ كاملة (~١٠ دقائق): الرقم الرسمي
+python -m ttbench.show HT-D02           # خط زمني لمكالمة
+python -m ttbench.render --run runs/&lt;name&gt; --scenario BG-D01   # اسمع وش صار
+python -m ttbench.summary runs/&lt;name&gt; --failures              # جدول الفشل
+python -m ttbench.ready                 # جاهز للتسليم؟
+python my_system.py --host 0.0.0.0      # يوم النهائي</pre>
+</section>
+
+<!-- ============ TIMELINE ============ -->
+<section id="timeline">
+<h2>٧. الجدول الزمني والتسليم</h2>
+<div class="tbl"><table>
+<tr><th>اليوم</th><th>وش يصير</th></tr>
+<tr><td>١</td><td>الافتتاح، وتبدأ الفرق.</td></tr>
+<tr><td>٢</td><td>أول فحص اتصال متاح (٦ مكالمات)، وجلسات مع المرشدين يوميًا.</td></tr>
+<tr><td>٣</td><td>تشغيل تجريبي على ١٦ مكالمة جديدة (لم يتأكد بعد)، ودرجاتك لكل فئة، وترتيب بدون أسماء.</td></tr>
+<tr><td>٤</td><td><b>آخر يوم لاجتياز فحص الاتصال.</b></td></tr>
+<tr><td>٥</td><td><b>تجميد الكود الساعة ٦ المغرب</b>: تسلّم رقم الكوميت وقائمة الخدمات الخارجية.</td></tr>
+<tr><td>٦</td><td>التشغيل النهائي الصبح على المكالمات المخفية، ثم العرض: ٨ دقائق لكل فريق + ٥ دقائق أسئلة، ثم النتائج.</td></tr>
+</table></div>
+<p><b>المطلوب تسليمه:</b> فحص اتصال ناجح، رقم كوميت، WRITEUP.md (٢–٤ صفحات فيه ٥ حالات فشل على الأقل)، ونظامك شغّال على لابتوبك يوم النهائي ٣٠ دقيقة متواصلة بدون تدخل. لو طاح عندك فرصة إعادة تشغيل وحدة خلال ٦٠ ثانية.</p>
+<p><b>قوانين:</b> أي نموذج أو مكتبة أو API مسموح بشرط تعلنه. ممنوع تحفظ صوت التشغيل التجريبي أو النهائي. الإنترنت يوم النهائي <b>لسا ما تأكد</b>، فلا تعتمد عليه قبل تسأل. وبعد النتائج كل فريق يقدر يعترض على ٣ تصنيفات.</p>
+</section>
+
+<!-- ============ NOTES ============ -->
+<section id="notes">
+<h2>٨. أشياء لاحظتها وأنا أقرأ</h2>
+
+<div class="card bad">
+<h3 style="margin-top:0">بند الملكية الفكرية (CHALLENGE.md §10، بند ٨)</h3>
+<p style="margin-bottom:0">تبقى صاحب الكود، <b>لكن بمجرد المشاركة تعطي سرج ترخيص دائم وعالمي ومجاني</b> يسمح لها تستخدم حلّك وتعدّله وتستغله تجاريًا بدون إذنك وبدون أي مقابل. ومكتوب إن الصياغة النهائية لسا تحت المراجعة القانونية. اقرأه زين قبل توافق، خصوصًا لو بتستخدم فكرة أو كود عندك تبي تحتفظ فيه لنفسك.</p>
+</div>
+
+<div class="card">
+<h3 style="margin-top:0">ملاحظات تقنية</h3>
+<ul>
+  <li><b>المجلد مو مستودع git.</b> لازم <code>git init</code> وكوميت، وإلا النظام يبلّغ عن نفسه بنسخة "dev" وفحص الجاهزية يفشل.</li>
+  <li><b>جهازك فيه Python 3.9.6</b>، وهو الحد الأدنى المطلوب بالضبط، والكود متوافق معه.</li>
+  <li><b>توقيت كلمات الوكيل مو موجود في بيانات التجربة.</b> CHALLENGE.md يعرض حقل <code>words</code> فيه بداية ونهاية كل كلمة، لكن ولا ملف من الـ ٢٤ فيه هالحقل، والواجهة تعتبره اختياري. لو فكرتك تعتمد على «وين وصل الوكيل في جملته» بتحتاج تستنتجها بنفسك من صوت القناة ٠.</li>
+  <li><b>ملف SCRIPTS.md يشير لملفات مو موجودة</b>: A-challenge-brief.md و C-dataset-schema.md و D-evaluation-scoring.md و E-production-plan.md. هذي أسماء داخلية عندهم، ومقابلها في الحزمة غالبًا CHALLENGE.md و schema/ و SCORING.md. وخطة الإنتاج (E) فعلًا ناقصة.</li>
+  <li>الوضع السريع (8 مكالمات) يعطي B1 درجة 48.6 بدل 41.0 على الكل، يعني <b>الأرقام السريعة أعلى من الحقيقية</b>. الرقم اللي تعتمد عليه هو <code>--calls all</code> بالوقت الحقيقي.</li>
+</ul>
+</div>
+
+<div class="card">
+<h3 style="margin-top:0">مفاتيح موجودة في الملفات نفسها (مو اقتراح تصميم، بس معلومات تفيد)</h3>
+<ul>
+  <li><b>القناة ٠ نظيفة</b> وهي صوت الوكيل بالضبط، فممكن تشيل صداه من قناة المتصل (حالة NV-D03، السماعة الخارجية: صدى ‎−18 ديسيبل وتأخير ٢٢٠ ملي ثانية).</li>
+  <li><b>U0 عيّنة نظيفة لصوت المتصل</b> في بداية كل مكالمة، ومكتوب صراحة إن «الأنظمة ممكن تتعرف عليه منها». هذا يفرّق المتصل عن التلفزيون والطفل (BG-D01 و BG-D03).</li>
+  <li><b>نص الوكيل يجيك مقدمًا</b>، فتعرف إذا كان يسأل سؤال (OV-D01: «إيه الأحد زين» جواب على سؤال، مو مجرد متابعة) أو إذا كان يكرر كلامه (AM-D03: «خلاص خلاص»).</li>
+  <li><b>RESUME رخيص ومفيد</b>: لو سكتّ غلط ورجعت خلال نص ثانية تاخذ نص الدرجة بدل صفر. وهذا بالضبط اللي رفع المثال من ٤١ إلى ٥٨٫٦.</li>
+  <li><b>المكالمات المخفية فيها ٦ أزواج على الأقل</b> بنفس الكلام ونية مختلفة (مثل «طيب↘» مقابل «طيب↗ + بس»)، يعني النبرة والتوقيت لها وزن، مو الكلمات بس.</li>
+  <li>تركيبة المخفي: تقريبًا ٤٥٪ STOP و٤٥٪ KEEP و١٠٪ غامض، وما يقل عن ٤٠٪ هاتف ضيق النطاق، وما فيه ولا متحدث ولا تسجيل ضجيج من مجموعة التجربة.</li>
+</ul>
+</div>
+</section>
+
+<footer>
+قرأت كل ملفات النصوص والكود في الحزمة (الوثائق التسع، وملفات ttbench الخمسة عشر، والمثال، والاختبارات، والمخططات، وملفات JSON والتقارير)، والملفات الصوتية فحصت بياناتها فقط بدون ما أسمعها. أُعدّ في ١٥ نوفمبر ٢٠٢٦.
+</footer>
+
+</div>
+</body>
+</html>

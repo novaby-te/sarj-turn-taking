@@ -372,6 +372,8 @@ $('#cgo').onclick = async () => {
   await ctx.resume();
   $('#chat').innerHTML = ''; cv.bubble = null; cv.stops = []; cv.replies = []; $('#cstop').textContent = '—'; $('#creply').textContent = '—';
   cv.on = true; $('#cgo').disabled = true;
+  if (ws) { try { ws.onmessage = null; ws.close(); } catch (er) {} }   // never keep two calls alive
+  node.port.postMessage({stop: true});
   ws = new WebSocket('ws://127.0.0.1:8771');
   ws.onopen = () => ws.send(JSON.stringify({type: 'convo_start', scenario: $('#scen').value, engine: $('#eng').value, model: $('#model').value}));
   ws.onmessage = async e => {
