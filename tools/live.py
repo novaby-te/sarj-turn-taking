@@ -47,6 +47,24 @@ def dev_calls():
     return out
 
 
+def replay(sid: str) -> dict:
+    run = KIT / "runs" / "sim-dev-latest"
+    lab = json.loads((KIT / "data" / "dev" / "labels" / f"{sid}.json").read_text())
+    out = {"label": lab, "decisions": [], "trace": [], "events": []}
+    if not (run / "score.json").exists():
+        return out
+    meta = json.loads((run / "run.json").read_text())
+    s0 = next(s for s in meta["scenarios"] if s["scenario_id"] == sid)
+    for line in (run / "log.jsonl").read_text().splitlines():
+        l = json.loads(line)
+        if s0["start_ms"] <= l["stream_ms"] < s0["start_ms"] + s0["duration_ms"] + 1500:
+            out["decisions"].append({"t": l["stream_ms"] - s0["start_ms"], "d": l["msg"]["decision"]})
+    tr = json.loads((run / "trace.json").read_text()).get(sid, [])
+    out["trace"] = [{k: v for k, v in r.items() if k != "f"} for r in tr if r["kind"] in ("asr", "STOP", "candidate", "TAKE_TURN")]
+    out["events"] = [e for e in json.loads((run / "score.json").read_text())["events"] if e["scenario_id"] == sid]
+    return out
+
+
 def tts(text: str) -> np.ndarray:
     import edge_tts
     import soundfile as sf
@@ -87,6 +105,12 @@ class H(BaseHTTPRequestHandler):
             c = next(c for c in dev_calls() if c["sid"] == sid)
             st = read_wav_stereo(KIT / "data" / "dev" / "audio" / f"{sid}.wav")
             return self._send(wav_bytes(st[c["start"] * 16:c["end"] * 16, 0]), "audio/wav")
+        if u.path == "/mix":                       # the whole call, both sides mixed, to listen along
+            sid = q["sid"][0]
+            st = read_wav_stereo(KIT / "data" / "dev" / "audio" / f"{sid}.wav").astype(np.int32)
+            return self._send(wav_bytes(np.clip((st[:, 0] * 0.8 + st[:, 1]), -32768, 32767)), "audio/wav")
+        if u.path == "/replay":                    # what the model decided on that call (latest tools.loop run)
+            return self._send(json.dumps(replay(q["sid"][0]), ensure_ascii=False).encode(), "application/json")
         if u.path == "/tts":
             text = q["text"][0][:400]
             return self._send(wav_bytes(tts(text)), "audio/wav")
@@ -202,7 +226,12 @@ def main():
     async def run():
         async with serve(ws_handler, "127.0.0.1", WS_PORT, max_size=2 ** 20):
             print(f"open http://127.0.0.1:{HTTP_PORT}", flush=True)
-            webbrowser.open(f"http://127.0.0.1:{HTTP_PORT}")
+            url = f"http://127.0.0.1:{HTTP_PORT}"
+            if Path("/Applications/Google Chrome.app").exists():   # Chrome handles mic + 16 kHz audio best
+                import subprocess
+                subprocess.run(["open", "-a", "Google Chrome", url])
+            else:
+                webbrowser.open(url)
             await asyncio.Future()
     try:
         asyncio.run(run())

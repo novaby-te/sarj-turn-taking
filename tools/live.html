@@ -1,126 +1,281 @@
 <!doctype html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>تجربة حيّة</title>
+<title>جرّب نموذج سرج</title>
 <style>
-:root{--bg:#f6f5f2;--card:#fff;--ink:#1c1c1c;--muted:#6b6b6b;--line:#e3e0da;--stop:#e5484d;--keep:#30a46c;--acc:#3e63dd}
-@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1e1e1e;--ink:#eee;--muted:#9a9a9a;--line:#333}}
-body{background:var(--bg);color:var(--ink);font-family:-apple-system,"SF Arabic","Geeza Pro",Tahoma,sans-serif;margin:0;padding:20px 16px;line-height:1.7;max-width:900px;margin-inline:auto}
-h1{font-size:22px;margin:0}.muted{color:var(--muted);font-size:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
-select,textarea,button{font:inherit;font-size:15px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 10px}
-select,textarea{width:100%;box-sizing:border-box}button{cursor:pointer}button.main{background:var(--acc);color:#fff;border:0;padding:12px 22px;font-size:17px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-#state{font-size:28px;font-weight:700;text-align:center;padding:18px;border-radius:12px;background:var(--bg)}
-#state.stop{background:var(--stop);color:#fff}#state.talk{background:var(--acc);color:#fff}
-.meter{height:12px;background:var(--bg);border-radius:6px;overflow:hidden}.meter i{display:block;height:100%;background:var(--keep);width:0}
-#log{font-size:14px;max-height:280px;overflow:auto}#log div{border-bottom:1px dashed var(--line);padding:3px 0}
-.big{font-size:20px;font-weight:700}
-</style></head><body>
-<h1>تجربة حيّة: قاطع الوكيل بصوتك</h1>
-<div class="muted">الوكيل يتكلم من السماعة. جرّب تقول «إيه» أو «أها» (المفروض يكمّل)، أو «لا لا لحظة» (المفروض يسكت بسرعة). يفضّل سمّاعة رأس حتى ما يرجع صوت الوكيل للمايك.</div>
-
-<div class="card">
-  <div class="muted">جملة الوكيل</div>
-  <select id="calls"></select>
-  <div class="muted" style="margin-top:8px">أو اكتب جملة خاصة (تحتاج إنترنت لتوليد الصوت)</div>
-  <textarea id="custom" rows="2" placeholder="مثال: حياك الله، حبيت أذكرك إن موعدك بكرة الساعة عشر الصبح..."></textarea>
-  <div class="row" style="margin-top:10px"><button class="main" id="go">▶ ابدأ</button><button id="end">إنهاء</button>
-  <span class="muted">مستوى صوتك:</span><div class="meter" style="flex:1;min-width:120px"><i id="mlvl"></i></div><span class="muted" id="vad"></span></div>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1c1c1c;--muted:#6b6b6b;--line:#e3e0da;--stop:#e5484d;--keep:#30a46c;--acc:#3e3aa8;--amber:#e5a50a;--soft:#efeefb}
+@media (prefers-color-scheme:dark){:root{--bg:#121214;--card:#1d1d22;--ink:#eee;--muted:#a0a0a8;--line:#32323a;--soft:#26254a}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,"SF Arabic","Geeza Pro",Tahoma,sans-serif;margin:0;line-height:1.7}
+.wrap{max-width:1000px;margin:0 auto;padding:22px 16px 60px}
+h1{font-size:24px;margin:0}.sub{color:var(--muted);font-size:14px;margin:2px 0 14px}
+.tabs{display:flex;gap:6px;margin:14px 0}
+.tab{flex:1;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px;cursor:pointer;text-align:center;font-weight:700;font-size:16px;color:var(--ink)}
+.tab small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.tab.on{border-color:var(--acc);background:var(--soft)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+.step{display:flex;gap:10px;align-items:flex-start}.num{background:var(--acc);color:#fff;border-radius:50%;width:26px;height:26px;display:grid;place-items:center;font-weight:700;flex:none;font-size:14px}
+@media (prefers-color-scheme:dark){.num{color:#111}}
+select,textarea,button{font:inherit;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 12px}
+select,textarea{width:100%}button{cursor:pointer}
+.go{background:var(--acc);color:#fff;border:0;font-size:18px;padding:13px 26px;font-weight:700}
+@media (prefers-color-scheme:dark){.go{color:#111}}
+.go:disabled{opacity:.5;cursor:default}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.chip{border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;background:var(--card);text-align:right}
+.chip b{display:block;font-size:15px}.chip span{font-size:12px;color:var(--muted)}
+.chip.on{border-color:var(--acc);background:var(--soft)}
+.exp{font-size:12px;border-radius:6px;padding:0 6px}.exp.s{background:var(--stop);color:#fff}.exp.k{background:var(--keep);color:#fff}
+#state{font-size:30px;font-weight:800;text-align:center;padding:22px;border-radius:14px;background:var(--card);border:1px solid var(--line);transition:background .2s}
+#state.talk{background:var(--acc);color:#fff}#state.stop{background:var(--stop);color:#fff}#state.cal{background:var(--amber);color:#111}
+#state small{display:block;font-size:14px;font-weight:400;opacity:.9}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.meter{height:14px;background:var(--bg);border-radius:7px;overflow:hidden;flex:1;min-width:140px;border:1px solid var(--line)}.meter i{display:block;height:100%;background:var(--keep);width:0;transition:width .08s}
+.heard{font-size:22px;font-weight:700;min-height:36px}
+.verdict{font-size:20px;font-weight:800;padding:12px;border-radius:12px;text-align:center;display:none}
+.verdict.ok{display:block;background:var(--keep);color:#fff}.verdict.bad{display:block;background:var(--stop);color:#fff}
+#log{font-size:13px;max-height:220px;overflow:auto;color:var(--muted)}#log div{border-bottom:1px dashed var(--line);padding:2px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{border-bottom:1px solid var(--line);padding:6px;text-align:right}
+.score{font-size:26px;font-weight:800}
+.tl{position:relative;height:120px;background:var(--bg);border-radius:10px;overflow:hidden;direction:ltr;border:1px solid var(--line)}
+.tl .agent{position:absolute;top:8px;height:16px;background:#7b8cde;border-radius:4px}
+.tl .ev{position:absolute;top:30px;height:60px;border-radius:4px;opacity:.25}
+.tl .ev.STOP{background:var(--stop)}.tl .ev.KEEP{background:var(--keep)}.tl .ev.EITHER{background:var(--amber)}.tl .ev.TAKE_TURN{background:#8e4ec6}
+.tl .dec{position:absolute;top:0;bottom:0;width:3px;background:var(--stop)}.tl .dec.TAKE_TURN{background:#8e4ec6;width:2px}
+.tl .cur{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+.tl .asr{position:absolute;bottom:6px;width:8px;height:8px;border-radius:50%;background:var(--amber);transform:translateX(-4px)}
+.legend{font-size:12px;color:var(--muted)}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:middle}
+.hide{display:none}
+.big2{font-size:18px}
+</style></head><body><div class="wrap">
+<h1>جرّب نموذج «متى يسكت الوكيل»</h1>
+<div class="sub">النموذج نفسه اللي بيدخل التقييم، يشتغل على جهازك. اختر طريقة:</div>
+<div class="tabs">
+  <button class="tab on" data-t="mic">🎙️ كلّمه بنفسك<small>الوكيل يتكلم، وأنت تقاطعه بصوتك</small></button>
+  <button class="tab" data-t="replay">▶️ اسمع مكالمات سرج<small>شوف وش قرر النموذج على كل مكالمة</small></button>
 </div>
 
-<div id="state">جاهز</div>
+<!-- ====================== MIC ====================== -->
+<section id="mic">
+<div class="card">
+  <div class="step"><div class="num">١</div><div style="flex:1"><b>وش تبي تجرب؟</b> <span class="sub">(اختر تحدي، والصفحة تقول لك هل النموذج نجح)</span>
+  <div class="chips" id="chips" style="margin-top:8px"></div></div></div>
+</div>
+<div class="card">
+  <div class="step"><div class="num">٢</div><div style="flex:1"><b>الوكيل وش يقول؟</b>
+  <select id="calls" style="margin-top:6px"></select>
+  <details style="margin-top:6px"><summary class="sub">أو اكتب جملة خاصة للوكيل (تحتاج إنترنت)</summary>
+  <textarea id="custom" rows="2" placeholder="مثال: حياك الله، حبيت أذكرك إن موعدك بكرة الساعة عشر الصبح..."></textarea></details></div></div>
+</div>
+<div class="card">
+  <div class="step"><div class="num">٣</div><div style="flex:1"><b>ابدأ</b> <span class="sub">— أول ثانيتين قل «هلا، إيه معك» عشان النموذج يتعرّف على صوتك، بعدها يبدأ الوكيل. <b>يفضّل سمّاعة رأس.</b></span>
+  <div class="row" style="margin-top:10px"><button class="go" id="go">▶ ابدأ المحاولة</button><button id="end">⏹ إيقاف</button>
+  <span class="sub">صوتك:</span><div class="meter"><i id="mlvl"></i></div><span class="sub" id="vad">—</span></div></div></div>
+</div>
 
-<div class="card"><div class="row"><span class="big" id="lat">—</span><span class="muted" id="latd"></span></div>
-<div id="heard" class="muted">النموذج سمع: —</div></div>
+<div id="state">جاهز<small>اختر تحدي واضغط ابدأ</small></div>
 
-<div class="card"><div class="muted">قيّم هالمحاولة (تنحفظ كمكالمة جديدة في data/live وتدخل في القياس الجاي)</div>
-<div class="row" style="margin-top:6px"><button id="lblstop">كان لازم يسكت</button><button id="lblkeep">كان لازم يكمّل</button><span id="saved" class="muted"></span></div></div>
+<div class="card">
+  <div class="sub">النموذج سمع:</div><div class="heard" id="heard">—</div>
+  <div class="sub" id="why"></div>
+  <div class="row" style="margin-top:8px"><span class="sub">سرعة القرار:</span><span class="score" id="lat">—</span><span class="sub" id="latd"></span></div>
+  <div class="verdict" id="verdict"></div>
+  <label class="sub" style="display:block;margin-top:8px"><input type="checkbox" id="save" checked> احفظ المحاولة كبيانات تدريب (تدخل في القياس الجاي)</label>
+</div>
 
-<div class="card"><div class="muted">سجل القرارات</div><div id="log"></div></div>
+<div class="card"><div class="row"><b>نتيجتك في هالجلسة</b><span class="score" id="tally">0 / 0</span></div>
+<table id="hist"><tr><th>#</th><th>التحدي</th><th>المطلوب</th><th>اللي صار</th><th>سمع</th><th>السرعة</th></tr></table></div>
+<details class="card"><summary>تفاصيل تقنية (كل اللي صار لحظة بلحظة)</summary><div id="log"></div></details>
+</section>
+
+<!-- ====================== REPLAY ====================== -->
+<section id="replay" class="hide">
+<div class="card"><b>اختر مكالمة من بيانات سرج</b>
+<select id="rcalls" style="margin-top:6px"></select>
+<div class="row" style="margin-top:10px"><button class="go" id="rplay">▶ شغّل وتابع</button><button id="rstop">⏹</button><span class="sub" id="rinfo"></span></div></div>
+<div class="card">
+<div class="tl" id="tl"></div>
+<div class="legend" style="margin-top:6px"><i style="background:#7b8cde"></i>الوكيل يتكلم<i style="background:var(--stop);opacity:.4"></i>لازم يسكت<i style="background:var(--keep);opacity:.4"></i>لازم يكمّل<i style="background:var(--amber)"></i>نقطة = النموذج قرأ كلام<i style="background:var(--stop)"></i>خط أحمر = قرار «اسكت»</div>
+</div>
+<div id="rstate" class="card big2">—</div>
+<div class="card"><div class="sub">النتيجة الرسمية لهالمكالمة:</div><div id="rresult"></div><div class="sub" style="margin-top:6px" id="rlist"></div></div>
+</section>
+</div>
 
 <script>
 const $ = s => document.querySelector(s);
-let ctx, node, ws, stream, agentEndMs = null, firstSpeech = null, started = 0;
-const log = (t) => { const d = document.createElement('div'); d.textContent = t; $('#log').prepend(d); };
-
-fetch('/calls').then(r => r.json()).then(cs => {
-  for (const c of cs) { const o = document.createElement('option'); o.value = c.sid; o.textContent = c.sid + ' — ' + c.text.slice(0, 80) + '…'; o.dataset.text = c.text; $('#calls').append(o); }
+const esc = t => String(t ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
+  $('#mic').classList.toggle('hide', b.dataset.t !== 'mic'); $('#replay').classList.toggle('hide', b.dataset.t !== 'replay');
 });
 
+// ------------------------------------------------ challenges
+const CH = [
+  {say: 'إيه', note: 'تأييد قصير', exp: 'KEEP'},
+  {say: 'أها… تمام', note: 'متابعة', exp: 'KEEP'},
+  {say: 'إيه والله صادق، صح', note: 'موافقة طويلة', exp: 'KEEP'},
+  {say: 'اممم…', note: 'تفكير', exp: 'KEEP'},
+  {say: '(كحّة أو ضحكة)', note: 'صوت بلا كلام', exp: 'KEEP'},
+  {say: '(لا تقول شي)', note: 'هل يكمّل بدون ما يوقف؟', exp: 'KEEP'},
+  {say: 'لا لا، لحظة', note: 'مقاطعة واضحة', exp: 'STOP'},
+  {say: 'لحظة', note: 'كلمة وحدة', exp: 'STOP'},
+  {say: 'أيوه… بس أبي أغيّر الموعد', note: 'تبدأ تأييد وتصير طلب', exp: 'STOP'},
+  {say: 'كم المبلغ؟', note: 'سؤال', exp: 'STOP'},
+  {say: 'خلاص خلاص، فهمت', note: 'كفاية', exp: 'STOP'},
+  {say: 'اسمع، أنا ما طلبت هذا', note: 'اعتراض', exp: 'STOP'},
+];
+let cur = 0;
+CH.forEach((c, i) => {
+  const d = document.createElement('div'); d.className = 'chip' + (i === 0 ? ' on' : '');
+  d.innerHTML = `<b>«${esc(c.say)}»</b><span>${esc(c.note)} · <span class="exp ${c.exp === 'STOP' ? 's' : 'k'}">${c.exp === 'STOP' ? 'لازم يسكت' : 'لازم يكمّل'}</span></span>`;
+  d.onclick = () => { cur = i; document.querySelectorAll('.chip').forEach((x, j) => x.classList.toggle('on', j === i)); };
+  $('#chips').append(d);
+});
+
+fetch('/calls').then(r => r.json()).then(cs => {
+  for (const c of cs) {
+    const o = document.createElement('option'); o.value = c.sid; o.dataset.text = c.text;
+    o.textContent = c.text.slice(0, 90) + '…'; $('#calls').append(o);
+    const r = document.createElement('option'); r.value = c.sid; r.textContent = c.sid + ' — ' + c.text.slice(0, 70) + '…'; $('#rcalls').append(r);
+  }
+  const pick = [...$('#calls').options].find(o => o.value === 'BC-D02'); if (pick) pick.selected = true;
+});
+
+// ------------------------------------------------ audio worklet: plays the agent, records the mic, resamples both to 16 kHz in lockstep
 const worklet = `
 class P extends AudioWorkletProcessor {
-  constructor(){ super(); this.agent = new Float32Array(0); this.pos = 0; this.gain = 1; this.fading = false; this.fa = []; this.fc = [];
-    this.port.onmessage = e => { if (e.data.agent) { this.agent = e.data.agent; this.pos = 0; this.gain = 1; this.fading = false; } if (e.data.stop) this.fading = true; };
-    this.ended = false; }
+  constructor(){ super(); this.agent = new Float32Array(0); this.pos = 0; this.gain = 1; this.fading = false; this.ended = false;
+    this.ratio = sampleRate / 16000; this.bA = []; this.bM = []; this.p = 0; this.fa = []; this.fc = [];
+    this.port.onmessage = e => { if (e.data.agent) { this.agent = e.data.agent; this.pos = 0; this.gain = 1; this.fading = false; this.ended = false; }
+                                 if (e.data.stop) this.fading = true; if (e.data.clear) { this.agent = new Float32Array(0); } }; }
   process(inputs, outputs){
-    const mic = inputs[0] && inputs[0][0] ? inputs[0][0] : new Float32Array(128);
-    const out = outputs[0][0];
-    for (let i = 0; i < 128; i++) {
+    const mic = inputs[0] && inputs[0][0] ? inputs[0][0] : null; const out = outputs[0][0];
+    for (let i = 0; i < out.length; i++) {
       let a = 0;
-      if (this.pos < this.agent.length) { a = this.agent[this.pos++] * this.gain; if (this.fading) this.gain = Math.max(0, this.gain - 1/960); }
+      if (this.pos < this.agent.length) { a = this.agent[this.pos++] * this.gain; if (this.fading) this.gain = Math.max(0, this.gain - 1/(0.06*sampleRate)); }
       else if (!this.ended && this.agent.length) { this.ended = true; this.port.postMessage({ended: true}); }
-      out[i] = a; this.fa.push(a); this.fc.push(mic[i]);
+      out[i] = a; this.bA.push(a); this.bM.push(mic ? mic[i] : 0);
+    }
+    const r = this.ratio, w = Math.max(1, Math.round(r));
+    while (this.p + w < this.bA.length) {
+      const k = Math.floor(this.p); let sa = 0, sm = 0;
+      for (let j = 0; j < w; j++) { sa += this.bA[k + j]; sm += this.bM[k + j]; }
+      this.fa.push(sa / w); this.fc.push(sm / w); this.p += r;
       if (this.fa.length === 320) {
         const b = new Int16Array(640);
-        for (let k = 0; k < 320; k++) { b[2*k] = Math.max(-1, Math.min(1, this.fa[k])) * 32767; b[2*k+1] = Math.max(-1, Math.min(1, this.fc[k])) * 32767; }
+        for (let q = 0; q < 320; q++) { b[2*q] = Math.max(-1, Math.min(1, this.fa[q])) * 32767; b[2*q+1] = Math.max(-1, Math.min(1, this.fc[q])) * 32767; }
         this.port.postMessage({frame: b.buffer}, [b.buffer]); this.fa = []; this.fc = [];
       }
     }
+    const drop = Math.floor(this.p); if (drop > 0) { this.bA.splice(0, drop); this.bM.splice(0, drop); this.p -= drop; }
     return true;
   }
 }
 registerProcessor('p', P);`;
 
-async function start() {
-  const custom = $('#custom').value.trim();
-  const opt = $('#calls').selectedOptions[0];
-  const text = custom || opt.dataset.text;
-  const url = custom ? '/tts?text=' + encodeURIComponent(custom) : '/agent?sid=' + opt.value;
-  $('#state').textContent = 'تجهيز…'; $('#state').className = '';
-  if (!ctx) {
-    ctx = new AudioContext({sampleRate: 16000});
-    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([worklet], {type: 'application/javascript'})));
-    stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: false, autoGainControl: true, channelCount: 1}});
-    const src = ctx.createMediaStreamSource(stream);
-    node = new AudioWorkletNode(ctx, 'p', {numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]});
-    src.connect(node); node.connect(ctx.destination);
-    node.port.onmessage = e => {
-      if (e.data.frame && ws && ws.readyState === 1) ws.send(e.data.frame);
-      if (e.data.ended && ws) { ws.send(JSON.stringify({type: 'agent_end'})); }
-    };
-  }
-  await ctx.resume();
-  const buf = await (await fetch(url)).arrayBuffer();
-  const audio = await ctx.decodeAudioData(buf);
-  ws = new WebSocket('ws://127.0.0.1:8771');
-  ws.onopen = () => ws.send(JSON.stringify({type: 'start', text, calibrate: true}));
-  agentEndMs = null; firstSpeech = null; $('#log').innerHTML = ''; $('#lat').textContent = '—'; $('#latd').textContent = ''; $('#heard').textContent = 'النموذج سمع: —'; $('#saved').textContent = '';
-  ws.onmessage = e => {
-    const m = JSON.parse(e.data);
-    if (m.type === 'calibrating') { $('#state').textContent = 'قل: «هلا، إيه معك» (نتعلّم صوتك)…'; $('#state').className = ''; setTimeout(() => ws.send(JSON.stringify({type: 'agent_start'})), 2800); }
-    if (m.type === 'started' && m.ref_db !== undefined) log(`تعلّمنا صوتك: مستواه ${m.ref_db} dB${m.voiceprint ? '، وبصمته جاهزة' : ' (البصمة تحتاج كلام أطول)'}`);
-    if (m.type === 'started') { node.port.postMessage({agent: audio.getChannelData(0).slice()}); $('#state').textContent = 'الوكيل يتكلم… قاطعه أو قل «إيه»'; $('#state').className = 'talk'; started = performance.now(); }
-    if (m.type === 'meter') { $('#mlvl').style.width = Math.max(0, Math.min(100, (m.db + 70) * 1.6)) + '%'; $('#vad').textContent = 'كلام ' + Math.round(m.vad * 100) + '%'; }
-    if (m.type === 'agent_end') { agentEndMs = m.t; if ($('#state').className === 'talk') { $('#state').textContent = 'الوكيل خلّص بدون ما يسكت'; $('#state').className = ''; } }
-    if (m.type === 'trace') {
-      if (m.kind === 'candidate') { firstSpeech = firstSpeech ?? m.t; log(`${(m.t/1000).toFixed(2)} ث — بدأ صوت المتصل (مستواه ${m.level_rel} dB من صوتك المعتاد)`); }
-      if (m.kind === 'asr') { $('#heard').textContent = `النموذج سمع: «${m.text || '…'}» — ${m.why} (قراءة الكلام أخذت ${Math.round(m.ms)} ms)`; log(`${(m.t/1000).toFixed(2)} ث — سمع «${m.text}» ← ${m.why}`); }
-      if (m.kind === 'candidate_end') log(`${(m.t/1000).toFixed(2)} ث — انتهى الصوت، كمّل الوكيل`);
-    }
-    if (m.type === 'decision') {
-      log(`${(m.t/1000).toFixed(2)} ث — قرار ${m.decision}`);
-      if (m.decision === 'STOP') {
-        node.port.postMessage({stop: true});
-        $('#state').textContent = 'سكت ✋'; $('#state').className = 'stop';
-        if (firstSpeech != null) { $('#lat').textContent = (m.t - firstSpeech) + ' ms'; $('#latd').textContent = 'من أول صوتك لين سكت الوكيل (الدرجة الكاملة إذا خلال ٣٠٠ ms من اللحظة اللي يوضح فيها قصدك)'; }
-      }
-    }
-    if (m.type === 'saved') $('#saved').textContent = 'انحفظت: ' + m.sid;
+let ctx, node, ws, firstSpeech = null, stopped = false, running = false, lastHeard = '', tries = [], agentEnded = false;
+const log = t => { const d = document.createElement('div'); d.textContent = t; $('#log').prepend(d); };
+function setState(cls, big, small) { $('#state').className = cls; $('#state').innerHTML = esc(big) + (small ? `<small>${esc(small)}</small>` : ''); }
+
+async function ensureAudio() {
+  if (ctx) return;
+  ctx = new AudioContext();
+  await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([worklet], {type: 'application/javascript'})));
+  const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: false, autoGainControl: true, channelCount: 1}});
+  node = new AudioWorkletNode(ctx, 'p', {numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]});
+  ctx.createMediaStreamSource(stream).connect(node); node.connect(ctx.destination);
+  node.port.onmessage = e => {
+    if (e.data.frame && ws && ws.readyState === 1) ws.send(e.data.frame);
+    if (e.data.ended && ws && ws.readyState === 1) { agentEnded = true; ws.send(JSON.stringify({type: 'agent_end'})); setTimeout(finish, 1500); }
   };
 }
+
+async function start() {
+  if (running) return;
+  const custom = $('#custom').value.trim(), opt = $('#calls').selectedOptions[0];
+  const text = custom || opt.dataset.text;
+  const url = custom ? '/tts?text=' + encodeURIComponent(custom) : '/agent?sid=' + opt.value;
+  setState('', 'تجهيز…', 'نطلب إذن المايك ونحمّل صوت الوكيل');
+  try { await ensureAudio(); } catch (e) { setState('stop', 'ما قدرنا نوصل للمايك', 'اسمح للمتصفح يستخدم المايك (أيقونة القفل جنب الرابط) وحاول مرة ثانية'); return; }
+  await ctx.resume();
+  const audio = await ctx.decodeAudioData(await (await fetch(url)).arrayBuffer());
+  running = true; stopped = false; firstSpeech = null; lastHeard = ''; agentEnded = false; $('#go').disabled = true;
+  $('#log').innerHTML = ''; $('#heard').textContent = '—'; $('#why').textContent = ''; $('#lat').textContent = '—'; $('#latd').textContent = '';
+  $('#verdict').className = 'verdict'; $('#verdict').textContent = '';
+  ws = new WebSocket('ws://127.0.0.1:8771');
+  ws.onopen = () => ws.send(JSON.stringify({type: 'start', text, calibrate: true}));
+  ws.onmessage = e => {
+    const m = JSON.parse(e.data);
+    if (m.type === 'calibrating') { setState('cal', 'قل: «هلا، إيه معك»', 'نتعرّف على صوتك… (ثانيتين)'); setTimeout(() => ws.send(JSON.stringify({type: 'agent_start'})), 2600); }
+    if (m.type === 'started') {
+      if (m.ref_db !== undefined) log(`تعرّفنا على صوتك: مستواه ${m.ref_db} dB${m.voiceprint ? '، وبصمته جاهزة' : ' (البصمة تحتاج كلام أطول)'}`);
+      node.port.postMessage({agent: audio.getChannelData(0).slice()});
+      setState('talk', 'الوكيل يتكلم…', `الحين قل: «${CH[cur].say}»`);
+    }
+    if (m.type === 'meter') { $('#mlvl').style.width = Math.max(0, Math.min(100, (m.db + 70) * 1.6)) + '%'; $('#vad').textContent = m.vad > 0.5 ? 'يسمعك 🟢' : 'هادي'; }
+    if (m.type === 'trace') {
+      if (m.kind === 'candidate') { firstSpeech = firstSpeech ?? m.t; log(`${(m.t/1000).toFixed(2)}ث بدأ صوتك (${m.level_rel} dB عن صوتك المعتاد)`); }
+      if (m.kind === 'asr') { lastHeard = m.text; $('#heard').textContent = m.text ? `«${m.text}»` : '(ما فهم كلام)'; $('#why').textContent = 'تفسيره: ' + (m.why || ''); log(`${(m.t/1000).toFixed(2)}ث سمع «${m.text}» ← ${m.why} (${Math.round(m.ms)}ms)`); }
+    }
+    if (m.type === 'decision' && m.decision === 'STOP' && !stopped) {
+      stopped = true; node.port.postMessage({stop: true});
+      setState('stop', 'سكت ✋', 'الوكيل وقف عشان يسمعك');
+      if (firstSpeech != null) { $('#lat').textContent = (m.t - firstSpeech) + ' ms'; $('#latd').textContent = 'من أول صوتك لين سكت'; }
+      log(`${(m.t/1000).toFixed(2)}ث قرار: اسكت`);
+      setTimeout(finish, 2500);
+    }
+    if (m.type === 'saved') log('انحفظت كبيانات: ' + m.sid);
+  };
+}
+
+function finish() {
+  if (!running) return; running = false; $('#go').disabled = false;
+  const c = CH[cur], ok = (c.exp === 'STOP') === stopped;
+  if (!stopped) setState('', agentEnded ? 'الوكيل كمّل كلامه للآخر' : 'انتهت المحاولة', 'ما سكت');
+  $('#verdict').className = 'verdict ' + (ok ? 'ok' : 'bad');
+  $('#verdict').textContent = ok ? `✓ النموذج تصرّف صح (${c.exp === 'STOP' ? 'سكت' : 'كمّل'})`
+                                 : `✗ النموذج غلط: كان لازم ${c.exp === 'STOP' ? 'يسكت' : 'يكمّل'}`;
+  tries.push({c, ok, stopped, heard: lastHeard, lat: $('#lat').textContent});
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${tries.length}</td><td>«${esc(c.say)}»</td><td>${c.exp === 'STOP' ? 'يسكت' : 'يكمّل'}</td><td>${ok ? '✓' : '✗'} ${stopped ? 'سكت' : 'كمّل'}</td><td>${esc(lastHeard)}</td><td>${stopped ? esc($('#lat').textContent) : '—'}</td>`;
+  $('#hist').append(tr);
+  $('#tally').textContent = `${tries.filter(t => t.ok).length} / ${tries.length}`;
+  if ($('#save').checked && ws && ws.readyState === 1 && firstSpeech != null) ws.send(JSON.stringify({type: 'save', expected: c.exp}));
+  setTimeout(() => { try { ws.close(); } catch (e) {} }, 800);
+}
 $('#go').onclick = start;
-$('#end').onclick = () => { if (node) node.port.postMessage({stop: true}); if (ws) ws.send(JSON.stringify({type: 'agent_end'})); };
-$('#lblstop').onclick = () => ws && ws.send(JSON.stringify({type: 'save', expected: 'STOP', agent_end_ms: agentEndMs}));
-$('#lblkeep').onclick = () => ws && ws.send(JSON.stringify({type: 'save', expected: 'KEEP', agent_end_ms: agentEndMs}));
+$('#end').onclick = () => { if (node) node.port.postMessage({stop: true}); finish(); };
+
+// ------------------------------------------------ replay
+let ra = null, rdata = null, raf = null;
+$('#rplay').onclick = async () => {
+  const sid = $('#rcalls').value; if (ra) ra.pause();
+  rdata = await (await fetch('/replay?sid=' + sid)).json();
+  const L = rdata.label, dur = L.audio.duration_ms, tl = $('#tl'); tl.innerHTML = '';
+  const pct = ms => (ms / dur * 100) + '%';
+  for (const u of L.agent_utterances) tl.insertAdjacentHTML('beforeend', `<div class="agent" style="left:${pct(u.start_ms)};width:${pct(u.end_ms - u.start_ms)}" title="${esc(u.text)}"></div>`);
+  for (const e of L.events) { const off = e.offset_ms ?? e.turn_end_ms; tl.insertAdjacentHTML('beforeend', `<div class="ev ${e.expected}" style="left:${pct(e.onset_ms)};width:${pct(off - e.onset_ms)}"></div>`); }
+  for (const d of rdata.decisions) tl.insertAdjacentHTML('beforeend', `<div class="dec ${d.d}" style="left:${pct(d.t)}" title="${d.d}"></div>`);
+  for (const t of rdata.trace) if (t.kind === 'asr' && t.text) tl.insertAdjacentHTML('beforeend', `<div class="asr" style="left:${pct(t.t)}" title="«${esc(t.text)}» — ${esc(t.why)}"></div>`);
+  tl.insertAdjacentHTML('beforeend', '<div class="cur" id="cur"></div>');
+  const EXP = {STOP: 'لازم يسكت', KEEP: 'لازم يكمّل', EITHER: 'الاثنين مقبول', TAKE_TURN: 'يرد بعد ما يخلص'};
+  const OUT = {yield: 'سكت', miss: 'ما سكت', kept: 'كمّل', false_stop: 'سكت غلط', hiccup: 'سكت ورجع', eot: 'رد'};
+  $('#rresult').innerHTML = rdata.events.map(e => `<div class="big2">${e.credit >= 0.99 ? '✓' : e.credit > 0 ? '~' : '✗'} ${EXP[e.expected]} ← ${OUT[e.outcome] || e.outcome} <b>(${e.credit.toFixed(2)})</b> <span class="sub">${esc(e.detail || '')}</span></div>`).join('') || '<span class="sub">شغّل tools.loop أول</span>';
+  const segs = L.user_segments.filter(s => s.seg_id !== 'U0').map(s => `«${s.text || s.delivery || s.kind}»`).join('، ');
+  $('#rlist').textContent = 'المتصل قال: ' + (segs || '(لا شي — صوت خلفية)') + ' · ' + L.dialect + ' · ' + L.acoustic.conditions.join('، ');
+  ra = new Audio('/mix?sid=' + sid); ra.play();
+  const tick = () => {
+    const t = ra.currentTime * 1000; $('#cur').style.left = pct(t);
+    const seen = rdata.trace.filter(x => x.kind === 'asr' && x.text && x.t <= t).pop();
+    const dec = rdata.decisions.filter(d => d.t <= t && d.d === 'STOP').pop();
+    const u = L.agent_utterances.find(u => u.start_ms <= t && t <= u.end_ms);
+    $('#rstate').innerHTML = (dec ? '<b style="color:var(--stop)">✋ النموذج قرر يسكت</b><br>' : u ? '🗣️ الوكيل يتكلم<br>' : '…<br>') +
+      (seen ? `آخر شي سمعه: «${esc(seen.text)}» <span class="sub">(${esc(seen.why)})</span>` : '<span class="sub">ما سمع كلام من المتصل للحين</span>');
+    $('#rinfo').textContent = (t / 1000).toFixed(1) + ' ث';
+    if (!ra.paused) raf = requestAnimationFrame(tick);
+  };
+  ra.onplay = tick; tick();
+};
+$('#rstop').onclick = () => { if (ra) ra.pause(); };
 </script>
 </body></html>
