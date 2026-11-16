@@ -24,7 +24,7 @@ select,textarea{width:100%}button{cursor:pointer}
 .chip{border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;background:var(--card);text-align:right}
 .chip b{display:block;font-size:15px}.chip span{font-size:12px;color:var(--muted)}
 .chip.on{border-color:var(--acc);background:var(--soft)}
-.exp{font-size:12px;border-radius:6px;padding:0 6px}.exp.s{background:var(--stop);color:#fff}.exp.k{background:var(--keep);color:#fff}
+.exp{font-size:12px;border-radius:6px;padding:0 6px;white-space:nowrap;display:inline-block}.exp.s{background:var(--stop);color:#fff}.exp.k{background:var(--keep);color:#fff}
 #state{font-size:30px;font-weight:800;text-align:center;padding:22px;border-radius:14px;background:var(--card);border:1px solid var(--line);transition:background .2s}
 #state.talk{background:var(--acc);color:#fff}#state.stop{background:var(--stop);color:#fff}#state.cal{background:var(--amber);color:#111}
 #state small{display:block;font-size:14px;font-weight:400;opacity:.9}
@@ -127,7 +127,7 @@ const CH = [
 let cur = 0;
 CH.forEach((c, i) => {
   const d = document.createElement('div'); d.className = 'chip' + (i === 0 ? ' on' : '');
-  d.innerHTML = `<b>«${esc(c.say)}»</b><span>${esc(c.note)} · <span class="exp ${c.exp === 'STOP' ? 's' : 'k'}">${c.exp === 'STOP' ? 'لازم يسكت' : 'لازم يكمّل'}</span></span>`;
+  d.innerHTML = `<b dir="rtl">${esc(c.say)}</b><span>${esc(c.note)} · <span class="exp ${c.exp === 'STOP' ? 's' : 'k'}">${c.exp === 'STOP' ? 'لازم يسكت' : 'لازم يكمّل'}</span></span>`;
   d.onclick = () => { cur = i; document.querySelectorAll('.chip').forEach((x, j) => x.classList.toggle('on', j === i)); };
   $('#chips').append(d);
 });
@@ -210,7 +210,7 @@ async function start() {
     if (m.type === 'started') {
       if (m.ref_db !== undefined) log(`تعرّفنا على صوتك: مستواه ${m.ref_db} dB${m.voiceprint ? '، وبصمته جاهزة' : ' (البصمة تحتاج كلام أطول)'}`);
       node.port.postMessage({agent: audio.getChannelData(0).slice()});
-      setState('talk', 'الوكيل يتكلم…', `الحين قل: «${CH[cur].say}»`);
+      setState('talk', 'الوكيل يتكلم…', `الحين قل: ${CH[cur].say}`);
     }
     if (m.type === 'meter') { $('#mlvl').style.width = Math.max(0, Math.min(100, (m.db + 70) * 1.6)) + '%'; $('#vad').textContent = m.vad > 0.5 ? 'يسمعك 🟢' : 'هادي'; }
     if (m.type === 'trace') {
@@ -237,7 +237,7 @@ function finish() {
                                  : `✗ النموذج غلط: كان لازم ${c.exp === 'STOP' ? 'يسكت' : 'يكمّل'}`;
   tries.push({c, ok, stopped, heard: lastHeard, lat: $('#lat').textContent});
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td>${tries.length}</td><td>«${esc(c.say)}»</td><td>${c.exp === 'STOP' ? 'يسكت' : 'يكمّل'}</td><td>${ok ? '✓' : '✗'} ${stopped ? 'سكت' : 'كمّل'}</td><td>${esc(lastHeard)}</td><td>${stopped ? esc($('#lat').textContent) : '—'}</td>`;
+  tr.innerHTML = `<td>${tries.length}</td><td>${esc(c.say)}</td><td>${c.exp === 'STOP' ? 'يسكت' : 'يكمّل'}</td><td>${ok ? '✓' : '✗'} ${stopped ? 'سكت' : 'كمّل'}</td><td>${esc(lastHeard)}</td><td>${stopped ? esc($('#lat').textContent) : '—'}</td>`;
   $('#hist').append(tr);
   $('#tally').textContent = `${tries.filter(t => t.ok).length} / ${tries.length}`;
   if ($('#save').checked && ws && ws.readyState === 1 && firstSpeech != null) ws.send(JSON.stringify({type: 'save', expected: c.exp}));
