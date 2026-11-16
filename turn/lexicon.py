@@ -30,7 +30,7 @@ def squeeze(w: str) -> str:
 
 BACKCHANNEL = {norm(w) for w in """
 ايه ايوه ايوا ايوة ايو اي اى ايي اها اه اهاه اهه مم ممم ام هم همم هيه هييه هي يب يس
-نعم اكيد اكيده طبعا تمام زين صح صحيح مضبوط بالضبط معك معاك معاي معايا وياك فاهم فاهمه فاهمك
+نعم اكيد اكيده طبعا تمام زين صح صحيح مضبوط بالضبط معك معاك معاي معايا وياك فاهم فاهمه فاهمك فهم فاهمين
 اوكي اوك اوكيه اوكى ماشي حلو حلوه جميل ممتاز الله والله صادق صادقه عارف عارفه طيب
 هه ههه هههه ههههه ههههههه
 """.split()}
@@ -113,6 +113,9 @@ def analyse(text: str, agent_text: str = "") -> dict:
     # «خلاص خلاص» = enough (floor bid); «طيب طيب» = okay okay (acknowledgement); either + more words = bid
     khalas = sum(1 for w in words if w == "خلاص")
     repeated_amb = khalas >= 2 or (amb >= 1 and (content + bid) >= 1)
+    # «فاهم عليك» = I follow you
+    if "عليك" in words and any(w in ("فاهم", "فهم", "فاهمه") for w in words) and content >= 1:
+        content, bc = content - 1, bc + 1
     # reduplication of one unknown word («ماتا ماتا», «مكا مكا») is how a garbled «معك معك / هيه هيه» comes out:
     # backchannels are repeated, real content rarely is
     unknown = [w for w in words if w not in BID and w not in BACKCHANNEL and w not in FILLER and w not in AMBIG]

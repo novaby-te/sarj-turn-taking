@@ -230,7 +230,8 @@ class TurnTaker:
         # USE_MODEL == 2 (hybrid): the rules propose, the learned model can veto an unlikely stop
         if rp >= MODEL_TH and mp < HYB_TH:
             return 0.25, f"{why}, but the model doubts it (p={mp:.2f})"
-        if rp < MODEL_TH and mp >= PROMOTE_TH and f["n"] >= 1 and f["rel_db"] > -PROMOTE_REL_DB:
+        knows_caller = len(self.ref_levels) >= 8           # it may act alone only once it has heard the caller
+        if rp < MODEL_TH and mp >= PROMOTE_TH and f["n"] >= 1 and f["rel_db"] > -PROMOTE_REL_DB and knows_caller:
             return mp, f"model is sure (p={mp:.2f}) although the words are unclear"
         return rp, f"{why} (model p={mp:.2f})"
 
