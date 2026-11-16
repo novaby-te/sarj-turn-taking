@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "GI-T009",
+ "split": "synth",
+ "category": "GI",
+ "subtype": "GI",
+ "difficulty": 2,
+ "dialect": "sa-najdi",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-SA-ZariyahNeural -10% -24Hz",
+   "gender": "f",
+   "dialect": "sa-najdi"
+  }
+ ],
+ "agent_voice": "ar-SA-HamedNeural",
+ "acoustic": {
+  "conditions": [
+   "car"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "GI-T009.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 27416
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 5855,
+   "text": "هلا، معك هيفاء من تطبيق مشوار. معي الأستاذ محمد؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8955,
+   "end_ms": 24916,
+   "text": "حياك الله. نبي نذكرك إن بطاقتك الائتمانية عليها مبلغ مستحق، والحد الأدنى للسداد مية وخمسين ريال، وآخر موعد للسداد يوم الأحد الجاي، وتقدر تسدد من التطبيق أو من أي صراف.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6263,
+   "end_ms": 7984,
+   "kind": "speech",
+   "text": "إي نعم، تفضل."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 13783,
+   "end_ms": 16727,
+   "kind": "speech",
+   "text": "طيب بس أنا دفعت الأسبوع الماضي."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "GI-T009.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 13783,
+   "offset_ms": 16727,
+   "rationale": "floor bid",
+   "evident_ms": 14630,
+   "deadline_ms": 16130
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

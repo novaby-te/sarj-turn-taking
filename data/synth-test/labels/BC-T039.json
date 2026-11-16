@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "BC-T039",
+ "split": "synth",
+ "category": "BC",
+ "subtype": "BC",
+ "difficulty": 2,
+ "dialect": "gulf-bahraini",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-BH-LailaNeural -11% +25Hz",
+   "gender": "f",
+   "dialect": "gulf-bahraini"
+  }
+ ],
+ "agent_voice": "ar-SA-HamedNeural",
+ "acoustic": {
+  "conditions": [
+   "car",
+   "phone-nb"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "BC-T039.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 26644
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6021,
+   "text": "السلام عليكم، معك منى من طيران نسمة. معي الأستاذ تركي؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8791,
+   "end_ms": 24145,
+   "text": "يا هلا. حبيت أبلغك إن وثيقة التأمين حقتك بتنتهي آخر الشهر، وعندنا عرض تجديد بخصم خمسة عشر بالمية إذا جددت هالأسبوع، والتجديد يتم أونلاين وما يحتاج تزور الفرع أبد.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6457,
+   "end_ms": 8128,
+   "kind": "speech",
+   "text": "هلا، إيه نعم."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 14224,
+   "end_ms": 14893,
+   "kind": "backchannel",
+   "text": "إيه إيه."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "BC-T039.e1",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 14224,
+   "offset_ms": 14893,
+   "rationale": "acknowledgement",
+   "window_end_ms": 15393
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

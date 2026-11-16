@@ -1,0 +1,109 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "BC-T035",
+ "split": "synth",
+ "category": "BC",
+ "subtype": "BC",
+ "difficulty": 2,
+ "dialect": "gulf-kuwaiti",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-KW-NouraNeural +6% +1Hz",
+   "gender": "f",
+   "dialect": "gulf-kuwaiti"
+  }
+ ],
+ "agent_voice": "ar-SA-HamedNeural",
+ "acoustic": {
+  "conditions": [
+   "quiet"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "BC-T035.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 27124
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6399,
+   "text": "السلام عليكم، معك ماجد من بنك الخليج. معي الأستاذ سلطان؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8664,
+   "end_ms": 24625,
+   "text": "حياك الله. نبي نذكرك إن بطاقتك الائتمانية عليها مبلغ مستحق، والحد الأدنى للسداد مية وخمسين ريال، وآخر موعد للسداد يوم الأحد الجاي، وتقدر تسدد من التطبيق أو من أي صراف.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6711,
+   "end_ms": 8067,
+   "kind": "speech",
+   "text": "أيوه أنا، هلا."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 12713,
+   "end_ms": 13309,
+   "kind": "backchannel",
+   "text": "ماشي."
+  },
+  {
+   "seg_id": "U1b",
+   "speaker_id": "C",
+   "start_ms": 16542,
+   "end_ms": 17137,
+   "kind": "backchannel",
+   "text": "إيه إيه."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "BC-T035.e1",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 12713,
+   "offset_ms": 13309,
+   "rationale": "acknowledgement",
+   "window_end_ms": 13809
+  },
+  {
+   "event_id": "BC-T035.e2",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 16542,
+   "offset_ms": 17137,
+   "rationale": "acknowledgement",
+   "window_end_ms": 17637
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

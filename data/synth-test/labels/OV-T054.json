@@ -1,0 +1,94 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "OV-T054",
+ "split": "synth",
+ "category": "OV",
+ "subtype": "OVs",
+ "difficulty": 2,
+ "dialect": "gulf-kuwaiti",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-KW-FahedNeural -5% +3Hz",
+   "gender": "m",
+   "dialect": "gulf-kuwaiti"
+  }
+ ],
+ "agent_voice": "ar-JO-SanaNeural",
+ "acoustic": {
+  "conditions": [
+   "quiet",
+   "phone-nb"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "OV-T054.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 28554
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6850,
+   "text": "السلام عليكم، معك خالد من عيادات الندى. معي الأستاذ محمد؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 9302,
+   "end_ms": 26054,
+   "text": "يا هلا. طلب الكتب حقك وصل الفرع، وتقدر تستلمه من اليوم لين نهاية الأسبوع، ولا تنسى تجيب رقم الطلب والهوية، وإذا تبي توصيل للبيت نقدر نرتب لك بعشرين ريال.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 7137,
+   "end_ms": 8674,
+   "kind": "speech",
+   "text": "أيوه أنا، هلا."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 21365,
+   "end_ms": 27593,
+   "kind": "speech",
+   "text": "خلاص خلاص، ما أبي أي عرض، لا تتصلون علي مرة ثانية لو سمحت!"
+  }
+ ],
+ "events": [
+  {
+   "event_id": "OV-T054.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 21365,
+   "offset_ms": 27593,
+   "rationale": "floor bid",
+   "evident_ms": 21765,
+   "deadline_ms": 23265
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "GI-T017",
+ "split": "synth",
+ "category": "GI",
+ "subtype": "GI",
+ "difficulty": 2,
+ "dialect": "gulf-emirati",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-AE-FatimaNeural +11% -21Hz",
+   "gender": "f",
+   "dialect": "gulf-emirati"
+  }
+ ],
+ "agent_voice": "ar-JO-TaimNeural",
+ "acoustic": {
+  "conditions": [
+   "car"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "GI-T017.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 27741
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6302,
+   "text": "السلام عليكم، معك منى من شركة الريان للتأمين. معي الأستاذ تركي؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 9000,
+   "end_ms": 25241,
+   "text": "حياك الله. أتصل عليك بخصوص طلبك الأخير، الطلب جاهز في المستودع وبيطلع مع المندوب بكرة الصبح، والمندوب بيتصل عليك قبل ما يوصل بنص ساعة، وإذا ما كنت موجود تقدر تحدد موعد ثاني من التطبيق.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6742,
+   "end_ms": 8145,
+   "kind": "speech",
+   "text": "هلا، إيه نعم."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 18084,
+   "end_ms": 19519,
+   "kind": "speech",
+   "text": "متى بيوصل الطلب؟"
+  }
+ ],
+ "events": [
+  {
+   "event_id": "GI-T017.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 18084,
+   "offset_ms": 19519,
+   "rationale": "floor bid",
+   "evident_ms": 18452,
+   "deadline_ms": 19952
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

@@ -44,6 +44,7 @@ BID = {norm(w) for w in """
 غلط خطا ماطلبت
 لاحظه لحضه افوان عفوان سوري
 """.split()} - {"اي"}
+WEAK_BID = {norm(w) for w in "مش ما مو مب".split()}
 # «خلاص» and «طيب» are the brief's ambiguous pair: repeated or followed by more words = floor bid
 AMBIG = {norm(w) for w in "خلاص طيب".split()}
 
@@ -109,7 +110,17 @@ def analyse(text: str, agent_text: str = "") -> dict:
             bc += 1
         else:
             content += 1
-    repeated_amb = amb >= 2 or (amb >= 1 and (content + bid) >= 1)
+    # «خلاص خلاص» = enough (floor bid); «طيب طيب» = okay okay (acknowledgement); either + more words = bid
+    khalas = sum(1 for w in words if w == "خلاص")
+    repeated_amb = khalas >= 2 or (amb >= 1 and (content + bid) >= 1)
+    # reduplication of one unknown word («ماتا ماتا», «مكا مكا») is how a garbled «معك معك / هيه هيه» comes out:
+    # backchannels are repeated, real content rarely is
+    unknown = [w for w in words if w not in BID and w not in BACKCHANNEL and w not in FILLER and w not in AMBIG]
+    if content >= 2 and bid == 0 and len(set(unknown)) == 1 and len(unknown) >= 2:
+        bc, content = bc + content, 0
+    # weak negations alone («مش», «ما», «مو») are usually a mis-heard «مم / ماشي»: not a bid without more words
+    if bid and len(words) == 1 and words[0] in WEAK_BID:
+        bid, bc = 0, bc + 1
     question = "؟" in text or "?" in text
     return {"words": words, "n": len(words), "bc": bc, "filler": fill, "bid": bid, "content": content,
             "echoed": echoed, "ambig": amb, "repeated_ambig": repeated_amb, "question": question,

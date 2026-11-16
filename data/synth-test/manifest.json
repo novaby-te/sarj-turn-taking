@@ -1,0 +1,195 @@
+{
+ "dataset": "sarj-turn-taking-ar-synth",
+ "split": "synth-test",
+ "label_status": "generated",
+ "audio_source": "edge-tts Gulf voices + ESC-50 + procedural effects",
+ "thresholds": {
+  "T_full_ms": 300,
+  "T_dead_ms": 1500,
+  "E_full_ms": 600,
+  "E_dead_ms": 2000,
+  "E_miss_ms": 3000
+ },
+ "scenarios": [
+  {
+   "scenario_id": "GI-T000"
+  },
+  {
+   "scenario_id": "GI-T001"
+  },
+  {
+   "scenario_id": "GI-T002"
+  },
+  {
+   "scenario_id": "GI-T003"
+  },
+  {
+   "scenario_id": "GI-T004"
+  },
+  {
+   "scenario_id": "GI-T005"
+  },
+  {
+   "scenario_id": "GI-T006"
+  },
+  {
+   "scenario_id": "GI-T007"
+  },
+  {
+   "scenario_id": "GI-T008"
+  },
+  {
+   "scenario_id": "GI-T009"
+  },
+  {
+   "scenario_id": "GI-T010"
+  },
+  {
+   "scenario_id": "GI-T011"
+  },
+  {
+   "scenario_id": "GI-T012"
+  },
+  {
+   "scenario_id": "GI-T013"
+  },
+  {
+   "scenario_id": "GI-T014"
+  },
+  {
+   "scenario_id": "GI-T015"
+  },
+  {
+   "scenario_id": "GI-T016"
+  },
+  {
+   "scenario_id": "GI-T017"
+  },
+  {
+   "scenario_id": "GI-T018"
+  },
+  {
+   "scenario_id": "GI-T019"
+  },
+  {
+   "scenario_id": "GI-T020"
+  },
+  {
+   "scenario_id": "GI-T021"
+  },
+  {
+   "scenario_id": "GI-T022"
+  },
+  {
+   "scenario_id": "GI-T023"
+  },
+  {
+   "scenario_id": "GI-T024"
+  },
+  {
+   "scenario_id": "GI-T025"
+  },
+  {
+   "scenario_id": "BC-T026"
+  },
+  {
+   "scenario_id": "BC-T027"
+  },
+  {
+   "scenario_id": "BC-T028"
+  },
+  {
+   "scenario_id": "BC-T029"
+  },
+  {
+   "scenario_id": "BC-T030"
+  },
+  {
+   "scenario_id": "BC-T031"
+  },
+  {
+   "scenario_id": "BC-T032"
+  },
+  {
+   "scenario_id": "BC-T033"
+  },
+  {
+   "scenario_id": "BC-T034"
+  },
+  {
+   "scenario_id": "BC-T035"
+  },
+  {
+   "scenario_id": "BC-T036"
+  },
+  {
+   "scenario_id": "BC-T037"
+  },
+  {
+   "scenario_id": "BC-T038"
+  },
+  {
+   "scenario_id": "BC-T039"
+  },
+  {
+   "scenario_id": "BC-T040"
+  },
+  {
+   "scenario_id": "BC-T041"
+  },
+  {
+   "scenario_id": "BC-T042"
+  },
+  {
+   "scenario_id": "BC-T043"
+  },
+  {
+   "scenario_id": "BC-T044"
+  },
+  {
+   "scenario_id": "BC-T045"
+  },
+  {
+   "scenario_id": "AM-T046"
+  },
+  {
+   "scenario_id": "AM-T047"
+  },
+  {
+   "scenario_id": "AM-T048"
+  },
+  {
+   "scenario_id": "AM-T049"
+  },
+  {
+   "scenario_id": "AM-T050"
+  },
+  {
+   "scenario_id": "AM-T051"
+  },
+  {
+   "scenario_id": "AM-T052"
+  },
+  {
+   "scenario_id": "AM-T053"
+  },
+  {
+   "scenario_id": "OV-T054"
+  },
+  {
+   "scenario_id": "OV-T055"
+  },
+  {
+   "scenario_id": "OV-T056"
+  },
+  {
+   "scenario_id": "OV-T057"
+  },
+  {
+   "scenario_id": "OV-T058"
+  },
+  {
+   "scenario_id": "OV-T059"
+  }
+ ]
+}

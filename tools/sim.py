@@ -39,7 +39,20 @@ def load_system_class(path: str):
     return mod
 
 
+_DEFAULTS: dict = {}
+
+
+def _reset_params():
+    """In-process runs (tuner) must start every trial from the file's defaults, not the last trial's values."""
+    import turn.policy as P
+    if not _DEFAULTS:
+        _DEFAULTS.update({k: v for k, v in vars(P).items() if k.isupper() and isinstance(v, (int, float))})
+    for k, v in _DEFAULTS.items():
+        setattr(P, k, v)
+
+
 def _apply_overrides(mod, overrides: dict):
+    _reset_params()
     for k, v in overrides.items():
         target = mod
         if "." in k:                       # e.g. policy.STOP_MS -> turn.policy module

@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "GI-T003",
+ "split": "synth",
+ "category": "GI",
+ "subtype": "GI",
+ "difficulty": 2,
+ "dialect": "gulf-qatari",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-QA-MoazNeural +5% +20Hz",
+   "gender": "m",
+   "dialect": "gulf-qatari"
+  }
+ ],
+ "agent_voice": "ar-JO-TaimNeural",
+ "acoustic": {
+  "conditions": [
+   "quiet"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "GI-T003.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 24599
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 5763,
+   "text": "هلا، معك هيفاء من شركة زاد للتوصيل. معي الأستاذة نورة؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 7986,
+   "end_ms": 22100,
+   "text": "يا هلا. عندنا لك عرض خاص على باقة الإنترنت المنزلي، سرعة ألف ميقا بنفس سعر باقتك الحالية لأول ست شهور، والتركيب مجاني، والفني يقدر يجيك خلال يومين من الموافقة.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6252,
+   "end_ms": 7200,
+   "kind": "speech",
+   "text": "إيه هلا والله."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 11283,
+   "end_ms": 12580,
+   "kind": "speech",
+   "text": "متى بيوصل الطلب؟"
+  }
+ ],
+ "events": [
+  {
+   "event_id": "GI-T003.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 11283,
+   "offset_ms": 12580,
+   "rationale": "floor bid",
+   "evident_ms": 11580,
+   "deadline_ms": 13080
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

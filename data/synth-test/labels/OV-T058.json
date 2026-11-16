@@ -1,0 +1,94 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "OV-T058",
+ "split": "synth",
+ "category": "OV",
+ "subtype": "OVs",
+ "difficulty": 2,
+ "dialect": "gulf-emirati",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-AE-FatimaNeural +1% -17Hz",
+   "gender": "f",
+   "dialect": "gulf-emirati"
+  }
+ ],
+ "agent_voice": "ar-JO-SanaNeural",
+ "acoustic": {
+  "conditions": [
+   "cafe",
+   "phone-nb"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "OV-T058.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 29038
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6620,
+   "text": "مساء الخير، معك هيفاء من مكتبة جرير. أكلّم الأخ بدر؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 9601,
+   "end_ms": 26539,
+   "text": "يا هلا. عندنا لك عرض خاص على باقة الإنترنت المنزلي، سرعة ألف ميقا بنفس سعر باقتك الحالية لأول ست شهور، والتركيب مجاني، والفني يقدر يجيك خلال يومين من الموافقة.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 7009,
+   "end_ms": 8501,
+   "kind": "speech",
+   "text": "نعم، تفضل."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 14763,
+   "end_ms": 21120,
+   "kind": "speech",
+   "text": "خلاص خلاص، ما أبي أي عرض، لا تتصلون علي مرة ثانية لو سمحت!"
+  }
+ ],
+ "events": [
+  {
+   "event_id": "OV-T058.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 14763,
+   "offset_ms": 21120,
+   "rationale": "floor bid",
+   "evident_ms": 15163,
+   "deadline_ms": 16663
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

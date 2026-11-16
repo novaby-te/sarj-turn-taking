@@ -1,0 +1,94 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "GI-T021",
+ "split": "synth",
+ "category": "GI",
+ "subtype": "GI",
+ "difficulty": 2,
+ "dialect": "gulf-qatari",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-QA-MoazNeural +1% -20Hz",
+   "gender": "m",
+   "dialect": "gulf-qatari"
+  }
+ ],
+ "agent_voice": "ar-JO-SanaNeural",
+ "acoustic": {
+  "conditions": [
+   "car",
+   "phone-nb"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "GI-T021.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 27108
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6323,
+   "text": "السلام عليكم، معك ماجد من مطعم السفرة. معي الأخت هيا؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8861,
+   "end_ms": 24608,
+   "text": "حياك الله. اشتراكك الشهري بيتجدد تلقائياً بعد ثلاث أيام بنفس السعر، وإذا حاب تغير الباقة أو توقف التجديد تقدر تسوي هذا من الإعدادات في التطبيق، أو أسويه لك الحين.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6739,
+   "end_ms": 8169,
+   "kind": "speech",
+   "text": "أيوه أنا، هلا."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 12535,
+   "end_ms": 14664,
+   "kind": "speech",
+   "text": "سوري بقاطعك، الرقم غلط."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "GI-T021.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 12535,
+   "offset_ms": 14664,
+   "rationale": "floor bid",
+   "evident_ms": 12869,
+   "deadline_ms": 14369
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

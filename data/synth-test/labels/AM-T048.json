@@ -1,0 +1,94 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "AM-T048",
+ "split": "synth",
+ "category": "AM",
+ "subtype": "AM",
+ "difficulty": 2,
+ "dialect": "gulf-emirati",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-AE-HamdanNeural -12% +7Hz",
+   "gender": "m",
+   "dialect": "gulf-emirati"
+  }
+ ],
+ "agent_voice": "ar-JO-TaimNeural",
+ "acoustic": {
+  "conditions": [
+   "car",
+   "phone-nb"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "AM-T048.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 28023
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6329,
+   "text": "السلام عليكم، معك عبدالله من مكتبة جرير. معي الأستاذة منيرة؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 9559,
+   "end_ms": 25524,
+   "text": "هلا. حبيت أوضح لك طريقة الدفع بالتقسيط: المبلغ الإجمالي ألفين وأربع مية ريال، ينقسم على ست دفعات، كل دفعة أربع مية ريال، وأول دفعة تنخصم اليوم، والباقي كل شهر بنفس التاريخ.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6589,
+   "end_ms": 8278,
+   "kind": "speech",
+   "text": "نعم، تفضل."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 21493,
+   "end_ms": 22868,
+   "kind": "speech",
+   "text": "طيب طيب."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "AM-T048.e1",
+   "kind": "interruption",
+   "expected": "EITHER",
+   "onset_ms": 21493,
+   "offset_ms": 22868,
+   "rationale": "«طيب» alone",
+   "window_end_ms": 23368,
+   "preferred": "KEEP"
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

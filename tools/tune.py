@@ -28,6 +28,9 @@ SPACE = {
     "policy.MODEL_TH": [0.35, 0.5, 0.65, 0.8],
     "policy.CONTENT_MIN": [1, 2, 3],
     "policy.LONG_MS": [1400, 2000, 2600],
+    "policy.HYB_TH": [0.1, 0.2, 0.3, 0.45],
+    "policy.SPK_MIN": [0.3, 0.35, 0.4, 0.45],
+    "policy.MIN_LOGPROB": [-1.2, -0.9, -0.7],
 }
 
 

@@ -1,0 +1,94 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "AM-T050",
+ "split": "synth",
+ "category": "AM",
+ "subtype": "AM",
+ "difficulty": 2,
+ "dialect": "gulf-qatari",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-QA-AmalNeural +4% -6Hz",
+   "gender": "f",
+   "dialect": "gulf-qatari"
+  }
+ ],
+ "agent_voice": "ar-JO-TaimNeural",
+ "acoustic": {
+  "conditions": [
+   "quiet",
+   "phone-nb"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "AM-T050.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 25130
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 5892,
+   "text": "السلام عليكم، معك ماجد من مطعم السفرة. معي الأستاذة منيرة؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8604,
+   "end_ms": 22630,
+   "text": "يا هلا. حبيت أبلغك إن وثيقة التأمين حقتك بتنتهي آخر الشهر، وعندنا عرض تجديد بخصم خمسة عشر بالمية إذا جددت هالأسبوع، والتجديد يتم أونلاين وما يحتاج تزور الفرع أبد.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6213,
+   "end_ms": 7621,
+   "kind": "speech",
+   "text": "هيه، مساء النور."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 14552,
+   "end_ms": 15032,
+   "kind": "speech",
+   "text": "طيب."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "AM-T050.e1",
+   "kind": "interruption",
+   "expected": "EITHER",
+   "onset_ms": 14552,
+   "offset_ms": 15032,
+   "rationale": "«طيب» alone",
+   "window_end_ms": 15532,
+   "preferred": "KEEP"
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

@@ -19,12 +19,12 @@ KIT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(KIT))
 from tools.sim import line, simulate  # noqa: E402
 
-SETS = {"dev": "data/dev", "dev-aug": "data/dev-aug", "synth": "data/synth", "live": "data/live"}
+SETS = {"dev": "data/dev", "dev-aug": "data/dev-aug", "synth": "data/synth", "synth-test": "data/synth-test", "live": "data/live"}
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sets", default="dev,dev-aug,synth,live")
+    ap.add_argument("--sets", default="dev,dev-aug,synth-test,live")
     ap.add_argument("--note", default="")
     ap.add_argument("--set", action="append", default=[], help="NAME=VALUE parameter override")
     ap.add_argument("--no-open", action="store_true")

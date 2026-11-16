@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "AM-T053",
+ "split": "synth",
+ "category": "AM",
+ "subtype": "AM",
+ "difficulty": 2,
+ "dialect": "gulf-emirati",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-AE-FatimaNeural +4% -10Hz",
+   "gender": "f",
+   "dialect": "gulf-emirati"
+  }
+ ],
+ "agent_voice": "ar-JO-SanaNeural",
+ "acoustic": {
+  "conditions": [
+   "car"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "AM-T053.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 29531
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6951,
+   "text": "مساء الخير، معك عبدالله من مكتبة جرير. أكلّم الأستاذ تركي؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 10420,
+   "end_ms": 27031,
+   "text": "حياك الله. نبي نأكد عنوان التوصيل: حي الملقا، شارع الأمير محمد بن سعد، بيت رقم سبعة وعشرين، بجنب المسجد، وإذا فيه أي تعديل على العنوان قل لي الحين عشان نحدثه.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 7294,
+   "end_ms": 9294,
+   "kind": "speech",
+   "text": "وعليكم السلام، إيه."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 20634,
+   "end_ms": 21228,
+   "kind": "speech",
+   "text": "طيب."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "AM-T053.e1",
+   "kind": "interruption",
+   "expected": "EITHER",
+   "onset_ms": 20634,
+   "offset_ms": 21228,
+   "rationale": "«طيب» alone",
+   "window_end_ms": 21728,
+   "preferred": "KEEP"
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

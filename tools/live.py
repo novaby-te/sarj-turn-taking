@@ -128,11 +128,16 @@ async def ws_handler(ws):
             tt.on_scenario_start()
             frames_a, frames_c, decisions, sent_trace = [], [], [], 0
             agent_text = msg.get("text", "")
-            if msg.get("ref_db"):
-                tt.ref_db = float(msg["ref_db"])
-            tt.on_agent_start(agent_text)
+            if msg.get("calibrate"):
+                await ws.send(json.dumps({"type": "calibrating"}))   # caller says «هلا، معك» first (like U0)
+            else:
+                tt.on_agent_start(agent_text)
+                await ws.send(json.dumps({"type": "started"}))
             t_start = time.time()
-            await ws.send(json.dumps({"type": "started"}))
+        elif msg["type"] == "agent_start" and tt:
+            tt.on_agent_start(agent_text)
+            await ws.send(json.dumps({"type": "started", "ref_db": round(tt.ref_db, 1),
+                                      "voiceprint": tt.ref_emb is not None}))
         elif msg["type"] == "agent_end" and tt:
             tt.on_agent_end()
             agent_end_ms = len(frames_a) * 20
@@ -187,14 +192,14 @@ def save_try(fa, fc, agent_text, expected, agent_end_ms, trace):
 def main():
     from websockets.asyncio.server import serve
     from turn.asr import warmup
-    print("loading Whisper ...")
+    print("loading Whisper ...", flush=True)
     warmup()
     srv = ThreadingHTTPServer(("127.0.0.1", HTTP_PORT), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
 
     async def run():
         async with serve(ws_handler, "127.0.0.1", WS_PORT, max_size=2 ** 20):
-            print(f"open http://127.0.0.1:{HTTP_PORT}")
+            print(f"open http://127.0.0.1:{HTTP_PORT}", flush=True)
             webbrowser.open(f"http://127.0.0.1:{HTTP_PORT}")
             await asyncio.Future()
     try:

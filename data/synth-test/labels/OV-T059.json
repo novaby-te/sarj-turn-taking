@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "OV-T059",
+ "split": "synth",
+ "category": "OV",
+ "subtype": "OVs",
+ "difficulty": 2,
+ "dialect": "gulf-emirati",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-AE-FatimaNeural +1% +7Hz",
+   "gender": "f",
+   "dialect": "gulf-emirati"
+  }
+ ],
+ "agent_voice": "ar-SA-HamedNeural",
+ "acoustic": {
+  "conditions": [
+   "cafe"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "OV-T059.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 28630
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6291,
+   "text": "مساء الخير، معك نوف من طيران نسمة. أكلّم الأستاذ محمد؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8631,
+   "end_ms": 26131,
+   "text": "حياك الله. أتصل عليك بخصوص طلبك الأخير، الطلب جاهز في المستودع وبيطلع مع المندوب بكرة الصبح، والمندوب بيتصل عليك قبل ما يوصل بنص ساعة، وإذا ما كنت موجود تقدر تحدد موعد ثاني من التطبيق.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6668,
+   "end_ms": 8215,
+   "kind": "speech",
+   "text": "هلا، إيه نعم."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 21294,
+   "end_ms": 28396,
+   "kind": "speech",
+   "text": "يا أخي هذا ثالث مرة أسمع نفس الكلام! صار لي أسبوعين والمشكلة ما انحلت!"
+  }
+ ],
+ "events": [
+  {
+   "event_id": "OV-T059.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 21294,
+   "offset_ms": 28396,
+   "rationale": "floor bid",
+   "evident_ms": 21694,
+   "deadline_ms": 23194
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

@@ -1,0 +1,94 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "GI-T013",
+ "split": "synth",
+ "category": "GI",
+ "subtype": "GI",
+ "difficulty": 2,
+ "dialect": "gulf-bahraini",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-BH-AliNeural -6% -9Hz",
+   "gender": "m",
+   "dialect": "gulf-bahraini"
+  }
+ ],
+ "agent_voice": "ar-SA-ZariyahNeural",
+ "acoustic": {
+  "conditions": [
+   "household",
+   "phone-nb"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "GI-T013.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 26721
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6571,
+   "text": "السلام عليكم، معك نوف من طيران نسمة. معي الأستاذة عبير؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8731,
+   "end_ms": 24221,
+   "text": "حياك الله. نبي نأكد عنوان التوصيل: حي الملقا، شارع الأمير محمد بن سعد، بيت رقم سبعة وعشرين، بجنب المسجد، وإذا فيه أي تعديل على العنوان قل لي الحين عشان نحدثه.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6954,
+   "end_ms": 8246,
+   "kind": "speech",
+   "text": "هلا، إيه نعم."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 18821,
+   "end_ms": 20619,
+   "kind": "speech",
+   "text": "أبي أكلم مشرف لو سمحت."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "GI-T013.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 18821,
+   "offset_ms": 20619,
+   "rationale": "floor bid",
+   "evident_ms": 19036,
+   "deadline_ms": 20536
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

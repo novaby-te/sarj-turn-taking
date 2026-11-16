@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "BC-T036",
+ "split": "synth",
+ "category": "BC",
+ "subtype": "BC",
+ "difficulty": 2,
+ "dialect": "gulf-kuwaiti",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-KW-NouraNeural +12% +13Hz",
+   "gender": "f",
+   "dialect": "gulf-kuwaiti"
+  }
+ ],
+ "agent_voice": "ar-SA-HamedNeural",
+ "acoustic": {
+  "conditions": [
+   "ac-hum",
+   "phone-nb"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "BC-T036.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 25715
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6269,
+   "text": "مساء الخير، معك منى من تطبيق مشوار. أكلّم الأستاذة منيرة؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8979,
+   "end_ms": 23216,
+   "text": "أهلين. نتايج الفحص طلعت والحمدلله كلها سليمة، بس الدكتور حاب يشوفك مرة ثانية بعد شهر عشان يتابع الضغط، وعندنا مواعيد متاحة الصبح والعصر طول الأسبوع.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6751,
+   "end_ms": 8189,
+   "kind": "speech",
+   "text": "إيه معك، تفضل."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 14272,
+   "end_ms": 14836,
+   "kind": "backchannel",
+   "text": "تمام."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "BC-T036.e1",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 14272,
+   "offset_ms": 14836,
+   "rationale": "acknowledgement",
+   "window_end_ms": 15336
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

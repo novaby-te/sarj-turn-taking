@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "GI-T025",
+ "split": "synth",
+ "category": "GI",
+ "subtype": "GI",
+ "difficulty": 2,
+ "dialect": "sa-najdi",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-SA-HamedNeural -8% +1Hz",
+   "gender": "m",
+   "dialect": "sa-najdi"
+  }
+ ],
+ "agent_voice": "ar-SA-ZariyahNeural",
+ "acoustic": {
+  "conditions": [
+   "quiet"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "GI-T025.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 27342
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6517,
+   "text": "هلا، معك عبدالله من شركة الريان للتأمين. معي الأستاذة عبير؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 9167,
+   "end_ms": 24843,
+   "text": "يا هلا. طلب الكتب حقك وصل الفرع، وتقدر تستلمه من اليوم لين نهاية الأسبوع، ولا تنسى تجيب رقم الطلب والهوية، وإذا تبي توصيل للبيت نقدر نرتب لك بعشرين ريال.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6878,
+   "end_ms": 8041,
+   "kind": "speech",
+   "text": "إيه هلا والله."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 16477,
+   "end_ms": 18814,
+   "kind": "speech",
+   "text": "ليش انخصم المبلغ مرتين؟"
+  }
+ ],
+ "events": [
+  {
+   "event_id": "GI-T025.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 16477,
+   "offset_ms": 18814,
+   "rationale": "floor bid",
+   "evident_ms": 16817,
+   "deadline_ms": 18317
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

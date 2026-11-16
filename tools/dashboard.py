@@ -18,7 +18,8 @@ from ttbench.dataset import read_wav_stereo  # noqa: E402
 
 OUT = Path.home() / "Downloads" / "لوحة قياس سرج.html"
 SETS = [("dev", "data/dev", "بيانات سرج (٢٤ مكالمة)"), ("dev-aug", "data/dev-aug", "نفس المكالمات بظروف أصعب (٩٦)"),
-        ("synth", "data/synth", "مكالمات ولّدناها (١٦٠)"), ("live", "data/live", "تجاربك بالمايك")]
+        ("synth-test", "data/synth-test", "مكالمات جديدة ما شافها أبداً (٦٠)"), ("synth", "data/synth", "مكالمات التدريب المولّدة (١٦٠)"),
+        ("live", "data/live", "تجاربك بالمايك")]
 CAT_AR = {"GI": "مقاطعة حقيقية", "BC": "تأييد (إيه/أها)", "HT": "تردد وتفكير", "BG": "خلفية (تلفزيون/شارع)",
           "NV": "أصوات بلا كلام", "AM": "كلمات محيّرة", "OV": "تداخل", "DV": "لهجات"}
 OUTCOME_AR = {"yield": "سكت", "miss": "ما سكت", "kept": "كمّل", "false_stop": "سكت غلط", "hiccup": "سكت ورجع", "eot": "نهاية دور"}

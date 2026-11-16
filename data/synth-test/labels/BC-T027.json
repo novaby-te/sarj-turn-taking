@@ -1,0 +1,109 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "BC-T027",
+ "split": "synth",
+ "category": "BC",
+ "subtype": "BC",
+ "difficulty": 2,
+ "dialect": "gulf-emirati",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-AE-HamdanNeural +10% +24Hz",
+   "gender": "m",
+   "dialect": "gulf-emirati"
+  }
+ ],
+ "agent_voice": "ar-JO-TaimNeural",
+ "acoustic": {
+  "conditions": [
+   "quiet"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "BC-T027.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 24081
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 5736,
+   "text": "السلام عليكم، معك منى من طيران نسمة. معي الأستاذ سلطان؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8554,
+   "end_ms": 21581,
+   "text": "أهلين. بخصوص الحجز اللي سويته، الطاولة محجوزة لك يوم الجمعة الساعة تسع بالليل لستة أشخاص، ونبي نأكد إذا عندكم أي طلبات خاصة أو حساسية من أكل معين.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6046,
+   "end_ms": 7598,
+   "kind": "speech",
+   "text": "هيه، مساء النور."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 15822,
+   "end_ms": 16145,
+   "kind": "backchannel",
+   "text": "إيه."
+  },
+  {
+   "seg_id": "U1b",
+   "speaker_id": "C",
+   "start_ms": 17742,
+   "end_ms": 18257,
+   "kind": "backchannel",
+   "text": "أوكي."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "BC-T027.e1",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 15822,
+   "offset_ms": 16145,
+   "rationale": "acknowledgement",
+   "window_end_ms": 16645
+  },
+  {
+   "event_id": "BC-T027.e2",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 17742,
+   "offset_ms": 18257,
+   "rationale": "acknowledgement",
+   "window_end_ms": 18757
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

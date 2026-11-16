@@ -1,0 +1,92 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "BC-T026",
+ "split": "synth",
+ "category": "BC",
+ "subtype": "BC",
+ "difficulty": 2,
+ "dialect": "gulf-emirati",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-AE-FatimaNeural -6% -16Hz",
+   "gender": "f",
+   "dialect": "gulf-emirati"
+  }
+ ],
+ "agent_voice": "ar-SA-HamedNeural",
+ "acoustic": {
+  "conditions": [
+   "household"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "BC-T026.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 24806
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 5856,
+   "text": "السلام عليكم، معك نوف من مكتبة جرير. معي الأخ بدر؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8070,
+   "end_ms": 22306,
+   "text": "أهلين. نتايج الفحص طلعت والحمدلله كلها سليمة، بس الدكتور حاب يشوفك مرة ثانية بعد شهر عشان يتابع الضغط، وعندنا مواعيد متاحة الصبح والعصر طول الأسبوع.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6131,
+   "end_ms": 7340,
+   "kind": "speech",
+   "text": "إيه هلا والله."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 15296,
+   "end_ms": 15716,
+   "kind": "backchannel",
+   "text": "أوكي."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "BC-T026.e1",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 15296,
+   "offset_ms": 15716,
+   "rationale": "acknowledgement",
+   "window_end_ms": 16216
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

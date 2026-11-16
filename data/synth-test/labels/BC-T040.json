@@ -1,0 +1,126 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "BC-T040",
+ "split": "synth",
+ "category": "BC",
+ "subtype": "BC",
+ "difficulty": 2,
+ "dialect": "sa-najdi",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-SA-ZariyahNeural -1% +16Hz",
+   "gender": "f",
+   "dialect": "sa-najdi"
+  }
+ ],
+ "agent_voice": "ar-SA-HamedNeural",
+ "acoustic": {
+  "conditions": [
+   "household"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "BC-T040.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 26956
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 7290,
+   "text": "مساء الخير، معك عبدالله من شركة الريان للتأمين. أكلّم الأستاذة عبير؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 10320,
+   "end_ms": 24457,
+   "text": "أهلين. بخصوص الحجز اللي سويته، الطاولة محجوزة لك يوم الجمعة الساعة تسع بالليل لستة أشخاص، ونبي نأكد إذا عندكم أي طلبات خاصة أو حساسية من أكل معين.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 7650,
+   "end_ms": 9150,
+   "kind": "speech",
+   "text": "هلا، إيه نعم."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 14652,
+   "end_ms": 15132,
+   "kind": "backchannel",
+   "text": "هيه."
+  },
+  {
+   "seg_id": "U1b",
+   "speaker_id": "C",
+   "start_ms": 16733,
+   "end_ms": 18147,
+   "kind": "backchannel",
+   "text": "أها، تمام."
+  },
+  {
+   "seg_id": "U1c",
+   "speaker_id": "C",
+   "start_ms": 20935,
+   "end_ms": 21541,
+   "kind": "backchannel",
+   "text": "حلو."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "BC-T040.e1",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 14652,
+   "offset_ms": 15132,
+   "rationale": "acknowledgement",
+   "window_end_ms": 15632
+  },
+  {
+   "event_id": "BC-T040.e2",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 16733,
+   "offset_ms": 18147,
+   "rationale": "acknowledgement",
+   "window_end_ms": 18647
+  },
+  {
+   "event_id": "BC-T040.e3",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 20935,
+   "offset_ms": 21541,
+   "rationale": "acknowledgement",
+   "window_end_ms": 22041
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

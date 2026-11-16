@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "AM-T051",
+ "split": "synth",
+ "category": "AM",
+ "subtype": "AM",
+ "difficulty": 2,
+ "dialect": "sa-najdi",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-SA-ZariyahNeural -6% +21Hz",
+   "gender": "f",
+   "dialect": "sa-najdi"
+  }
+ ],
+ "agent_voice": "ar-SA-HamedNeural",
+ "acoustic": {
+  "conditions": [
+   "car"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "AM-T051.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 27132
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6458,
+   "text": "السلام عليكم، معك خالد من تطبيق مشوار. معي الأستاذ سلطان؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 9574,
+   "end_ms": 24633,
+   "text": "يا هلا. عندنا لك عرض خاص على باقة الإنترنت المنزلي، سرعة ألف ميقا بنفس سعر باقتك الحالية لأول ست شهور، والتركيب مجاني، والفني يقدر يجيك خلال يومين من الموافقة.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6894,
+   "end_ms": 8775,
+   "kind": "speech",
+   "text": "هيه، مساء النور."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 15559,
+   "end_ms": 16184,
+   "kind": "speech",
+   "text": "طيب."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "AM-T051.e1",
+   "kind": "interruption",
+   "expected": "EITHER",
+   "onset_ms": 15559,
+   "offset_ms": 16184,
+   "rationale": "«طيب» alone",
+   "window_end_ms": 16684,
+   "preferred": "KEEP"
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

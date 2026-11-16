@@ -1,0 +1,93 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "GI-T018",
+ "split": "synth",
+ "category": "GI",
+ "subtype": "GI",
+ "difficulty": 2,
+ "dialect": "gulf-omani",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-OM-AbdullahNeural +6% +2Hz",
+   "gender": "m",
+   "dialect": "gulf-omani"
+  }
+ ],
+ "agent_voice": "ar-JO-SanaNeural",
+ "acoustic": {
+  "conditions": [
+   "ac-hum"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "GI-T018.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 30326
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 6880,
+   "text": "مساء الخير، معك هيفاء من تطبيق مشوار. أكلّم الأستاذة عبير؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 9319,
+   "end_ms": 27827,
+   "text": "هلا. حبيت أوضح لك طريقة الدفع بالتقسيط: المبلغ الإجمالي ألفين وأربع مية ريال، ينقسم على ست دفعات، كل دفعة أربع مية ريال، وأول دفعة تنخصم اليوم، والباقي كل شهر بنفس التاريخ.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 7193,
+   "end_ms": 8134,
+   "kind": "speech",
+   "text": "إيه هلا والله."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 21231,
+   "end_ms": 23519,
+   "kind": "speech",
+   "text": "دقيقة دقيقة، خلني أجيب قلم."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "GI-T018.e1",
+   "kind": "interruption",
+   "expected": "STOP",
+   "onset_ms": 21231,
+   "offset_ms": 23519,
+   "rationale": "floor bid",
+   "evident_ms": 21786,
+   "deadline_ms": 23286
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}

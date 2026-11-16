@@ -46,6 +46,8 @@ USE_SPEAKER = 1          # compare with the caller's own voiceprint
 SPK_MIN = 0.40           # below this similarity it is someone else (TV, a child across the room)...
 SPK_LOUD_DB = -2.0       # ...unless it is clearly louder than the caller usually is
 HYB_TH = 0.2            # hybrid: below this learned probability a rule-based stop is vetoed
+PROMOTE_TH = 0.95        # hybrid: above this learned probability the model may stop on its own (1.01 = never)
+PROMOTE_REL_DB = 4.0     # ...only when the voice is about as loud as the caller's
 USE_MODEL = 2            # 1: learned score (if models/policy.json exists), 0: rules only
 MODEL_TH = 0.5
 
@@ -192,7 +194,8 @@ class TurnTaker:
                 c["sub"] = self.ms
         # safety net: long, loud, sustained speech even if the words are not understood yet
         rel = self._cand_rel(c)
-        if c["voiced"] >= LONG_MS and rel >= -LONG_REL_DB and not (c["feats"] and c["feats"]["only_bc"]):
+        not_caller = c.get("spk") is not None and c["spk"] < SPK_MIN
+        if c["voiced"] >= LONG_MS and rel >= -LONG_REL_DB and not not_caller and not (c["feats"] and c["feats"]["only_bc"]):
             return self._stop("sustained loud speech", c)
         return None
 
@@ -227,6 +230,8 @@ class TurnTaker:
         # USE_MODEL == 2 (hybrid): the rules propose, the learned model can veto an unlikely stop
         if rp >= MODEL_TH and mp < HYB_TH:
             return 0.25, f"{why}, but the model doubts it (p={mp:.2f})"
+        if rp < MODEL_TH and mp >= PROMOTE_TH and f["n"] >= 1 and f["rel_db"] > -PROMOTE_REL_DB:
+            return mp, f"model is sure (p={mp:.2f}) although the words are unclear"
         return rp, f"{why} (model p={mp:.2f})"
 
     def _rules(self, f: dict) -> tuple[float, str]:

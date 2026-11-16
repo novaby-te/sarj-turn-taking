@@ -93,10 +93,12 @@ async function start() {
   const buf = await (await fetch(url)).arrayBuffer();
   const audio = await ctx.decodeAudioData(buf);
   ws = new WebSocket('ws://127.0.0.1:8771');
-  ws.onopen = () => ws.send(JSON.stringify({type: 'start', text}));
+  ws.onopen = () => ws.send(JSON.stringify({type: 'start', text, calibrate: true}));
   agentEndMs = null; firstSpeech = null; $('#log').innerHTML = ''; $('#lat').textContent = '—'; $('#latd').textContent = ''; $('#heard').textContent = 'النموذج سمع: —'; $('#saved').textContent = '';
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
+    if (m.type === 'calibrating') { $('#state').textContent = 'قل: «هلا، إيه معك» (نتعلّم صوتك)…'; $('#state').className = ''; setTimeout(() => ws.send(JSON.stringify({type: 'agent_start'})), 2800); }
+    if (m.type === 'started' && m.ref_db !== undefined) log(`تعلّمنا صوتك: مستواه ${m.ref_db} dB${m.voiceprint ? '، وبصمته جاهزة' : ' (البصمة تحتاج كلام أطول)'}`);
     if (m.type === 'started') { node.port.postMessage({agent: audio.getChannelData(0).slice()}); $('#state').textContent = 'الوكيل يتكلم… قاطعه أو قل «إيه»'; $('#state').className = 'talk'; started = performance.now(); }
     if (m.type === 'meter') { $('#mlvl').style.width = Math.max(0, Math.min(100, (m.db + 70) * 1.6)) + '%'; $('#vad').textContent = 'كلام ' + Math.round(m.vad * 100) + '%'; }
     if (m.type === 'agent_end') { agentEndMs = m.t; if ($('#state').className === 'talk') { $('#state').textContent = 'الوكيل خلّص بدون ما يسكت'; $('#state').className = ''; } }

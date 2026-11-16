@@ -1,0 +1,109 @@
+{
+ "schema_version": "1.0",
+ "scenario_id": "BC-T033",
+ "split": "synth",
+ "category": "BC",
+ "subtype": "BC",
+ "difficulty": 2,
+ "dialect": "gulf-bahraini",
+ "elicitation": "scripted",
+ "speakers": [
+  {
+   "speaker_id": "C",
+   "role": "caller",
+   "source": "edge-tts:ar-BH-LailaNeural +4% +19Hz",
+   "gender": "f",
+   "dialect": "gulf-bahraini"
+  }
+ ],
+ "agent_voice": "ar-JO-SanaNeural",
+ "acoustic": {
+  "conditions": [
+   "quiet"
+  ],
+  "noise_source_ids": [
+   "ESC-50",
+   "procedural"
+  ]
+ },
+ "audio": {
+  "file": "BC-T033.wav",
+  "sample_rate": 16000,
+  "channels": [
+   "agent",
+   "user"
+  ],
+  "duration_ms": 26874
+ },
+ "context": {
+  "use_case": "synthetic",
+  "language": "ar"
+ },
+ "agent_utterances": [
+  {
+   "utt_id": "A0",
+   "start_ms": 300,
+   "end_ms": 5816,
+   "text": "هلا، معك خالد من بنك الخليج. معي الأخ بدر؟",
+   "is_question": true
+  },
+  {
+   "utt_id": "A1",
+   "start_ms": 8628,
+   "end_ms": 24375,
+   "text": "حياك الله. اشتراكك الشهري بيتجدد تلقائياً بعد ثلاث أيام بنفس السعر، وإذا حاب تغير الباقة أو توقف التجديد تقدر تسوي هذا من الإعدادات في التطبيق، أو أسويه لك الحين.",
+   "is_question": false
+  }
+ ],
+ "user_segments": [
+  {
+   "seg_id": "U0",
+   "speaker_id": "C",
+   "start_ms": 6272,
+   "end_ms": 7856,
+   "kind": "speech",
+   "text": "إيه معك، تفضل."
+  },
+  {
+   "seg_id": "U1a",
+   "speaker_id": "C",
+   "start_ms": 13145,
+   "end_ms": 14152,
+   "kind": "backchannel",
+   "text": "معك معك."
+  },
+  {
+   "seg_id": "U1b",
+   "speaker_id": "C",
+   "start_ms": 16856,
+   "end_ms": 18535,
+   "kind": "backchannel",
+   "text": "هيه… هيه."
+  }
+ ],
+ "events": [
+  {
+   "event_id": "BC-T033.e1",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 13145,
+   "offset_ms": 14152,
+   "rationale": "acknowledgement",
+   "window_end_ms": 14652
+  },
+  {
+   "event_id": "BC-T033.e2",
+   "kind": "interruption",
+   "expected": "KEEP",
+   "onset_ms": 16856,
+   "offset_ms": 18535,
+   "rationale": "acknowledgement",
+   "window_end_ms": 19035
+  }
+ ],
+ "provenance": {
+  "production_mode": "synthetic",
+  "label_status": "generated",
+  "generator": "tools/synth_calls.py"
+ }
+}
