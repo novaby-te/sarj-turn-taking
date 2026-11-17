@@ -24,7 +24,15 @@ import numpy as np
 KIT = Path(__file__).resolve().parents[1]
 EXT = Path.home() / "Downloads" / "sarj-ext-data"
 COHERE = Path(os.environ.get("TT_COHERE_MODEL", str(EXT / "cohere-ar-mlx8")))
-BACKEND = os.environ.get("TT_ASR", "cohere" if (COHERE / "model.safetensors").exists() else "whisper")
+def _default_backend() -> str:
+    import sys
+    if sys.platform == "darwin":                                   # Apple MLX
+        return "cohere" if (COHERE / "model.safetensors").exists() else "whisper"
+    return "faster"                                                # Windows / Linux: faster-whisper (CPU or NVIDIA)
+
+
+BACKEND = os.environ.get("TT_ASR", _default_backend())
+FW_MODEL = os.environ.get("TT_FW_MODEL", "large-v3-turbo")       # faster-whisper model name or local folder
 MODEL = os.environ.get("TT_ASR_MODEL", str(EXT / "whisper-large-v3-turbo-q4"))
 PROMPT = os.environ.get("TT_ASR_PROMPT", "إيه، أها، مم، هيه، زين، طيب، لا لا، لحظة، اسمع، خلاص.")
 CACHE_DIR = KIT / ".cache" / "asr"
@@ -39,6 +47,8 @@ def _key(audio: np.ndarray) -> str:
     h = hashlib.sha1(audio.tobytes())
     if BACKEND == "cohere":
         h.update(COHERE.name.encode() + b"cohere-v1")
+    elif BACKEND == "faster":
+        h.update(FW_MODEL.encode() + PROMPT.encode() + b"fw-v1")
     else:
         h.update(Path(MODEL).name.encode() + PROMPT.encode() + b"v2" + (f"ctx{CTX_S}".encode() if CTX_S else b""))
     return h.hexdigest()
@@ -61,8 +71,8 @@ def _transcribe(audio_i16: np.ndarray, use_cache: bool = True) -> dict:
     path = CACHE_DIR / key[:2] / f"{key}.json"
     if use_cache and _cache_on and path.exists():
         return json.loads(path.read_text(encoding="utf-8")) | {"cached": True}
-    if BACKEND == "cohere":
-        out = _cohere(audio_i16)
+    if BACKEND in ("cohere", "faster"):
+        out = _cohere(audio_i16) if BACKEND == "cohere" else _faster(audio_i16)
         if use_cache and _cache_on and "error" not in out:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
@@ -185,3 +195,30 @@ def _cohere(audio_i16: np.ndarray) -> dict:
     logprob = float(np.mean(lps)) if lps and not empty else -5.0
     return {"text": words, "no_speech": 1.0 if empty else 0.0, "logprob": round(logprob, 3),
             "ms": round((time.perf_counter() - t0) * 1000, 1), "engine": "cohere"}
+
+
+_fw = None
+
+
+def _faster(audio_i16: np.ndarray) -> dict:
+    """Windows / Linux: Whisper through CTranslate2 (faster-whisper). NVIDIA GPU if present, else CPU int8."""
+    global _fw
+    t0 = time.perf_counter()
+    try:
+        if _fw is None:
+            from faster_whisper import WhisperModel
+            try:
+                _fw = WhisperModel(FW_MODEL, device="cuda", compute_type="float16")
+            except Exception:
+                _fw = WhisperModel(FW_MODEL, device="cpu", compute_type="int8")
+        x = audio_i16.astype(np.float32) / 32768.0
+        segs, _ = _fw.transcribe(x, language="ar", beam_size=1, initial_prompt=PROMPT or None,
+                                 condition_on_previous_text=False, without_timestamps=True, vad_filter=False)
+        segs = [sg for sg in segs if sg.no_speech_prob < 0.8]
+        text = " ".join(sg.text.strip() for sg in segs).strip()
+        lp = float(np.mean([sg.avg_logprob for sg in segs])) if segs else -5.0
+    except Exception as e:  # pragma: no cover
+        print("faster-whisper error", e)
+        return {"text": "", "no_speech": 1.0, "ms": round((time.perf_counter() - t0) * 1000, 1), "error": repr(e)}
+    return {"text": text, "no_speech": 0.0 if text else 1.0, "logprob": round(lp, 3),
+            "ms": round((time.perf_counter() - t0) * 1000, 1), "engine": "faster-whisper"}

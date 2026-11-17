@@ -43,12 +43,15 @@ def available() -> dict:
         ok[k] = bool(shards) and (len(shards) == int(m.group(1)) if m else True)
     for k in CLAUDE:
         ok[k] = bool(os.environ.get("ANTHROPIC_API_KEY") or shutil.which("claude"))
+    if os.environ.get("TT_BRAIN_URL"):              # LM Studio / Ollama (Windows): an OpenAI-compatible server
+        ok["local-url"] = True
     return ok
 
 
 def default_model() -> str:
     av = available()
-    return os.environ.get("TT_BRAIN") or next((k for k in ("gemma4-26b", "gemma-12b", "gemma4-e4b", "qwen3-14b") if av.get(k)), "qwen3-14b")
+    return os.environ.get("TT_BRAIN") or next((k for k in ("gemma4-26b", "gemma-12b", "gemma4-e4b", "qwen3-14b", "local-url",
+                                                         "claude-haiku", "claude-opus") if av.get(k)), "local-url")
 
 
 def _up() -> bool:
@@ -66,7 +69,7 @@ def start(model: str | None = None) -> str:
     if _proc and _proc.poll() is None and globals().get("_current") == model:
         return model
     stop()
-    if model in CLAUDE:                                # cloud: no local server to start
+    if model in CLAUDE or model == "local-url":       # nothing to start here
         _current = model
         return model
     extra = ["--chat-template-args", '{"enable_thinking": false}'] if model.startswith("gemma4") else []   # no thinking pause
@@ -138,8 +141,12 @@ def stream(messages: list[dict], max_tokens: int = 120, temperature: float = 0.6
         return
     if globals().get("_current", "").startswith("qwen3") and messages and messages[0]["role"] == "system":
         messages = [{"role": "system", "content": messages[0]["content"] + "\n/no_think"}] + messages[1:]
-    body = json.dumps({"messages": messages, "max_tokens": max_tokens, "temperature": temperature, "stream": True}).encode()
-    req = urllib.request.Request(f"http://127.0.0.1:{PORT}/v1/chat/completions", body, {"Content-Type": "application/json"})
+    payload = {"messages": messages, "max_tokens": max_tokens, "temperature": temperature, "stream": True}
+    if globals().get("_current") == "local-url":
+        payload["model"] = os.environ.get("TT_BRAIN_MODEL", "local-model")
+    body = json.dumps(payload).encode()
+    base = os.environ.get("TT_BRAIN_URL", f"http://127.0.0.1:{PORT}").rstrip("/")
+    req = urllib.request.Request(f"{base}/v1/chat/completions", body, {"Content-Type": "application/json"})
     in_think = False
     with urllib.request.urlopen(req, timeout=60) as r:
         for raw in r:

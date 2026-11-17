@@ -1,0 +1,14 @@
+# Windows / Linux (no Apple MLX). Speech recognition = faster-whisper, brain = LM Studio / Ollama / Claude.
+numpy
+scipy
+websockets
+soundfile
+onnxruntime
+sherpa-onnx
+scikit-learn
+lightgbm
+tokenizers
+faster-whisper
+edge-tts
+huggingface_hub
+pytest

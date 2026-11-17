@@ -164,7 +164,7 @@ fetch('/results').then(r => r.json()).then(R => {
   $('#kpis').innerHTML = R.sets.map(s => cur[s] ? `<div class="card kpi"><div class="l">${SETN[s]}</div><div class="v good">${(+cur[s].core).toFixed(1)}</div><div class="s">من ١٠٠ · سكتات غلط ${ar(cur[s].false_stops)}${base[s] ? ` · البدائي ${(+base[s].core).toFixed(1)}` : ''}</div></div>` : '').join('');
   $('#rt').innerHTML = `<tr><th>النظام</th>${R.sets.map(s => `<th>${SETN[s]}</th>`).join('')}</tr>` + R.systems.map((sy, i) =>
     `<tr><td>${i === R.systems.length - 1 ? '<b>' + esc(sy.name) + '</b>' : esc(sy.name)}</td>${R.sets.map(s => `<td class="num">${sy.runs[s] ? (+sy.runs[s].core).toFixed(1) : '—'}</td>`).join('')}</tr>`).join('');
-  const BN = {'gemma4-26b': 'Gemma 4 26B (محلي)', 'claude-opus': 'Claude Opus 5.5 (سحابي)', 'gemma-12b': 'Gemma 3 12B (محلي)', 'claude-haiku': 'Claude Haiku 5.5 (سحابي)', 'qwen3-14b': 'Qwen3 14B (محلي)'};
+  const BN = {'local-url': 'LM Studio / Ollama (محلي، ويندوز)', 'gemma4-26b': 'Gemma 4 26B (محلي)', 'claude-opus': 'Claude Opus 5.5 (سحابي)', 'gemma-12b': 'Gemma 3 12B (محلي)', 'claude-haiku': 'Claude Haiku 5.5 (سحابي)', 'qwen3-14b': 'Qwen3 14B (محلي)'};
   const be = R.brain_eval || {};
   $('#bt').innerHTML = '<tr><th>العقل</th><th>صح من ١٢</th><th>أول جملة</th></tr>' + Object.keys(BN).filter(k => be[k]).map(k =>
     `<tr><td>${BN[k]}</td><td class="num">${be[k].facts_ok}</td><td class="num">${be[k].median_first_s} ث</td></tr>`).join('');

@@ -90,6 +90,7 @@ BC_LINES = ["إيه.", "أها.", "مم.", "إيه إيه.", "زين.", "تما�
             "أيوه أيوه.", "هيه.", "هيه… هيه.", "إي إي… زين.", "ماشي.", "أوكي.", "نعم نعم.", "معك معك.", "حلو.", "أها، تمام.",
             "إيه، فاهم عليك.", "مم مم."]
 FILLERS = ["اممم…", "ااا…", "ممم…", "امم… امم…"]
+AM_LINES = ["طيب.", "خلاص خلاص، *فهمت*.", "طيب؟ … *بس* كم المبلغ؟", "طيب طيب."]
 SIDE_SPEECH = ["يُمّه! وين الشاحن؟", "يبه تعال شوف!", "خلاص لا تصارخ!", "وين المفتاح؟ يُمّه!", "أبي ماي!", "سكّر الباب!"]
 TV_LINES = ["وفي نشرة الأخبار لهذا اليوم، أعلنت الجهات المختصة عن افتتاح عدد من المشاريع الجديدة في مختلف المناطق.",
             "وتشير التوقعات إلى استمرار الأجواء المعتدلة خلال الأيام المقبلة مع فرصة لهطول أمطار خفيفة.",
@@ -306,7 +307,7 @@ def plan(i, rng):
     elif kind == "BC":
         p["u1"] = list(rng.choice(BC_LINES, size=int(rng.integers(1, 4)), replace=False))
     elif kind == "AM":
-        p["u1"] = [rng.choice(["طيب.", "خلاص خلاص، *فهمت*.", "طيب؟ … *بس* كم المبلغ؟", "طيب طيب."])]
+        p["u1"] = [rng.choice(AM_LINES)]
     elif kind == "OVs":
         p["u1"] = [rng.choice(TALKOVER)]
     elif kind == "HTf":
@@ -564,7 +565,13 @@ def main(argv=None):
     ap.add_argument("--offline", action="store_true", help="no network: reuse cached voices, perturb them")
     ap.add_argument("--voices", default=None, help="comma list of locale tags to keep, e.g. SA,KW,BH,AE")
     ap.add_argument("--exclude-voices", default=None, help="comma list of locale tags to drop, e.g. QA,OM")
+    ap.add_argument("--bank", default=None, help="JSON sentence bank replacing ours (novel-phrasing test sets)")
     a = ap.parse_args(argv)
+    if a.bank:
+        global A1, STOP_LINES, BC_LINES, FILLERS, SIDE_SPEECH, TV_LINES, TALKOVER, AM_LINES
+        b = json.loads(Path(a.bank).read_text(encoding="utf-8"))
+        A1, STOP_LINES, BC_LINES, FILLERS = b["a1"], b["stop"], b["bc"], b["fillers"]
+        SIDE_SPEECH, TV_LINES, TALKOVER, AM_LINES = b["side"], b["tv"], b["talkover"], b["am"]
     global OFFLINE
     OFFLINE = a.offline
     keep = lambda v: (not a.voices or any(f"-{t}-" in v for t in a.voices.split(","))) and \

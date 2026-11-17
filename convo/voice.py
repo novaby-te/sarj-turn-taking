@@ -68,6 +68,10 @@ def _say(text: str) -> np.ndarray:
 
 async def tts(text: str, gender: str = "f", engine: str = "edge") -> tuple[np.ndarray, str]:
     """Returns (16 kHz int16 audio, engine actually used). Never raises."""
+    import sys
+    mac = sys.platform == "darwin"
+    if engine == "say" and not mac:                  # no macOS «say» on Windows / Linux: use Edge
+        engine = "edge"
     voice = VOICES.get(gender, VOICES["f"]) if engine == "edge" else best_say_voice()
     k = _key(engine, voice, text)
     f = CACHE / f"{k}.npy"
@@ -81,7 +85,8 @@ async def tts(text: str, gender: str = "f", engine: str = "edge") -> tuple[np.nd
                 np.save(f, x)
             return x, "edge"
         except Exception:
-            pass
+            if not mac:
+                return np.zeros(1600, np.int16), "none"
     x = await asyncio.to_thread(_say, text)
     if len(text) < 40:
         CACHE.mkdir(parents=True, exist_ok=True)
