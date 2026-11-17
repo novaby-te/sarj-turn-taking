@@ -81,11 +81,13 @@ def cut_loop(words: list[str]) -> list[str]:
 
 def analyse(text: str, agent_text: str = "") -> dict:
     """Turn the caller's words into simple, explainable features."""
+    # Cohere wraps a whole reading in brackets when it is guessing at an unclear sound («(تيم هوليوود)»): unreliable
+    bracketed = bool(re.fullmatch(r"\s*[\(\[].*[\)\]]\s*[:.،]?\s*", text or ""))
     t = norm(text)
     for tail in TAILS:
         if t.endswith(tail) and len(t) > len(tail):
             t = t[: -len(tail)].strip()
-    halluc = any(h and h in t for h in HALLUCINATIONS)
+    halluc = bracketed or any(h and h in t for h in HALLUCINATIONS)
     full = [squeeze(w) for w in t.split()]
     raw = cut_loop(full)
     if len(raw) < len(full):          # the decoder looped: this whole read is unreliable

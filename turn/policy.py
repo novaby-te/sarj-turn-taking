@@ -20,7 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import acoustic, clock, lexicon
+from . import acoustic, clock, lexicon, semantic
 from . import asr as _asr
 from .echo import EchoSuppressor
 from .vad import SileroVAD
@@ -54,6 +54,13 @@ EOT_SMART_TH = 0.5       # below this P(complete) the caller is probably mid-tho
 EOT_MID_MS = 1500        # ...so wait this long instead of EOT_BASE_MS
 USE_MODEL = 2            # 1: learned score (if models/policy.json exists), 0: rules only
 MODEL_TH = 0.5
+USE_SEM = 1              # level 4b: the meaning student (turn/semantic.py), if installed
+SEM_LO = 0.25            # content words whose meaning says «not for the agent» (TV, echo, chatter) do not stop it
+SEM_HI = 0.90            # meaning says «wants the floor» although no bid word was recognised
+RESUME_MS = 460          # take a stop back only inside this window (the scorer gives half credit within 500 ms)...
+RESUME_GAP_MS = 120      # ...once the sound has ended for this long...
+RESUME_MAX_VOICED_MS = 1200  # ...it was short...
+RESUME_P = 0.3           # ...and the full reading says it was not a floor bid
 
 _MODELS = Path(__file__).resolve().parents[1] / "models"
 # the learned layer is trained on the words of ONE ASR engine, so each engine has its own weights
@@ -63,7 +70,7 @@ FEATURES = ["bid", "content", "bc", "filler", "echoed", "repeated_ambig", "ambig
             "voiced_s", "rel_db", "only_bc", "agent_q_prev", "since_agent_start_s", "first_word_bid", "spk_sim", "cand_age_s", "logprob", "echo_ratio",
             # levels 1-3 (how it sounds, relative to the caller's own voice) + the agent's own intonation before the overlap
             "ac_effort_rel", "ac_hf_rel", "ac_dyn_rel", "ac_decay_rel", "ac_per_rel", "ac_f0_rel", "ac_f0_range", "ac_f0_slope",
-            "ac_rate_rel", "ac_voiced", "ac_far_score", "ac_arousal", "agent_slope"]
+            "ac_rate_rel", "ac_voiced", "ac_far_score", "ac_arousal", "agent_slope", "sem_p"]
 AC_KEYS = ["effort_rel", "hf_rel", "dyn_rel", "decay_rel", "per_rel", "f0_rel", "f0_range", "f0_slope", "rate_rel", "voiced",
            "far_score", "arousal"]
 
@@ -81,8 +88,11 @@ class TurnTaker:
         from . import speaker
         self._speaker = speaker
 
-        def job(audio):
+        def job(payload):
+            audio, agent_text = payload if isinstance(payload, tuple) else (payload, None)
             r = dict((asr_fn or transcribe)(audio))
+            if agent_text is not None and USE_SEM and r.get("text"):
+                r["sem"] = semantic.p_stop(agent_text, r["text"])
             e = speaker.embed(audio[-16000 * 3:]) if USE_SPEAKER else None
             r["spk"] = e
             r["prof"] = acoustic.segment_profile(audio[-16000 * 3:]) if len(audio) >= 1600 else None
@@ -121,6 +131,7 @@ class TurnTaker:
         self.turn = None                     # caller turn while the agent is silent (end-of-turn track)
         self.prev_speech = False
         self.calibrating = False             # live demo: the caller says a few words before the agent starts
+        self.stop_info = None                # the last STOP, watched for a quick RESUME
 
     def on_scenario_start(self):
         self.reset_call()
@@ -188,6 +199,8 @@ class TurnTaker:
         if speaking:
             if not self.stopped:
                 out = self._while_agent_speaks(is_speech, resid_db) or out
+            elif self.stop_info is not None:
+                self._watch_resume(is_speech)
         else:
             self.cand = None
             out = self._end_of_turn(is_speech) or out
@@ -216,7 +229,7 @@ class TurnTaker:
         due = self.ms - c["sub"] >= ASR_EVERY_MS
         ready = c["voiced"] >= MIN_VOICED_MS or (pause_start and c["voiced"] >= 60)
         if ready and (due or pause_start) and self.ms - c["last"] < 400:
-            if self.asr.submit(("cand", c["id"], self.ms), self._audio_since(c["start"])):
+            if self.asr.submit(("cand", c["id"], self.ms), (self._audio_since(c["start"]), self.agent_text)):
                 c["sub"] = self.ms
         # safety net: long, loud, sustained speech even if the words are not understood yet
         rel = self._cand_rel(c)
@@ -250,7 +263,8 @@ class TurnTaker:
                 "cand_age_s": (self.ms - c["start"]) / 1000,
                 "logprob": c.get("logprob", -1.0), "echo_ratio": a["echoed"] / max(1, a["n"]),
                 **{"ac_" + k: float(np.nan_to_num(np.clip(c.get("ac", {}).get(k, 0.0), -300, 300))) for k in AC_KEYS},
-                "agent_slope": c.get("agent_slope", 0.0)}
+                "agent_slope": c.get("agent_slope", 0.0),
+                "sem_p": c.get("sem", -1.0) if c.get("sem") is not None else -1.0}
 
     def score(self, f: dict) -> tuple[float, str]:
         """P(the caller wants the floor). Learned weights if available, else transparent rules."""
@@ -284,10 +298,16 @@ class TurnTaker:
         return float(1 / (1 + np.exp(-z)))
 
     def _rules(self, f: dict) -> tuple[float, str]:
+        sem = f.get("sem_p", -1.0)
+        has_sem = USE_SEM and sem >= 0
         if f["bid"] >= 1:
             return 1.0, "floor-bid word"
         if f["repeated_ambig"]:
             return 0.9, "«خلاص/طيب» with more after it"
+        if f["content"] >= CONTENT_MIN and has_sem and sem < SEM_LO:
+            return 0.2, f"words, but the meaning is not for the agent (meaning p={sem:.2f})"
+        if has_sem and sem >= SEM_HI and f["n"] >= 2 and f["logprob"] >= MIN_LOGPROB:
+            return 0.85, f"the meaning asks for the floor (meaning p={sem:.2f})"
         if f["content"] >= CONTENT_MIN:
             if f["logprob"] < MIN_LOGPROB:
                 return 0.3, f"words unclear (confidence {f['logprob']:.2f})"
@@ -309,6 +329,7 @@ class TurnTaker:
             return None
         text = res.get("text", "")
         c["logprob"] = res.get("logprob", -1.0)
+        c["sem"] = res.get("sem")
         if res.get("prof"):
             c["ac"] = acoustic.relative(res["prof"], self.ref_prof)
         if res.get("spk") is not None and self.ref_emb is not None:
@@ -320,8 +341,38 @@ class TurnTaker:
         self._log("asr", text=text, ms=round(ms), p=round(p, 2), why=why, rel_db=round(f["rel_db"], 1), f=f,
                   cand_start=c["start"])
         speaking = self.agent_active or (self.ms - self.agent_end_ms) <= AGENT_TAIL_MS
+        if tag[0] == "final":
+            return self._maybe_resume(p, f, why)
         if speaking and not self.stopped and p >= MODEL_TH and not NEVER_STOP:
+            self.stop_info = {"t": self.ms, "cid": c["id"], "strong": f["bid"] >= 1 or p >= 0.95, "final": False}
             return self._stop(why, c)
+        return None
+
+    # ------------------------------------------------------------------ RESUME: take back a stop that was a backchannel
+    def _watch_resume(self, is_speech: bool):
+        s, c = self.stop_info, self.cand
+        if c is None or c["id"] != s["cid"] or s["strong"] or self.ms - s["t"] > RESUME_MS:
+            self.stop_info = None if (c is None or self.ms - s["t"] > RESUME_MS) else s
+            return
+        if is_speech:
+            c["voiced"] += FRAME_MS
+            c["last"] = self.ms
+            return
+        if not s["final"] and self.ms - c["last"] >= RESUME_GAP_MS and c["voiced"] <= RESUME_MAX_VOICED_MS:
+            if self.asr.submit(("final", c["id"], self.ms), (self._audio_since(c["start"]), self.agent_text)):
+                s["final"] = True
+
+    def _maybe_resume(self, p: float, f: dict, why: str):
+        s = self.stop_info
+        speaking = self.agent_active or (self.ms - self.agent_end_ms) <= AGENT_TAIL_MS
+        if s is None or not self.stopped or not speaking or self.ms - s["t"] > RESUME_MS + 30:
+            return None
+        sem = f.get("sem_p", -1.0)
+        if p < RESUME_P and f["bid"] == 0 and (sem < 0 or sem < SEM_LO) and self.ms - (self.cand or {}).get("last", 0) >= 60:
+            self.stopped, self.stop_info, self.cand = False, None, None
+            self._log("RESUME", why=f"it was not a floor bid after all: {why}")
+            return {"decision": "RESUME", "label": "backchannel", "confidence": 0.7}
+        self.stop_info = None
         return None
 
     def _stop(self, why, c):
