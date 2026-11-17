@@ -27,6 +27,10 @@ for f in PROVENANCE.md config.json generation_config.json model.safetensors.inde
   [ -f "$C/$f" ] || curl -sfL -o "$C/$f" "$CR/$f"; done
 [ -f "$C/model.safetensors" ] || .venv/bin/python tools/fetch.py "$CR/model.safetensors" "$C/model.safetensors" --parts 16
 
+echo "2b+  Voiceprint model CAM++ (28 MB, Apache-2.0)"
+mkdir -p "$EXT/spk"
+[ -f "$EXT/spk/campp.onnx" ] || curl -sfL -o "$EXT/spk/campp.onnx" https://huggingface.co/csukuangfj/speaker-embedding-models/resolve/main/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx
+
 echo "2c/4 Meaning student (models/student, 110 MB, GitHub release models-v1)"
 mkdir -p models/student
 [ -f models/student/sem.onnx ] || gh release download models-v1 -R o6lq/sarj-turn-taking -p student-sem.onnx -O models/student/sem.onnx
@@ -46,4 +50,4 @@ fi
 
 echo "4/4  Check: the official scorer on Sarj's 24 calls (about a minute)"
 .venv/bin/python -m tools.sim | head -1
-echo "Done. Try it:  .venv/bin/python -m tools.live    (opens the live page)"
+echo "Done. Try it:  .venv/bin/python -m tools.live   then open http://127.0.0.1:8790/demo in Chrome"
