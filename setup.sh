@@ -20,6 +20,13 @@ mkdir -p "$W"
 [ -f "$W/config.json" ] || curl -sL -o "$W/config.json" https://huggingface.co/mlx-community/whisper-large-v3-turbo-q4/resolve/main/config.json
 [ -f "$W/weights.npz" ] || .venv/bin/python tools/fetch.py https://huggingface.co/mlx-community/whisper-large-v3-turbo-q4/resolve/main/weights.npz "$W/weights.npz" --parts 16
 
+echo "2b/4 Cohere Transcribe Arabic (default speech-to-text, 2.4 GB, Apache-2.0, 8-bit MLX build)"
+C="$EXT/cohere-ar-mlx8"; mkdir -p "$C"
+CR=https://huggingface.co/majentik/cohere-transcribe-arabic-07-2026-MLX-8bit/resolve/main
+for f in PROVENANCE.md config.json generation_config.json model.safetensors.index.json normalizer.json preprocessor_config.json processor_config.json special_tokens_map.json tokenizer.json tokenizer.model tokenizer_config.json; do
+  [ -f "$C/$f" ] || curl -sfL -o "$C/$f" "$CR/$f"; done
+[ -f "$C/model.safetensors" ] || .venv/bin/python tools/fetch.py "$CR/model.safetensors" "$C/model.safetensors" --parts 16
+
 echo "3/4  Generated training/test calls (GitHub release data-v1)"
 if [[ "$1" != "--no-data" ]]; then
   for set in synth synth-test dev-aug; do

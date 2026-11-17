@@ -21,6 +21,7 @@ from pathlib import Path
 import numpy as np
 
 from . import acoustic, clock, lexicon
+from . import asr as _asr
 from .echo import EchoSuppressor
 from .vad import SileroVAD
 
@@ -54,7 +55,10 @@ EOT_MID_MS = 1500        # ...so wait this long instead of EOT_BASE_MS
 USE_MODEL = 2            # 1: learned score (if models/policy.json exists), 0: rules only
 MODEL_TH = 0.5
 
-MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "policy.json"
+_MODELS = Path(__file__).resolve().parents[1] / "models"
+# the learned layer is trained on the words of ONE ASR engine, so each engine has its own weights
+MODEL_PATH = _MODELS / ("policy-cohere.json" if _asr.BACKEND == "cohere" and (_MODELS / "policy-cohere.json").exists()
+                        else "policy.json")
 FEATURES = ["bid", "content", "bc", "filler", "echoed", "repeated_ambig", "ambig_alone", "question", "n",
             "voiced_s", "rel_db", "only_bc", "agent_q_prev", "since_agent_start_s", "first_word_bid", "spk_sim", "cand_age_s", "logprob", "echo_ratio",
             # levels 1-3 (how it sounds, relative to the caller's own voice) + the agent's own intonation before the overlap

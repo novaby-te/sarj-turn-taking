@@ -1,4 +1,10 @@
-"""Speech recognition of the caller's words, on-device (Whisper through Apple MLX).
+"""Speech recognition of the caller's words, on-device (Apple MLX).
+
+Two engines (TT_ASR=cohere|whisper):
+  * cohere  : Cohere Transcribe Arabic 07-2026 (2B, Apache-2.0, 8-bit MLX build) — trained for Arabic dialects;
+              on Sarj's calls it hears «إيه نعم / إي هلا / اممم» where Whisper heard «إنا / بيهلا» or nothing,
+              and on noise it says «فراغ» (empty) instead of hallucinating «ترجمة نانسي قنقر». Same speed (~97 ms).
+  * whisper : Whisper large-v3-turbo q4 with a Gulf prompt and a short 10 s encoder window.
 
 The prompt primes Whisper with the short Gulf words that matter here, so «إيه / هيه / مم / لحظة» come out as
 words instead of being dropped. A disk cache (keyed by the exact audio) makes repeated simulator runs fast
@@ -17,6 +23,8 @@ import numpy as np
 
 KIT = Path(__file__).resolve().parents[1]
 EXT = Path.home() / "Downloads" / "sarj-ext-data"
+COHERE = Path(os.environ.get("TT_COHERE_MODEL", str(EXT / "cohere-ar-mlx8")))
+BACKEND = os.environ.get("TT_ASR", "cohere" if (COHERE / "model.safetensors").exists() else "whisper")
 MODEL = os.environ.get("TT_ASR_MODEL", str(EXT / "whisper-large-v3-turbo-q4"))
 PROMPT = os.environ.get("TT_ASR_PROMPT", "إيه، أها، مم، هيه، زين، طيب، لا لا، لحظة، اسمع، خلاص.")
 CACHE_DIR = KIT / ".cache" / "asr"
@@ -29,7 +37,10 @@ _cache_on = os.environ.get("TT_ASR_CACHE", "1" if os.environ.get("TT_SIM") == "1
 
 def _key(audio: np.ndarray) -> str:
     h = hashlib.sha1(audio.tobytes())
-    h.update(Path(MODEL).name.encode() + PROMPT.encode() + b"v2" + (f"ctx{CTX_S}".encode() if CTX_S else b""))
+    if BACKEND == "cohere":
+        h.update(COHERE.name.encode() + b"cohere-v1")
+    else:
+        h.update(Path(MODEL).name.encode() + PROMPT.encode() + b"v2" + (f"ctx{CTX_S}".encode() if CTX_S else b""))
     return h.hexdigest()
 
 
@@ -50,6 +61,12 @@ def _transcribe(audio_i16: np.ndarray, use_cache: bool = True) -> dict:
     path = CACHE_DIR / key[:2] / f"{key}.json"
     if use_cache and _cache_on and path.exists():
         return json.loads(path.read_text(encoding="utf-8")) | {"cached": True}
+    if BACKEND == "cohere":
+        out = _cohere(audio_i16)
+        if use_cache and _cache_on and "error" not in out:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
+        return out
     import mlx_whisper
     t0 = time.perf_counter()
     audio = audio_i16.astype(np.float32) / 32768.0
@@ -120,3 +137,51 @@ def _short(audio: np.ndarray, t0: float) -> dict | None:
     except Exception as e:  # fall back to standard Whisper
         print("short-context ASR failed:", e)
         return None
+
+
+_coh = None
+_EMPTY = "فراغ"          # Cohere's own "no speech here" output (after a run of @ tokens)
+
+
+def _cohere(audio_i16: np.ndarray) -> dict:
+    """Greedy decode of Cohere Transcribe (same steps as mlx_audio's, batch 1), keeping each chosen token's
+    log-probability so we get a confidence comparable to Whisper's avg_logprob."""
+    global _coh
+    t0 = time.perf_counter()
+    try:
+        import mlx.core as mx
+        if _coh is None:
+            from mlx_audio.stt import load
+            _coh = load(str(COHERE))
+        m = _coh
+        x = audio_i16.astype(np.float32) / 32768.0
+        if len(x) > 30 * 16000:
+            x = x[-30 * 16000:]
+        prompt = m._tokenizer.build_prompt_tokens("ar", True)
+        enc, _, enc_mask = m._encode_waveforms([mx.array(x)])
+        cache = m.make_cache()
+        hidden, cache = m.transf_decoder(mx.array([prompt], dtype=mx.int32), enc, encoder_mask=enc_mask,
+                                         cache=cache, start_pos=0)
+        head = m.log_softmax.mlp.layer0
+        eos = m._tokenizer.eos_token_id
+        ids, lps = [], []
+        logits = head(hidden[:, -1:, :])[0, -1]
+        for step in range(48):
+            lp = logits - mx.logsumexp(logits)
+            tok = int(mx.argmax(lp).item())
+            if tok == eos:
+                break
+            ids.append(tok)
+            lps.append(float(lp[tok].item()))
+            hidden, cache = m.transf_decoder(mx.array([[tok]], dtype=mx.int32), enc, encoder_mask=enc_mask,
+                                             cache=cache, start_pos=len(prompt) + step)
+            logits = head(hidden)[0, -1]
+        text = m._tokenizer.decode(ids, skip_special_tokens=True).strip()
+    except Exception as e:  # pragma: no cover
+        print("Cohere ASR error", e)
+        return {"text": "", "no_speech": 1.0, "ms": round((time.perf_counter() - t0) * 1000, 1), "error": repr(e)}
+    empty = "@@" in text or text.strip("@ .") == _EMPTY or not text.strip("@ .")
+    words = "" if empty else text
+    logprob = float(np.mean(lps)) if lps and not empty else -5.0
+    return {"text": words, "no_speech": 1.0 if empty else 0.0, "logprob": round(logprob, 3),
+            "ms": round((time.perf_counter() - t0) * 1000, 1), "engine": "cohere"}

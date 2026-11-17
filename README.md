@@ -15,7 +15,7 @@
 
 ```bash
 gh repo clone o6lq/sarj-turn-taking && cd sarj-turn-taking
-./setup.sh            # بيئة بايثون + Whisper + بياناتنا المولّدة (~١ GB تحميل)
+./setup.sh            # بيئة بايثون + Cohere + Whisper + بياناتنا المولّدة (~١ GB تحميل)
 ```
 
 ## الأوامر اليومية
@@ -38,7 +38,7 @@ python my_system.py --host 0.0.0.0                  # يوم فحص الاتصا
 | المجلد | وش فيه |
 |---|---|
 | `my_system.py` | نقطة الدخول اللي تشغّلها سرج |
-| `turn/` | **نموذج القرار**: `policy.py` (القرار وكل الإعدادات) · `asr.py` (Whisper) · `lexicon.py` (القاموس الخليجي) · `vad.py` · `echo.py` · `speaker.py` |
+| `turn/` | **نموذج القرار**: `policy.py` (القرار وكل الإعدادات) · `asr.py` (Cohere Transcribe Arabic افتراضياً، أو Whisper بـ`TT_ASR=whisper`) · `lexicon.py` (القاموس الخليجي) · `vad.py` · `echo.py` · `speaker.py` |
 | `convo/` | **الوكيل المتكلم** للعرض: `engine.py` (منطق المكالمة) · `brain.py` (نموذج لغة محلي) · `voice.py` (الصوت) · `scenarios.py` (المكالمات الجاهزة) |
 | `tools/` | المحاكي السريع، الفيدباك لوب، اللوحة، التدريب، الضبط الآلي، مولّد المكالمات، صفحة المايك الحية |
 | `models/` | Silero VAD + أوزان طبقة القرار المتعلّمة |
@@ -48,7 +48,7 @@ python my_system.py --host 0.0.0.0                  # يوم فحص الاتصا
 
 ## المصادر الخارجية وتراخيصها
 
-Whisper large-v3-turbo (MIT، نسخة MLX 4-bit) · Silero VAD (MIT) · Resemblyzer (Apache-2.0) · Microsoft Edge TTS (توليد بيانات فقط، أونلاين) · ESC-50 (CC BY-NC 3.0، بحثي) · Qwen3-14B / Gemma 3 12B (عقل الوكيل في العرض) · numpy/scipy/torch/mlx/onnxruntime/scikit-learn.
+Cohere Transcribe Arabic 07-2026 (Apache-2.0، نسخة MLX 8-bit من majentik) · Whisper large-v3-turbo (MIT، نسخة MLX 4-bit) · Silero VAD (MIT) · Resemblyzer (Apache-2.0) · Microsoft Edge TTS (توليد بيانات فقط، أونلاين) · ESC-50 (CC BY-NC 3.0، بحثي) · Qwen3-14B / Gemma 3 12B (عقل الوكيل في العرض) · numpy/scipy/torch/mlx/onnxruntime/scikit-learn.
 
 ## تنبيه
 
