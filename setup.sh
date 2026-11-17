@@ -27,6 +27,13 @@ for f in PROVENANCE.md config.json generation_config.json model.safetensors.inde
   [ -f "$C/$f" ] || curl -sfL -o "$C/$f" "$CR/$f"; done
 [ -f "$C/model.safetensors" ] || .venv/bin/python tools/fetch.py "$CR/model.safetensors" "$C/model.safetensors" --parts 16
 
+echo "2c/4 Meaning student (models/student, 110 MB, GitHub release models-v1)"
+mkdir -p models/student
+[ -f models/student/sem.onnx ] || gh release download models-v1 -R o6lq/sarj-turn-taking -p student-sem.onnx -O models/student/sem.onnx
+[ -f models/student/tokenizer.json ] || gh release download models-v1 -R o6lq/sarj-turn-taking -p student-tokenizer.json -O models/student/tokenizer.json
+echo "2d/4 Gemma 4 26B-A4B (agent brain, 15 GB, Apache-2.0)"
+.venv/bin/python -m tools.get_model mlx-community/gemma-4-26b-a4b-it-4bit "$EXT/gemma-4-26b-a4b-4bit"
+
 echo "3/4  Generated training/test calls (GitHub release data-v1)"
 if [[ "$1" != "--no-data" ]]; then
   for set in synth synth-test dev-aug; do

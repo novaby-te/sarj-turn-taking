@@ -24,6 +24,8 @@ from pathlib import Path
 
 EXT = Path.home() / "Downloads" / "sarj-ext-data"
 MODELS = {
+    "gemma4-26b": EXT / "gemma-4-26b-a4b-4bit",          # Gemma 4 26B-A4B (MoE: 26B knowledge, 4B active per word)
+    "gemma4-e4b": EXT / "gemma-4-e4b-4bit",              # Gemma 4 E4B (small and fast)
     "gemma-12b": EXT / "gemma-3-12b-it-qat-4bit",
     "qwen3-14b": Path.home() / ".lmstudio" / "models" / "lmstudio-community" / "Qwen3-14B-MLX-4bit",
 }
@@ -46,7 +48,7 @@ def available() -> dict:
 
 def default_model() -> str:
     av = available()
-    return os.environ.get("TT_BRAIN") or next((k for k in ("gemma-12b", "qwen3-14b") if av.get(k)), "qwen3-14b")
+    return os.environ.get("TT_BRAIN") or next((k for k in ("gemma4-26b", "gemma-12b", "gemma4-e4b", "qwen3-14b") if av.get(k)), "qwen3-14b")
 
 
 def _up() -> bool:
@@ -67,8 +69,9 @@ def start(model: str | None = None) -> str:
     if model in CLAUDE:                                # cloud: no local server to start
         _current = model
         return model
+    extra = ["--chat-template-args", '{"enable_thinking": false}'] if model.startswith("gemma4") else []   # no thinking pause
     _proc = subprocess.Popen([sys.executable, "-m", "mlx_lm.server", "--model", str(MODELS[model]), "--port", str(PORT),
-                              "--max-tokens", "160"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                              "--max-tokens", "160", *extra], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     _current = model
     t0 = time.time()
     while time.time() - t0 < 180:                      # ready = it answers, not just that the port is open

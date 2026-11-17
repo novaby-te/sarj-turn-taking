@@ -14,3 +14,8 @@ data/synth-big/
 data/synth-heldvoice/
 data/live-rejected/
 data/teacher/
+models/student*/sem.onnx
+models/student*/tokenizer.json
+models/student-camel/
+models/student-saudi/
+analysis/llm_judge_texts.json

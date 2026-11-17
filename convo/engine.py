@@ -225,6 +225,22 @@ class Conversation:
         if said:
             self.history.append({"role": "assistant", "content": said + "…"})
         self.chunks.clear()
+        if getattr(self, "resume_pending", False):
+            self.resume_pending = False
+            await self._resume()
+
+    async def _resume(self):
+        """The stop was a backchannel after all («إيه، تمام»): carry on from where the caller heard us stop,
+        like a person would, without asking the brain."""
+        rest, self.remaining, self.interrupted_at = self.remaining, "", None
+        self.tt.turn = None
+        if not rest:
+            return
+        words = rest.split()
+        lines = [" ".join(words[i:i + 12]) for i in range(0, len(words), 12)]
+        await self.send({"type": "hearing", "text": "", "why": "كان تأييد: يكمّل كلامه"})
+        self.stats.append({"kind": "resume", "ms": self.ms - (self.stop_ms or self.ms)})
+        self.task = asyncio.create_task(self.speak_lines(lines))
 
     # ------------------------------------------------------------------ echo gate (laptop speakers)
     def echo_gate(self, agent: np.ndarray, caller: np.ndarray) -> np.ndarray:
@@ -284,6 +300,11 @@ class Conversation:
             await self.send({"type": "status", "state": "listening"})
             self.tt.on_agent_end()
             self.listen_since = self.ms
+        elif dec == "RESUME" and self.state == "listening" and self.interrupted_at is not None:
+            if self.chunks:                                   # the browser has not reported where it stopped yet
+                self.resume_pending = True
+            else:
+                await self._resume()
         elif dec == "TAKE_TURN" and self.state == "listening":
             start = self.interrupted_at if self.interrupted_at is not None else (self.tt.turn["start"] if self.tt.turn else self.ms - 3000)
             await self.caller_finished(start)
@@ -328,6 +349,11 @@ class Conversation:
         if not text or a["hallucination"] or not a["words"] or a["echoed"] / max(1, a["n"]) >= 0.6:
             self.tt.turn = None
             return                                            # noise, not words: keep listening
+        only_ack = a["bid"] == 0 and a["content"] == 0 and not a["repeated_ambig"] and not a["question"]
+        if interrupted and only_ack and self.remaining:
+            await self.send({"type": "chat", "role": "caller", "text": text, "note": "تأييد — يكمّل"})
+            await self._resume()
+            return
         await self.send({"type": "chat", "role": "caller", "text": text, "note": "قاطع" if interrupted else ""})
         self.tt.turn = None
         if self.task and not self.task.done():

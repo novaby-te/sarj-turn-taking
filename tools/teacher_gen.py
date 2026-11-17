@@ -61,14 +61,29 @@ PROMPT = """اكتب ٤٠ عنصر تدريب لمكالمة هاتفية من �
 kind واحد من: bid, backchannel, filler, other_speaker, echo, asr_noise"""
 
 
-def one(job: tuple[int, str, str], model: str) -> str:
+PROMPT_ANSWERS = """اكتب ٤٠ عنصر تدريب لمكالمة هاتفية من شركة لعميل. المجال: {domain}. لهجة العميل: {dialect}.
+التركيز: الوكيل سأل سؤال أو عرض خيارات، وبعدها كمّل كلامه، والعميل رد فوقه.
+«agent» = اللي سمعه العميل من الوكيل لحظة التداخل: جملة السؤال السابقة + بداية الجملة الحالية (١٥–٣٠ كلمة).
+التوزيع:
+- ١٤ STOP: العميل يجاوب السؤال أو يختار خيار أو يعطي المعلومة المطلوبة والوكيل لسا يتكلم («إي الأحد زين احجزه»، «لا الثلاثاء أحسن»، «الساعة أربع تناسبني»، «رقمي خمسة خمسة…»، «اسمي محمد العتيبي»، «إيه احجزه»).
+- ٨ STOP: الاثنين بدوا مع بعض: الوكيل بدأ جملة جديدة والعميل بدأ يتكلم بطلب أو سؤال أو معلومة.
+- ٦ STOP: سؤال توضيح قصير وسط عرض الخيارات («الثلاثاء الساعة كم؟»، «كم قلت؟»، «وين الفرع؟»).
+- ٦ KEEP: تأييد صافي («تمام»، «أها»، «طيب»، «إيه إيه») والوكيل ما سأل شي، يشرح بس.
+- ٦ KEEP: حشو أو تفكير بصوت عالي بدون جواب («اممم خلني أشوف»، «ااه»، «يعني…») أو كلام لشخص ثاني موجود معه («لحظة يا ولد»).
+كلام العميل مثل ما يكتبه نظام التفريغ: بدون تشكيل، و٣٠٪ فيها أخطاء إملاء. بلهجته الحقيقية. لا تكرر الصياغات.
+لكل STOP حط «cue» (رقم الكلمة اللي عندها السامع يعرف).
+JSON array فقط: [{{"agent": "...", "caller": "...", "label": "STOP", "kind": "answer", "cue": 2}}, ...]
+kind واحد من: answer, overlap_start, clarify, backchannel, filler"""
+
+
+def one(job: tuple[int, str, str], model: str, prompt: str = PROMPT) -> str:
     i, dialect, domain = job
     out = OUT / f"{i:04d}.json"
     if out.exists():
         return "skip"
     cmd = ["claude", "-p", "--model", model, "--effort", "low", "--tools", "", "--system-prompt", SYSTEM,
            "--no-session-persistence", "--strict-mcp-config", "--setting-sources", "",
-           PROMPT.format(dialect=dialect, domain=domain)]
+           prompt.format(dialect=dialect, domain=domain)]
     for attempt in range(3):
         t0 = time.time()
         r = subprocess.run(cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600)
@@ -91,13 +106,18 @@ def main():
     ap.add_argument("--calls", type=int, default=120)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--model", default="claude-opus-5-5")
+    ap.add_argument("--focus", default="", choices=["", "answers"])
+    ap.add_argument("--offset", type=int, default=0)
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     pairs = list(itertools.product(DIALECTS, DOMAINS))
     random.Random(7).shuffle(pairs)
-    jobs = [(i, d, m) for i, (d, m) in enumerate(itertools.islice(itertools.cycle(pairs), a.calls))]
+    if a.focus:
+        random.Random(13).shuffle(pairs)
+    jobs = [(a.offset + i, d, m) for i, (d, m) in enumerate(itertools.islice(itertools.cycle(pairs), a.calls))]
+    prompt = PROMPT_ANSWERS if a.focus == "answers" else PROMPT
     with ThreadPoolExecutor(a.workers) as ex:
-        for msg in ex.map(lambda j: one(j, a.model), jobs):
+        for msg in ex.map(lambda j: one(j, a.model, prompt), jobs):
             print(msg, flush=True)
     n = sum(len(json.loads(p.read_text())) for p in OUT.glob("*.json"))
     print(f"ALLDONE {n} items", flush=True)

@@ -1,0 +1,20 @@
+{
+ "base": "camelbert-da",
+ "teacher": "claude-opus-5-5",
+ "max_len": 64,
+ "val_acc": 0.995,
+ "ms_per_call": 7.32,
+ "n_train": 12879,
+ "held_out": {
+  "R": 0.928,
+  "S": 0.986,
+  "F": 0.956,
+  "n": 211
+ },
+ "all": {
+  "R": 0.951,
+  "S": 0.992,
+  "F": 0.971,
+  "n": 381
+ }
+}

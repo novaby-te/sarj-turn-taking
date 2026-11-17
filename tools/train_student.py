@@ -24,7 +24,9 @@ import numpy as np
 
 KIT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(KIT))
-BASE = Path.home() / "Downloads" / "sarj-ext-data" / "camelbert-da"
+EXT = Path.home() / "Downloads" / "sarj-ext-data"
+BASES = {"camelbert-da": EXT / "camelbert-da", "saudibert": EXT / "saudibert"}
+BASE = BASES["camelbert-da"]
 OUT = KIT / "models" / "student"
 MAX_LEN = 64
 rng = random.Random(11)
@@ -69,8 +71,17 @@ def bank_rows() -> list[dict]:
 
 
 def main():
+    global BASE, OUT
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--base", default="camelbert-da", choices=list(BASES))
+    ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--epochs", type=int, default=3)
+    ap.add_argument("--from-ckpt", action="store_true", help="skip training, export the saved checkpoint")
+    a = ap.parse_args()
+    BASE, OUT = BASES[a.base], Path(a.out)
     import torch
-    from transformers import BertForSequenceClassification, BertTokenizerFast
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
     tr, va = teacher_rows()
     bank = bank_rows()
     tr += [(b["agent"], b["text"], int(b["intent"]), "real_asr") for b in bank if b["set"] == "synth" and b["text"].strip()]
@@ -78,9 +89,11 @@ def main():
     rng.shuffle(tr)
     print(f"train {len(tr)} (STOP {sum(r[2] for r in tr)}) · val {len(va)}", flush=True)
 
-    tok = BertTokenizerFast(vocab_file=str(BASE / "vocab.txt"), do_lower_case=False, tokenize_chinese_chars=True)
+    tok = AutoTokenizer.from_pretrained(str(BASE), use_fast=True)
     dev = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-    model = BertForSequenceClassification.from_pretrained(str(BASE), num_labels=2, use_safetensors=True).to(dev)
+    ckpt = EXT / "student-ckpt" / f"{a.base}-{OUT.name}"
+    src = ckpt if a.from_ckpt else BASE
+    model = AutoModelForSequenceClassification.from_pretrained(str(src), num_labels=2, use_safetensors=True).to(dev)
 
     def batches(rows, bs, shuffle):
         idx = list(range(len(rows)))
@@ -101,12 +114,13 @@ def main():
         model.train()
         return np.concatenate(ps) if ps else np.zeros(0)
 
-    epochs, bs, lr = 3, 32, 3e-5
-    steps = epochs * ((len(tr) + bs - 1) // bs)
+    epochs, bs, lr = (0 if a.from_ckpt else a.epochs), 32, 3e-5
+    steps = max(1, epochs * ((len(tr) + bs - 1) // bs))
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, s / (0.06 * steps)) * max(0.0, (steps - s) / steps))
     model.train()
     t0, step = time.time(), 0
+    pv, yv = evaluate(va), np.array([r[2] for r in va])
     for ep in range(epochs):
         for x, y in batches(tr, bs, True):
             loss = torch.nn.functional.cross_entropy(model(**x).logits, y)
@@ -123,9 +137,15 @@ def main():
     # ---------------- export: ONNX fp32 -> int8, tokenizer.json, check they agree
     OUT.mkdir(parents=True, exist_ok=True)
     model = model.to("cpu").eval()
+    if not a.from_ckpt:                                             # keep the trained weights outside the repo
+        model.save_pretrained(str(ckpt), safe_serialization=True)
+        tok.save_pretrained(str(ckpt))
     tok.save_pretrained(str(OUT / "hf_tok"))
     (OUT / "tokenizer.json").write_text((OUT / "hf_tok" / "tokenizer.json").read_text())
     ex = tok(["حياك الله"], ["إيه"], return_tensors="pt")
+    if "token_type_ids" not in ex:
+        import torch as _t
+        ex["token_type_ids"] = _t.zeros_like(ex["input_ids"])
     fp32 = OUT / "sem_fp32.onnx"
 
     class Wrap(torch.nn.Module):
@@ -154,6 +174,8 @@ def main():
 
     # ---------------- test on the segment bank (never trained on except set "synth") with the real runtime
     import importlib
+    import os
+    os.environ["TT_SEM_DIR"] = str(OUT)
     from turn import semantic
     importlib.reload(semantic)
     t1 = time.perf_counter()
@@ -167,7 +189,7 @@ def main():
         R = float(((p > 0.5) & (y == 1)).sum() / max(1, (y == 1).sum()))
         S = float(((p <= 0.5) & (y == 0)).sum() / max(1, (y == 0).sum()))
         res[name] = {"R": round(R, 3), "S": round(S, 3), "F": round(2 * R * S / max(1e-9, R + S), 3), "n": len(idx)}
-    (OUT / "meta.json").write_text(json.dumps({"base": "CAMeL-Lab/bert-base-arabic-camelbert-da (Apache-2.0)",
+    (OUT / "meta.json").write_text(json.dumps({"base": a.base,
                                                "teacher": "claude-opus-5-5", "max_len": MAX_LEN, **res}, ensure_ascii=False, indent=1))
     print("RESULT", json.dumps(res, ensure_ascii=False), flush=True)
 

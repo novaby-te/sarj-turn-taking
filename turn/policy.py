@@ -57,6 +57,8 @@ MODEL_TH = 0.5
 USE_SEM = 1              # level 4b: the meaning student (turn/semantic.py), if installed
 SEM_LO = 0.25            # content words whose meaning says «not for the agent» (TV, echo, chatter) do not stop it
 SEM_HI = 0.90            # meaning says «wants the floor» although no bid word was recognised
+SEM_REL_DB = 3.0         # ...and may overrule the learned veto only for 2+ words, about as loud as the caller...
+SEM_SPK = 0.35           # ...in a voice that matches the caller's voiceprint
 RESUME_MS = 460          # take a stop back only inside this window (the scorer gives half credit within 500 ms)...
 RESUME_GAP_MS = 120      # ...once the sound has ended for this long...
 RESUME_MAX_VOICED_MS = 1200  # ...it was short...
@@ -132,12 +134,14 @@ class TurnTaker:
         self.prev_speech = False
         self.calibrating = False             # live demo: the caller says a few words before the agent starts
         self.stop_info = None                # the last STOP, watched for a quick RESUME
+        self.prev_agent_text = ""
 
     def on_scenario_start(self):
         self.reset_call()
 
     def on_agent_start(self, text: str):
         self.prev_agent_question = self.agent_text.strip().endswith(("؟", "?")) if self.agent_text else False
+        self.prev_agent_text = self.agent_text
         self.agent_active, self.agent_text, self.stopped = True, text, False
         self.agent_start_ms = self.ms
         self.turn = None
@@ -229,7 +233,7 @@ class TurnTaker:
         due = self.ms - c["sub"] >= ASR_EVERY_MS
         ready = c["voiced"] >= MIN_VOICED_MS or (pause_start and c["voiced"] >= 60)
         if ready and (due or pause_start) and self.ms - c["last"] < 400:
-            if self.asr.submit(("cand", c["id"], self.ms), (self._audio_since(c["start"]), self.agent_text)):
+            if self.asr.submit(("cand", c["id"], self.ms), (self._audio_since(c["start"]), self.heard_context())):
                 c["sub"] = self.ms
         # safety net: long, loud, sustained speech even if the words are not understood yet
         rel = self._cand_rel(c)
@@ -248,6 +252,13 @@ class TurnTaker:
             return 0.0
         v = acoustic.segment_profile(x)["f0_slope"]
         return 0.0 if v != v else float(np.clip(v, -200, 200))
+
+    def heard_context(self) -> str:
+        """What the caller has actually heard: the previous agent sentence + the part of the current one spoken so
+        far (about 2.6 words a second), not the words the agent has not reached yet."""
+        words = self.agent_text.split()
+        k = min(len(words), int((self.ms - self.agent_start_ms) / 1000 * 2.6) + 2)
+        return " ".join((self.prev_agent_text.split() + words[:k])[-24:])
 
     def _cand_rel(self, c) -> float:
         return float(np.percentile(c["levels"], 80)) - self.ref_db if c["levels"] else -99.0
@@ -279,7 +290,9 @@ class TurnTaker:
         if USE_MODEL == 1:                       # learned score alone
             return mp, f"model p={mp:.2f}"
         # USE_MODEL == 2 (hybrid): the rules propose, the learned model can veto an unlikely stop
-        if rp >= MODEL_TH and mp < HYB_TH:
+        sem = f.get("sem_p", -1.0)
+        sure_caller = f["n"] >= 2 and f["rel_db"] >= -SEM_REL_DB and f["spk_sim"] >= SEM_SPK
+        if rp >= MODEL_TH and mp < HYB_TH and not (USE_SEM and sem >= SEM_HI and sure_caller):
             return 0.25, f"{why}, but the model doubts it (p={mp:.2f})"
         knows_caller = len(self.ref_levels) >= 8           # it may act alone only once it has heard the caller
         if rp < MODEL_TH and mp >= PROMOTE_TH and f["n"] >= 1 and f["rel_db"] > -PROMOTE_REL_DB and knows_caller:
@@ -304,9 +317,10 @@ class TurnTaker:
             return 1.0, "floor-bid word"
         if f["repeated_ambig"]:
             return 0.9, "«خلاص/طيب» with more after it"
-        if f["content"] >= CONTENT_MIN and has_sem and sem < SEM_LO:
+        if f["content"] >= CONTENT_MIN and has_sem and sem < SEM_LO and (not self.model or self._model_p(f) < 0.5):
             return 0.2, f"words, but the meaning is not for the agent (meaning p={sem:.2f})"
-        if has_sem and sem >= SEM_HI and f["n"] >= 2 and f["logprob"] >= MIN_LOGPROB:
+        if has_sem and sem >= SEM_HI and f["n"] >= 2 and f["logprob"] >= MIN_LOGPROB and f["rel_db"] >= -3.0 \
+                and f["spk_sim"] >= SEM_SPK:
             return 0.85, f"the meaning asks for the floor (meaning p={sem:.2f})"
         if f["content"] >= CONTENT_MIN:
             if f["logprob"] < MIN_LOGPROB:
@@ -359,7 +373,7 @@ class TurnTaker:
             c["last"] = self.ms
             return
         if not s["final"] and self.ms - c["last"] >= RESUME_GAP_MS and c["voiced"] <= RESUME_MAX_VOICED_MS:
-            if self.asr.submit(("final", c["id"], self.ms), (self._audio_since(c["start"]), self.agent_text)):
+            if self.asr.submit(("final", c["id"], self.ms), (self._audio_since(c["start"]), self.heard_context())):
                 s["final"] = True
 
     def _maybe_resume(self, p: float, f: dict, why: str):
