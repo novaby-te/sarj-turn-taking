@@ -5,12 +5,16 @@ voice can start on the first sentence while the rest is still being written.
 Models (tested on this Mac, Apple M5 24 GB):
   gemma-3-12b-it-qat-4bit  - best Arabic of the ones that fit (default once downloaded)
   Qwen3-14B-MLX-4bit       - already in LM Studio; correct facts but stiffer, more formal Arabic
+  claude-opus / claude-haiku - Claude in the cloud, the LAST resort (needs internet; slower to the first word):
+                             through the Anthropic API when ANTHROPIC_API_KEY is set, otherwise through the
+                             Claude Code CLI (`claude -p`) on the user's own subscription.
 """
 from __future__ import annotations
 
 import json
 import os
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -23,6 +27,7 @@ MODELS = {
     "gemma-12b": EXT / "gemma-3-12b-it-qat-4bit",
     "qwen3-14b": Path.home() / ".lmstudio" / "models" / "lmstudio-community" / "Qwen3-14B-MLX-4bit",
 }
+CLAUDE = {"claude-opus": "claude-opus-5-5", "claude-haiku": "claude-haiku-5-5"}
 PORT = 8780
 _proc = None
 
@@ -30,10 +35,12 @@ _proc = None
 def available() -> dict:
     ok = {}
     for k, p in MODELS.items():
-        idx = p / "model.safetensors.index.json"
-        if idx.exists():
-            need = set(json.loads(idx.read_text())["weight_map"].values())
-            ok[k] = all((p / f).exists() for f in need)
+        # count the shards by name («model-00002-of-00002»): some repos ship a stale index.json (Gemma QAT does)
+        shards = sorted(p.glob("model*.safetensors"))
+        m = re.search(r"of-(\d+)", shards[0].name) if shards else None
+        ok[k] = bool(shards) and (len(shards) == int(m.group(1)) if m else True)
+    for k in CLAUDE:
+        ok[k] = bool(os.environ.get("ANTHROPIC_API_KEY") or shutil.which("claude"))
     return ok
 
 
@@ -57,6 +64,9 @@ def start(model: str | None = None) -> str:
     if _proc and _proc.poll() is None and globals().get("_current") == model:
         return model
     stop()
+    if model in CLAUDE:                                # cloud: no local server to start
+        _current = model
+        return model
     _proc = subprocess.Popen([sys.executable, "-m", "mlx_lm.server", "--model", str(MODELS[model]), "--port", str(PORT),
                               "--max-tokens", "160"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     _current = model
@@ -120,6 +130,9 @@ def _current_is_gemma() -> bool:
 def stream(messages: list[dict], max_tokens: int = 120, temperature: float = 0.6):
     """Yield text pieces as the model writes them."""
     messages = normalize(messages)
+    if globals().get("_current") in CLAUDE:
+        yield from _claude_stream(messages, max_tokens)
+        return
     if globals().get("_current", "").startswith("qwen3") and messages and messages[0]["role"] == "system":
         messages = [{"role": "system", "content": messages[0]["content"] + "\n/no_think"}] + messages[1:]
     body = json.dumps({"messages": messages, "max_tokens": max_tokens, "temperature": temperature, "stream": True}).encode()
@@ -170,3 +183,39 @@ def clean(s: str) -> str:
     s = re.sub(r"[\*\#\_\(\)\[\]\"«»“”]|<[^>]+>", " ", s)
     s = re.sub(r"[\U0001F300-\U0001FAFF☀-➿]", "", s)
     return re.sub(r"\s+", " ", s).strip()
+
+
+def _claude_stream(messages: list[dict], max_tokens: int):
+    """Claude as the brain. Thinking cannot be switched off on Opus 5.5, so effort is set to low for speed."""
+    model_id = CLAUDE[_current]
+    sys_txt = messages[0]["content"] if messages and messages[0]["role"] == "system" else ""
+    conv = [m for m in messages if m["role"] != "system"]
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        import anthropic
+        client = anthropic.Anthropic()
+        extra = {"betas": ["server-side-fallback-2026-07-01"], "fallbacks": "default"} if model_id.startswith("claude-opus") else {}
+        with client.beta.messages.stream(model=model_id, max_tokens=4000, system=sys_txt, messages=conv,
+                                         output_config={"effort": "low"}, **extra) as st:
+            for piece in st.text_stream:
+                yield piece
+        return
+    # no API key: the Claude Code CLI, headless, no tools, no project settings
+    who = {"assistant": "أنت", "user": "العميل"}
+    prompt = ("سجل المكالمة حتى الآن:\n" + "\n".join(f"{who[m['role']]}: {m['content']}" for m in conv)
+              + "\n\nاكتب ردك الآن فقط: الكلام اللي بتقوله بصوتك للعميل، بدون أي شرح أو تعليق.")
+    cmd = ["claude", "-p", "--model", model_id, "--effort", "low", "--output-format", "stream-json",
+           "--include-partial-messages", "--verbose", "--tools", "", "--system-prompt", sys_txt,
+           "--no-session-persistence", "--strict-mcp-config", "--setting-sources", "", prompt]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, text=True)
+    try:
+        for line in p.stdout:
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            if e.get("type") == "stream_event":
+                ev = e["event"]
+                if ev.get("type") == "content_block_delta" and ev["delta"].get("type") == "text_delta":
+                    yield ev["delta"]["text"]
+    finally:
+        p.wait()
