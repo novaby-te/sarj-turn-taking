@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>متى يسكت الوكيل</title>
+<style>
+:root{--bg:#0e0f13;--panel:#16181f;--card:#1c1f28;--line:#2a2e3a;--ink:#eef0f5;--muted:#9aa0ae;--acc:#8b87ff;--acc2:#2b2a55;--stop:#ff5d62;--keep:#3ecf8e;--amber:#f5b83d;--blue:#5ab0ff}
+:root[data-theme="light"]{--bg:#f6f5f2;--panel:#fff;--card:#fff;--line:#e3e0da;--ink:#16171c;--muted:#666b77;--acc:#4b45d6;--acc2:#ecebfb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"SF Arabic","Geeza Pro","Noto Naskh Arabic",Tahoma,sans-serif;line-height:1.75}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 70px}
+nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line)}
+nav .brand{font-weight:800;font-size:18px;margin-inline-end:auto}nav .brand span{color:var(--acc)}
+nav button{background:none;border:1px solid transparent;color:var(--muted);font:inherit;padding:7px 14px;border-radius:999px;cursor:pointer}
+nav button.on{color:var(--ink);background:var(--acc2);border-color:var(--acc)}
+.sec{display:none}.sec.on{display:block}
+h1{font-size:34px;line-height:1.35;margin:26px 0 8px}h2{font-size:22px;margin:30px 0 10px}h3{font-size:17px;margin:0 0 6px}
+.lead{color:var(--muted);font-size:18px;max-width:780px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.kpi .v{font-size:38px;font-weight:800;letter-spacing:-.5px}.kpi .l{color:var(--muted);font-size:14px}.kpi .s{font-size:13px;color:var(--muted)}
+.good{color:var(--keep)}.bad{color:var(--stop)}.warn{color:var(--amber)}
+.ladder{display:flex;flex-direction:column;gap:8px}
+.rung{display:grid;grid-template-columns:64px 1fr 120px;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.rung .n{font-weight:800;color:var(--acc);font-size:18px}.rung .m{font-size:13px;color:var(--muted)}.rung .x{text-align:left;direction:ltr;unicode-bidi:isolate;font-size:13px;color:var(--muted)}
+@media(max-width:700px){.rung{grid-template-columns:48px 1fr}.rung .x{display:none}}
+.two{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}@media(max-width:900px){.two{grid-template-columns:1fr}}
+select,button.b{font:inherit;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 12px}
+select{width:100%}
+.go{background:var(--acc);color:#fff;border:0;font-weight:800;font-size:17px;padding:12px 22px;border-radius:12px;cursor:pointer}
+.go:disabled{opacity:.45;cursor:default}.ghost{background:none;border:1px solid var(--line);color:var(--ink);padding:12px 18px;border-radius:12px;cursor:pointer;font:inherit}
+.ctrl{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:10px}
+.ctrl label{font-size:13px;color:var(--muted)}
+#chat{display:flex;flex-direction:column;gap:8px;height:430px;overflow:auto;padding:4px}
+.bub{max-width:82%;padding:9px 13px;border-radius:14px;font-size:17px}
+.bub.agent{align-self:flex-start;background:var(--acc2);border-bottom-right-radius:4px}
+.bub.caller{align-self:flex-end;background:var(--keep);color:#06281a;border-bottom-left-radius:4px}
+.bub.bc{align-self:flex-end;background:none;border:1px dashed var(--line);color:var(--muted);font-size:13px;padding:2px 9px}
+.bub.cut{box-shadow:inset 0 0 0 2px var(--stop)}.bub .tag{display:block;font-size:11px;opacity:.75}
+.state{font-size:22px;font-weight:800;text-align:center;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);transition:background .2s}
+.state.speak{background:var(--acc);color:#fff}.state.listen{background:#1f3a2e;color:var(--keep)}.state.stop{background:var(--stop);color:#fff}.state.think{background:#3a3220;color:var(--amber)}
+:root[data-theme="light"] .state.listen{background:#e3f6ec}:root[data-theme="light"] .state.think{background:#fdf2dc}
+.lay{display:grid;grid-template-columns:92px 1fr 70px;gap:8px;align-items:center;font-size:13.5px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.lay b{font-size:13px}.lay .val{text-align:left;font-variant-numeric:tabular-nums;color:var(--muted)}
+.bar{height:10px;background:var(--panel);border-radius:6px;overflow:hidden;border:1px solid var(--line)}.bar i{display:block;height:100%;width:0;background:var(--keep);transition:width .1s}
+.bar.s i{background:var(--stop)}.bar.a i{background:var(--acc)}.bar.b i{background:var(--blue)}
+.words{font-size:20px;font-weight:700;min-height:34px}.why{font-size:13px;color:var(--muted);min-height:20px}
+.stat{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--muted)}.stat b{color:var(--ink);font-size:18px}
+table{width:100%;border-collapse:collapse;font-size:14.5px}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th{color:var(--muted);font-weight:600}
+td.num{font-variant-numeric:tabular-nums;text-align:center}
+.tl{position:relative;height:110px;background:var(--panel);border-radius:12px;overflow:hidden;direction:ltr;border:1px solid var(--line)}
+.tl .ag{position:absolute;top:8px;height:14px;background:var(--acc);opacity:.75;border-radius:4px}
+.tl .ev{position:absolute;top:28px;height:56px;border-radius:4px;opacity:.28}.tl .ev.STOP{background:var(--stop)}.tl .ev.KEEP{background:var(--keep)}.tl .ev.EITHER{background:var(--amber)}.tl .ev.TAKE_TURN{background:var(--blue)}
+.tl .d{position:absolute;top:0;bottom:0;width:3px;background:var(--stop)}.tl .d.TAKE_TURN{background:var(--blue);width:2px}.tl .d.RESUME{background:var(--keep)}
+.tl .cur{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+.legend{font-size:12px;color:var(--muted)}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 12px;vertical-align:middle}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.flow span{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14px}.flow i{color:var(--muted);font-style:normal}
+.pill{display:inline-block;padding:0 9px;border-radius:999px;font-size:12px;background:var(--acc2)}
+.mut{color:var(--muted)}.small{font-size:13px}
+.hint{font-size:13px;color:var(--muted);margin-top:6px}
+</style></head><body><div class="wrap">
+<nav>
+  <div class="brand">متى <span>يسكت</span> الوكيل</div>
+  <button data-s="idea" class="on">الفكرة</button>
+  <button data-s="live">جرّب حي</button>
+  <button data-s="replay">مكالمات سرج</button>
+  <button data-s="results">النتائج</button>
+  <button data-s="how">كيف بنيناه</button>
+  <button id="theme" title="فاتح/داكن">◐</button>
+</nav>
+
+<!-- ================================================================ IDEA -->
+<section id="idea" class="sec on">
+  <h1>وكيل صوتي عربي يعرف متى يسكت، ومتى يكمّل، ومتى يرد، مثل الإنسان.</h1>
+  <p class="lead">كل ٢٠ ملي ثانية يسمع خط العميل ويقرر. «إيه… تمام» يعني كمّل. «لا لا لحظة» يعني اسكت فوراً. والتلفزيون والطفل والكحة وصدى صوته ما يوقفونه. كل شي يشتغل على اللابتوب بدون إنترنت.</p>
+  <div class="grid" id="kpis"></div>
+  <h2>كيف يفكر: ٨ طبقات، كل وحدة تجاوب سؤال</h2>
+  <div class="ladder">
+    <div class="rung"><div class="n">L0</div><div><b>تنظيف الصوت</b><div class="m">نشيل صوت الوكيل اللي يرجع من سماعة العميل (قناة الوكيل نظيفة عندنا كمرجع)</div></div><div class="x">echo · NLMS</div></div>
+    <div class="rung"><div class="n">L1</div><div><b>هل فيه صوت إنسان؟</b><div class="m">كاشف كلام عصبي + طبقة الصوت والجهد والوضوح</div></div><div class="x">Silero · AUC 0.98</div></div>
+    <div class="rung"><div class="n">L2</div><div><b>هل هو العميل نفسه؟ قريب ولا بعيد؟</b><div class="m">نقارن كل صوت بأول جملة قالها العميل: العلو، وبصمة الصوت، وصدى الغرفة</div></div><div class="x">CAM++ · AUC 0.93</div></div>
+    <div class="rung"><div class="n">L3</div><div><b>كيف قالها؟</b><div class="m">النبرة (طالعة ولا نازلة)، والانفعال، وسرعة الكلام، ونبرة الوكيل قبل التداخل</div></div><div class="x">YIN · caller-relative</div></div>
+    <div class="rung"><div class="n">L4</div><div><b>وش قال؟</b><div class="m">تفريغ عربي باللهجات كل ١٥٠ ms، مع قاموس خليجي للتأييد وطلب الكلمة والحشو</div></div><div class="x">Cohere Arabic · 97 ms</div></div>
+    <div class="rung"><div class="n">L4b</div><div><b>وش يقصد؟</b><div class="m">نموذج عربي صغير تعلّم من Claude Opus على ٨١٢٠ مثال بـ١٤ لهجة: هل يبي الكلمة؟</div></div><div class="x">CAMeLBERT · 7 ms</div></div>
+    <div class="rung"><div class="n">L5</div><div><b>القرار</b><div class="m">القواعد تقترح، والمعنى والنموذج المتعلّم يأكدون أو يرفضون. ولو طلع السكوت غلط يرجع يكمّل خلال ٠٫٥ ث (RESUME)</div></div><div class="x">hybrid · explainable</div></div>
+    <div class="rung"><div class="n">L6–7</div><div><b>متى يرد؟ ووش يقول؟</b><div class="m">نهاية الدور (هل خلّص؟ كم رقم باقي؟)، ثم عقل الوكيل يرد ويرجع للنقطة اللي انقطعت</div></div><div class="x">Gemma 4 · 0.6 s</div></div>
+  </div>
+</section>
+
+<!-- ================================================================ LIVE -->
+<section id="live" class="sec">
+  <h2>جرّب حي: كلّم الوكيل وقاطعه</h2>
+  <div class="ctrl">
+    <div><label>المكالمة</label><select id="scen"></select></div>
+    <div><label>عقل الوكيل</label><select id="model"></select></div>
+    <div><label>الصوت</label><select id="eng"><option value="say">ماجد (محلي، سريع)</option><option value="edge">حامد السعودي (إنترنت، أبطأ)</option></select></div>
+    <div><label>المايك</label><select id="mic"><option value="hp">سماعة رأس (الأفضل)</option><option value="spk">سماعات اللابتوب</option></select></div>
+  </div>
+  <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button class="go" id="go">ابدأ المكالمة</button><button class="ghost" id="end">أنهِ المكالمة</button>
+    <span class="hint">جرّب: «إيه» · «إيه والله صادق» · «كم القيمة؟» · «لا لا لحظة، الأحد ما يناسبني» · «مو مهتم» · وكح أو شغّل تلفزيون جنبك</span></div>
+  <div class="two">
+    <div class="card"><div id="state" class="state">جاهز</div><div id="chat" style="margin-top:10px"></div></div>
+    <div class="card">
+      <h3>وش يشوف عقل الوكيل الحين</h3>
+      <div class="lay"><b>L1 صوت إنسان</b><div class="bar"><i id="mvad"></i></div><div class="val" id="vvad">—</div></div>
+      <div class="lay"><b>L1 العلو</b><div class="bar b"><i id="mdb"></i></div><div class="val" id="vdb">—</div></div>
+      <div class="lay"><b>L2 مقارنة بالعميل</b><div class="bar a"><i id="mrel"></i></div><div class="val" id="vrel">—</div></div>
+      <div class="lay"><b>L2 بصمة صوته</b><div class="bar a"><i id="mspk"></i></div><div class="val" id="vspk">—</div></div>
+      <div class="lay"><b>L4b المعنى: يبي الكلمة؟</b><div class="bar s"><i id="msem"></i></div><div class="val" id="vsem">—</div></div>
+      <div class="lay"><b>L5 القرار</b><div class="bar s"><i id="mp"></i></div><div class="val" id="vp">—</div></div>
+      <div style="margin-top:10px" class="small mut">L4 سمع:</div><div class="words" id="words"></div><div class="why" id="why"></div>
+      <div class="stat" style="margin-top:12px"><div>سكوت بعد المقاطعة<br><b id="sstop">—</b></div><div>أول كلمة بالرد<br><b id="sreply">—</b></div><div>رجع يكمّل<br><b id="sres">٠</b></div></div>
+      <div class="hint" id="cal">الوكيل يتعلّم صوتك من أول جواب («إيه نعم، هلا»).</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ REPLAY -->
+<section id="replay" class="sec">
+  <h2>مكالمات سرج: اسمع وشوف وش قرر النموذج</h2>
+  <div class="ctrl"><div style="grid-column:span 3"><label>المكالمة</label><select id="rcall"></select></div><div style="display:flex;gap:8px;align-items:end"><button class="go" id="rplay">▶︎ شغّل</button><button class="ghost" id="rstop">■</button></div></div>
+  <div class="tl" id="tl"></div>
+  <div class="legend" style="margin-top:6px"><i style="background:var(--acc)"></i>الوكيل يتكلم<i style="background:var(--stop);opacity:.4"></i>لازم يسكت<i style="background:var(--keep);opacity:.4"></i>لازم يكمّل<i style="background:var(--amber);opacity:.4"></i>الاثنين مقبول<i style="background:var(--stop)"></i>قرار: سكت<i style="background:var(--keep)"></i>رجع يكمّل<i style="background:var(--blue)"></i>أخذ الدور</div>
+  <div class="two" style="margin-top:12px"><div class="card"><div id="rnow" class="words" style="font-size:17px"></div><div id="rinfo" class="mut small"></div></div><div class="card" id="rres"></div></div>
+</section>
+
+<!-- ================================================================ RESULTS -->
+<section id="results" class="sec">
+  <h2>الدرجة الرسمية (نفس أداة سرج، بالوقت الحقيقي المحاكى)</h2>
+  <div class="card"><table id="rt"></table><div class="hint">«الأصعب» = مكالمات سرج نفسها بضجيج مقهى، وخط هاتف ضيق، وسماعة خارجية. «ما شافها» و«أصوات ما سمعها» = مكالمات ما دخلت التدريب أبداً.</div></div>
+  <h2>عقل الوكيل: ١٢ لحظة صعبة من مكالمات حقيقية</h2>
+  <div class="card"><table id="bt"></table></div>
+  <h2>فهم المعنى: من الكلمات بس، هل يسكت ولا يكمّل؟ (٣٨١ لحظة)</h2>
+  <div class="card"><table id="jt"></table><div class="hint">الطالب الصغير تعلّم من Claude ويقرر بـ٧ ms. Claude ياخذ ٣٫٥ ث، والقرار لازم خلال ٠٫٣ ث.</div></div>
+</section>
+
+<!-- ================================================================ HOW -->
+<section id="how" class="sec">
+  <h2>كيف بنيناه</h2>
+  <div class="card"><h3>١. حلقة قياس على كل خطوة</h3><p class="mut">محاكي يطابق أداة سرج الرسمية بالضبط (96.5 = 96.5). كل فكرة لها فرضية، ثم قياس على أربع مجموعات، ثم قرار. رفضنا كل تعديل رفع التدريب ونزّل الاختبار. أكثر من ٣٠ تجربة موثقة في <code>docs/EXPERIMENTS.md</code>.</p></div>
+  <div class="card" style="margin-top:12px"><h3>٢. بيانات صنعناها لأن البيانات العربية ما هي موجودة</h3>
+    <div class="flow"><span>٢٤ مكالمة من سرج</span><i>+</i><span>٩٦ نسخة أصعب (ضجيج، هاتف، سماعة)</span><i>+</i><span>١٠٢٠ مكالمة مولّدة بأصوات سعودية</span><i>+</i><span>أصوات ما سمعها (قطري، عماني)</span><i>+</i><span>تسجيلاتك من المايك</span></div></div>
+  <div class="card" style="margin-top:12px"><h3>٣. تقطير الذكاء: Claude يعلّم، ونموذج صغير يتعلّم</h3>
+    <div class="flow"><span>Claude Opus يكتب ويحكم على ٨١٢٠ لحظة<br><i>١٤ لهجة × ١٢ مجال، وفيها أخطاء تفريغ حقيقية</i></span><i>←</i><span>CAMeLBERT-DA (عربي لهجات)<br><i>تدريب ٣ دورات على الماك</i></span><i>←</i><span>ONNX int8<br><i>٧ ms، يشتغل على أي جهاز</i></span><i>=</i><span><b>فهم 0.97</b> (Claude 0.98، القواعد 0.935)</span></div></div>
+  <div class="card" style="margin-top:12px"><h3>٤. يتكيف مع أي متصل</h3><p class="mut">ما فيه رقم ثابت يناسب كل الناس. كل شي نسبي للعميل نفسه: علوه، ونبرته، وبصمة صوته، يتعلمها من أول جملة يقولها. فالمتصل الهادي والمتصل العالي والطفل جنبه والتلفزيون كلهم ينقاسون على صوته هو.</p></div>
+  <div class="card" style="margin-top:12px"><h3>٥. النماذج والبيانات المستخدمة (للبحث)</h3><p class="mut small">Cohere Transcribe Arabic (Apache) · Whisper turbo (MIT) · Silero VAD (MIT) · CAM++ (Apache) · CAMeLBERT-DA (Apache) · Gemma 4 26B-A4B (Apache) · Claude Opus 5.5 (معلّم، سحابي) · Smart Turn v3.2 (BSD) · Edge TTS (توليد بيانات) · ESC-50 / SADA22 (بحث فقط، CC BY-NC)</p></div>
+</section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = t => String(t ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const ar = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+document.querySelectorAll('nav button[data-s]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button[data-s]').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === b.dataset.s));
+});
+if (location.hash) { const b = document.querySelector(`nav button[data-s="${location.hash.slice(1)}"]`); if (b) setTimeout(() => b.click(), 0); }
+try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+$('#theme').onclick = () => { const t = document.documentElement.dataset.theme === 'light' ? '' : 'light'; document.documentElement.dataset.theme = t; try { localStorage.setItem('theme', t); } catch (e) {} };
+
+// ------------------------------------------------ numbers (from the real run files)
+const SETN = {'dev': 'مكالمات سرج', 'dev-aug': 'الأصعب', 'synth-test': 'ما شافها', 'synth-heldvoice': 'أصوات ما سمعها'};
+fetch('/results').then(r => r.json()).then(R => {
+  const cur = R.systems[R.systems.length - 1].runs, base = R.systems[0].runs;
+  $('#kpis').innerHTML = R.sets.map(s => cur[s] ? `<div class="card kpi"><div class="l">${SETN[s]}</div><div class="v good">${(+cur[s].core).toFixed(1)}</div><div class="s">من ١٠٠ · سكتات غلط ${ar(cur[s].false_stops)}${base[s] ? ` · البدائي ${(+base[s].core).toFixed(1)}` : ''}</div></div>` : '').join('');
+  $('#rt').innerHTML = `<tr><th>النظام</th>${R.sets.map(s => `<th>${SETN[s]}</th>`).join('')}</tr>` + R.systems.map((sy, i) =>
+    `<tr><td>${i === R.systems.length - 1 ? '<b>' + esc(sy.name) + '</b>' : esc(sy.name)}</td>${R.sets.map(s => `<td class="num">${sy.runs[s] ? (+sy.runs[s].core).toFixed(1) : '—'}</td>`).join('')}</tr>`).join('');
+  const BN = {'gemma4-26b': 'Gemma 4 26B (محلي)', 'claude-opus': 'Claude Opus 5.5 (سحابي)', 'gemma-12b': 'Gemma 3 12B (محلي)', 'claude-haiku': 'Claude Haiku 5.5 (سحابي)', 'qwen3-14b': 'Qwen3 14B (محلي)'};
+  const be = R.brain_eval || {};
+  $('#bt').innerHTML = '<tr><th>العقل</th><th>صح من ١٢</th><th>أول جملة</th></tr>' + Object.keys(BN).filter(k => be[k]).map(k =>
+    `<tr><td>${BN[k]}</td><td class="num">${be[k].facts_ok}</td><td class="num">${be[k].median_first_s} ث</td></tr>`).join('');
+  const lj = R.llm_judge || {}, JN = {'claude:claude-opus-5-5': 'Claude Opus 5.5 (المعلّم)', 'rules': 'قواعدنا (القاموس)', 'mlx:gemma4-26b': 'Gemma 4 26B', 'mlx:gemma-12b': 'Gemma 3 12B', 'mlx:qwen3-14b': 'Qwen3 14B'};
+  let rows = Object.keys(JN).filter(k => lj[k]).map(k => `<tr><td>${JN[k]}</td><td class="num">${lj[k].F}</td><td class="num">${lj[k].R}</td><td class="num">${lj[k].S}</td></tr>`);
+  if (R.student) rows.splice(1, 0, `<tr><td><b>الطالب (CAMeLBERT، ${R.student.ms_per_call} ms)</b></td><td class="num"><b>${R.student.all.F}</b></td><td class="num">${R.student.all.R}</td><td class="num">${R.student.all.S}</td></tr>`);
+  $('#jt').innerHTML = '<tr><th>القاضي</th><th>F</th><th>يسكت لما لازم</th><th>يكمّل لما لازم</th></tr>' + rows.join('');
+});
+
+// ------------------------------------------------ live call (same audio path as the tested try-out page)
+const worklet = `
+class P extends AudioWorkletProcessor {
+  constructor(){ super(); this.q = []; this.cur = null; this.pos = 0; this.gain = 1; this.fading = false;
+    this.ratio = sampleRate / 16000; this.bA = []; this.bM = []; this.p = 0; this.fa = []; this.fc = [];
+    this.port.onmessage = e => { const d = e.data;
+      if (d.enqueue) this.q.push({id: d.id, buf: d.enqueue});
+      if (d.stop) this.fading = true; }; }
+  process(inputs, outputs){
+    const mic = inputs[0] && inputs[0][0] ? inputs[0][0] : null; const out = outputs[0][0];
+    for (let i = 0; i < out.length; i++) {
+      if (!this.cur && this.q.length && !this.fading) { this.cur = this.q.shift(); this.pos = 0; this.gain = 1; }
+      let a = 0;
+      if (this.cur) {
+        a = this.cur.buf[this.pos++] * this.gain;
+        if (this.fading) { this.gain = Math.max(0, this.gain - 1/(0.06*sampleRate));
+          if (this.gain === 0) { this.port.postMessage({stopped: {id: this.cur.id, played: Math.round(this.pos / this.ratio)}}); this.cur = null; this.q = []; this.fading = false; } }
+        if (this.cur && this.pos >= this.cur.buf.length) { const id = this.cur.id; this.cur = null;
+          this.port.postMessage({chunkEnded: id}); if (!this.q.length) this.port.postMessage({idle: true}); }
+      } else if (this.fading) this.fading = false;
+      out[i] = a; this.bA.push(a); this.bM.push(mic ? mic[i] : 0);
+    }
+    const r = this.ratio, w = Math.max(1, Math.round(r));
+    while (this.p + w < this.bA.length) {
+      const k = Math.floor(this.p); let sa = 0, sm = 0;
+      for (let j = 0; j < w; j++) { sa += this.bA[k + j]; sm += this.bM[k + j]; }
+      this.fa.push(sa / w); this.fc.push(sm / w); this.p += r;
+      if (this.fa.length === 320) {
+        const b = new Int16Array(640);
+        for (let q = 0; q < 320; q++) { b[2*q] = Math.max(-1, Math.min(1, this.fa[q])) * 32767; b[2*q+1] = Math.max(-1, Math.min(1, this.fc[q])) * 32767; }
+        this.port.postMessage({frame: b.buffer}, [b.buffer]); this.fa = []; this.fc = [];
+      }
+    }
+    const drop = Math.floor(this.p); if (drop > 0) { this.bA.splice(0, drop); this.bM.splice(0, drop); this.p -= drop; }
+    return true;
+  }
+}
+registerProcessor('p', P);`;
+let ctx, node, ws, srcNode = null, micMode = null, bub = null;
+const st = {stops: [], replies: [], res: 0};
+async function ensureAudio() {
+  if (!ctx) {
+    ctx = new AudioContext();
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([worklet], {type: 'application/javascript'})));
+    node = new AudioWorkletNode(ctx, 'p', {numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]});
+    node.connect(ctx.destination);
+    node.port.onmessage = e => {
+      const d = e.data; if (!ws || ws.readyState !== 1) return;
+      if (d.frame) ws.send(d.frame);
+      if (d.chunkEnded !== undefined) ws.send(JSON.stringify({type: 'played', id: d.chunkEnded}));
+      if (d.idle) ws.send(JSON.stringify({type: 'idle'}));
+      if (d.stopped) ws.send(JSON.stringify({type: 'stopped', id: d.stopped.id, played: d.stopped.played}));
+    };
+  }
+  const m = $('#mic').value;
+  if (micMode !== m) {
+    if (srcNode) { srcNode.mediaStream.getTracks().forEach(t => t.stop()); srcNode.disconnect(); }
+    const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: m === 'spk', noiseSuppression: false, autoGainControl: true, channelCount: 1}});
+    srcNode = ctx.createMediaStreamSource(stream); srcNode.connect(node); micMode = m;
+  }
+}
+fetch('/scenarios').then(r => r.json()).then(d => {
+  for (const [k, v] of Object.entries(d.scenarios)) $('#scen').insertAdjacentHTML('beforeend', `<option value="${k}">${esc(v)}</option>`);
+  const names = {'gemma4-26b': 'Gemma 4 26B — الأفضل محلياً', 'gemma4-e4b': 'Gemma 4 E4B — خفيف', 'gemma-12b': 'Gemma 3 12B', 'qwen3-14b': 'Qwen3 14B', 'claude-opus': 'Claude Opus 5.5 — سحابي، أبطأ', 'claude-haiku': 'Claude Haiku 5.5 — سحابي'};
+  for (const [k, ok] of Object.entries(d.models)) if (ok) $('#model').insertAdjacentHTML('beforeend', `<option value="${k}">${names[k] || k}</option>`);
+});
+function setState(cls, t) { $('#state').className = 'state ' + cls; $('#state').textContent = t; }
+function bubble(role, text, tag) { const d = document.createElement('div'); d.className = 'bub ' + role; d.innerHTML = esc(text) + (tag ? `<span class="tag">${esc(tag)}</span>` : ''); $('#chat').append(d); $('#chat').scrollTop = 1e9; return d; }
+const W = (id, v) => { $(id).style.width = Math.max(0, Math.min(100, v)) + '%'; };
+const avg = a => a.length ? Math.round(a.reduce((x, y) => x + y) / a.length) : '—';
+$('#go').onclick = async () => {
+  try { await ensureAudio(); } catch (e) { setState('', 'المتصفح ما سمح بالمايك'); return; }
+  await ctx.resume();
+  $('#chat').innerHTML = ''; bub = null; st.stops = []; st.replies = []; st.res = 0;
+  $('#go').disabled = true; node.port.postMessage({stop: true});
+  if (ws) { try { ws.onmessage = null; ws.close(); } catch (e) {} }
+  ws = new WebSocket('ws://127.0.0.1:8771');
+  ws.onopen = () => ws.send(JSON.stringify({type: 'convo_start', scenario: $('#scen').value, engine: $('#eng').value, model: $('#model').value}));
+  ws.onmessage = async e => {
+    const m = JSON.parse(e.data);
+    if (m.type === 'status') {
+      if (m.state === 'loading') setState('think', 'يجهّز العقل…');
+      if (m.state === 'ready') setState('', 'المكالمة بدأت (العقل: ' + m.model + ')');
+      if (m.state === 'speaking') setState('speak', 'الوكيل يتكلم');
+      if (m.state === 'listening') { setState('listen', 'يسمعك'); bub = null; }
+      if (m.state === 'thinking') setState('think', 'يفكر…');
+      if (m.state === 'ended') { setState('', 'انتهت المكالمة'); $('#go').disabled = false; }
+    }
+    if (m.type === 'say') {
+      const bytes = Uint8Array.from(atob(m.wav), c => c.charCodeAt(0));
+      const buf = await ctx.decodeAudioData(bytes.buffer);
+      node.port.postMessage({enqueue: buf.getChannelData(0).slice(), id: m.id});
+      if (!bub) bub = bubble('agent', m.text); else bub.firstChild.textContent += ' ' + m.text;
+    }
+    if (m.type === 'stop') {
+      node.port.postMessage({stop: true}); setState('stop', `سكت عشان يسمعك (${m.latency} ms)`);
+      if (bub) { bub.classList.add('cut'); bub.insertAdjacentHTML('beforeend', '<span class="tag">✋ قاطعته هنا</span>'); }
+      bub = null; st.stops.push(m.latency); $('#sstop').textContent = avg(st.stops) + ' ms';
+    }
+    if (m.type === 'chat') {
+      if (m.note && m.note.startsWith('تأييد')) bubble('bc', m.text, m.note === 'تأييد — يكمّل' ? 'كان تأييد: رجع يكمّل' : 'سمعك وكمّل');
+      else bubble('caller', m.text, m.note === 'قاطع' ? 'قاطعته' : '');
+    }
+    if (m.type === 'hearing' && m.why && m.why.startsWith('كان تأييد')) { st.res++; $('#sres').textContent = ar(st.res); }
+    if (m.type === 'stat' && m.kind === 'reply') { st.replies.push(m.ms); $('#sreply').textContent = avg(st.replies) + ' ms'; }
+    if (m.type === 'meter') {
+      W('#mvad', m.vad * 100); $('#vvad').textContent = m.vad.toFixed(2);
+      W('#mdb', (m.db + 70) * 1.6); $('#vdb').textContent = m.db + ' dB';
+      if (m.rel !== null && m.rel !== undefined) { W('#mrel', (m.rel + 15) * 4); $('#vrel').textContent = (m.rel > 0 ? '+' : '') + m.rel + ' dB'; }
+      if (m.spk !== null && m.spk !== undefined) { W('#mspk', m.spk * 100); $('#vspk').textContent = m.spk.toFixed(2); }
+      if (m.sem !== null && m.sem !== undefined) { W('#msem', m.sem * 100); $('#vsem').textContent = m.sem.toFixed(2); }
+      if (m.p !== null && m.p !== undefined) { W('#mp', m.p * 100); $('#vp').textContent = m.p.toFixed(2); }
+      if (m.cand) { $('#words').textContent = m.words ? '«' + m.words + '»' : '…'; $('#why').textContent = m.why || ''; }
+      $('#cal').textContent = m.knows ? `يعرف صوتك: علوك المعتاد ${m.ref} dB · ضجيج الغرفة ${m.floor} dB` : 'الوكيل يتعلّم صوتك من أول جواب («إيه نعم، هلا»).';
+    }
+  };
+  ws.onclose = () => { $('#go').disabled = false; };
+};
+$('#end').onclick = () => { if (node) node.port.postMessage({stop: true}); if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'convo_end'})); $('#go').disabled = false; setState('', 'انتهت'); };
+
+// ------------------------------------------------ replay of Sarj's calls with the model's decisions
+fetch('/calls').then(r => r.json()).then(cs => { for (const c of cs) $('#rcall').insertAdjacentHTML('beforeend', `<option value="${c.sid}">${c.sid} — ${esc(c.text.slice(0, 80))}…</option>`); });
+let ra = null;
+$('#rplay').onclick = async () => {
+  const sid = $('#rcall').value; if (ra) ra.pause();
+  const D = await (await fetch('/replay?sid=' + sid)).json();
+  const L = D.label, dur = L.audio.duration_ms, tl = $('#tl'); tl.innerHTML = '';
+  const pct = ms => (ms / dur * 100) + '%';
+  for (const u of L.agent_utterances) tl.insertAdjacentHTML('beforeend', `<div class="ag" style="left:${pct(u.start_ms)};width:${pct(u.end_ms - u.start_ms)}"></div>`);
+  for (const e of L.events) { const off = e.offset_ms ?? e.turn_end_ms; tl.insertAdjacentHTML('beforeend', `<div class="ev ${e.expected}" style="left:${pct(e.onset_ms)};width:${pct(off - e.onset_ms)}"></div>`); }
+  for (const d of D.decisions) tl.insertAdjacentHTML('beforeend', `<div class="d ${d.d}" style="left:${pct(d.t)}" title="${d.d}"></div>`);
+  tl.insertAdjacentHTML('beforeend', '<div class="cur" id="cur"></div>');
+  const EXP = {STOP: 'لازم يسكت', KEEP: 'لازم يكمّل', EITHER: 'الاثنين مقبول', TAKE_TURN: 'يرد بعد ما يخلص'};
+  const OUT = {yield: 'سكت', miss: 'ما سكت', kept: 'كمّل', false_stop: 'سكت غلط', hiccup: 'سكت ورجع', eot: 'رد'};
+  $('#rres').innerHTML = '<h3>النتيجة</h3>' + (D.events.map(e => `<div>${e.credit >= .99 ? '✓' : e.credit > 0 ? '~' : '✗'} ${EXP[e.expected]} ← ${OUT[e.outcome] || e.outcome} <b>${e.credit.toFixed(2)}</b><div class="small mut">${esc(e.detail || '')}</div></div>`).join('') || '<span class="mut">ما فيه تشغيل محفوظ</span>')
+    + `<div class="small mut" style="margin-top:8px">${esc(L.dialect)} · ${esc(L.acoustic.conditions.join('، '))}</div>`;
+  ra = new Audio('/mix?sid=' + sid); ra.play();
+  const tick = () => {
+    const t = ra.currentTime * 1000; $('#cur').style.left = pct(t);
+    const seen = D.trace.filter(x => x.kind === 'asr' && x.text && x.t <= t).pop();
+    const dec = D.decisions.filter(d => d.t <= t && d.d !== 'TAKE_TURN').pop();
+    const u = L.agent_utterances.find(u => u.start_ms <= t && t <= u.end_ms);
+    $('#rnow').innerHTML = (dec && dec.d === 'STOP' ? '<span class="bad">✋ قرر يسكت</span> · ' : dec && dec.d === 'RESUME' ? '<span class="good">↺ رجع يكمّل</span> · ' : u ? '🗣️ الوكيل يتكلم · ' : '') + (seen ? `سمع: «${esc(seen.text)}» <span class="small mut">${esc(seen.why)}</span>` : '<span class="mut">ما سمع كلام من المتصل للحين</span>');
+    $('#rinfo').textContent = (t / 1000).toFixed(1) + ' ث';
+    if (!ra.paused) requestAnimationFrame(tick);
+  };
+  ra.onplay = tick;
+};
+$('#rstop').onclick = () => { if (ra) ra.pause(); };
+</script>
+</body></html>

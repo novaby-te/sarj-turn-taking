@@ -351,7 +351,7 @@ $('#end').onclick = () => { if (node) node.port.postMessage({stop: true}); finis
 const cv = {on: false, bubble: null, stops: [], replies: []};
 fetch('/scenarios').then(r => r.json()).then(d => {
   for (const [k, v] of Object.entries(d.scenarios)) { const o = document.createElement('option'); o.value = k; o.textContent = v; $('#scen').append(o); }
-  const names = {'gemma-12b': 'Gemma 3 12B (محلي، الأسرع)', 'qwen3-14b': 'Qwen3 14B (محلي)', 'claude-opus': 'Claude Opus 5.5 (سحابي، الأذكى، أبطأ)', 'claude-haiku': 'Claude Haiku 5.5 (سحابي، أسرع)'};
+  const names = {'gemma4-26b': 'Gemma 4 26B (محلي، الأفضل: ١٢/١٢ بـ٠٫٦ ث)', 'gemma4-e4b': 'Gemma 4 E4B (محلي، خفيف)', 'gemma-12b': 'Gemma 3 12B (محلي)', 'qwen3-14b': 'Qwen3 14B (محلي)', 'claude-opus': 'Claude Opus 5.5 (سحابي، الأذكى، أبطأ)', 'claude-haiku': 'Claude Haiku 5.5 (سحابي، أسرع)'};
   for (const [k, ok] of Object.entries(d.models)) { const o = document.createElement('option'); o.value = k; o.textContent = names[k] + (ok ? '' : ' — لسا يتحمّل'); o.disabled = !ok; $('#model').append(o); }
   const best = [...$('#model').options].find(o => !o.disabled); if (best) best.selected = true;
 });

@@ -24,7 +24,7 @@ KIT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(KIT))
 from ttbench.dataset import read_wav_stereo, write_wav_stereo  # noqa: E402
 
-HTTP_PORT, WS_PORT = 8770, 8771
+HTTP_PORT, WS_PORT = 8790, 8771   # 8770 is taken by macOS sharing (sharingd) on some Macs
 LIVE = KIT / "data" / "live"
 
 
@@ -65,6 +65,30 @@ def replay(sid: str) -> dict:
     return out
 
 
+def results() -> dict:
+    """Everything the demo shows as numbers, read from the real run files (nothing typed by hand)."""
+    import csv
+    rows = list(csv.DictReader((KIT / "runs" / "sim-history.csv").open(encoding="utf-8")))
+    def pick(prefix, data):
+        r = [x for x in rows if x["name"].startswith(prefix) and x["data"] == data]
+        return {k: r[-1][k] for k in ("core", "R", "S", "false_stops", "misses")} if r else None
+    sets = ["dev", "dev-aug", "synth-test", "synth-heldvoice"]
+    out = {"sets": sets,
+           "systems": [{"name": "البدائي (حزمة سرج)", "runs": {d: pick("baseline", d) for d in sets}},
+                       {"name": "Whisper + قواعد + نموذج متعلّم", "runs": {d: pick("v12", d) or pick("resume-", d) for d in sets}},
+                       {"name": "Cohere + طبقة المعنى + RESUME (الحالي)", "runs": {d: pick("sem5-", d) for d in sets}}]}
+    for name in ("llm_judge", "brain_eval"):
+        f = KIT / "analysis" / f"{name}.json"
+        if f.exists():
+            d = json.loads(f.read_text())
+            out[name] = {k: {kk: vv for kk, vv in v.items() if kk not in ("pred", "rows", "batch_s")} | (
+                {"median_first_s": v.get("median_first_s"), "facts_ok": v.get("facts_ok")} if name == "brain_eval" else {})
+                for k, v in d.items() if not k.startswith("_")}
+    m = KIT / "models" / "student" / "meta.json"
+    out["student"] = json.loads(m.read_text()) if m.exists() else None
+    return out
+
+
 def tts(text: str) -> np.ndarray:
     import edge_tts
     import soundfile as sf
@@ -98,6 +122,10 @@ class H(BaseHTTPRequestHandler):
         q = parse_qs(u.query)
         if u.path == "/":
             return self._send((KIT / "tools" / "live.html").read_bytes(), "text/html; charset=utf-8")
+        if u.path == "/demo":
+            return self._send((KIT / "demo" / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if u.path == "/results":
+            return self._send(json.dumps(results(), ensure_ascii=False).encode(), "application/json")
         if u.path == "/scenarios":
             from convo.scenarios import SCENARIOS
             from convo import brain
@@ -146,7 +174,17 @@ async def ws_handler(ws):
                 convo.save_dir = save_session(convo, KIT / "runs" / "live-calls", getattr(convo, "save_dir", None))
             if convo.ms % 100 == 0:
                 lvl = 20 * np.log10(np.sqrt(np.mean(fr[:, 1].astype(np.float64) ** 2)) / 32768 + 1e-9)
-                await send({"type": "meter", "vad": round(convo.tt.vad.prob, 2), "db": round(float(lvl), 1)})
+                t = convo.tt
+                c = t.cand or {}
+                f = c.get("feats") or {}
+                last = next((r for r in reversed(t.trace) if r["kind"] == "asr"), {})
+                await send({"type": "meter", "vad": round(t.vad.prob, 2), "db": round(float(lvl), 1),
+                            "ref": round(t.ref_db, 1), "floor": round(t._floor_db(), 1), "knows": len(t.ref_levels) >= 8,
+                            "cand": bool(t.cand), "spk": None if c.get("spk") is None else round(c["spk"], 2),
+                            "rel": None if not f else round(f.get("rel_db", 0), 1),
+                            "sem": None if c.get("sem") is None else round(c["sem"], 3),
+                            "words": c.get("text", ""), "p": last.get("p"), "why": last.get("why", ""),
+                            "stopped": t.stopped, "state": convo.state, "echo": bool(convo.echo_flags[-1]) if convo.echo_flags else False})
             continue
         if isinstance(raw, bytes):
             if test_buf is not None:
@@ -303,7 +341,7 @@ def main():
     from websockets.asyncio.server import serve
     SCEN_GENDER.update(_gender())
     from turn.asr import warmup
-    print("loading Whisper ...", flush=True)
+    print("loading speech recognition ...", flush=True)
     warmup()
     srv = ThreadingHTTPServer(("127.0.0.1", HTTP_PORT), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
