@@ -253,6 +253,9 @@ async def _serve(ws):
             elif msg["type"] == "idle":
                 convo.browser_idle = True
                 await convo.on_idle()
+            elif msg["type"] == "relabel":
+                convo.score.relabel(msg.get("id"), msg.get("expected"))
+                await convo.send_score()
             elif msg["type"] == "stopped":
                 await convo.on_stopped(msg.get("id", -1), msg.get("played", 0))
             elif msg["type"] == "convo_end":
