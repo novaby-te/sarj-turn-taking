@@ -24,7 +24,9 @@ import numpy as np
 
 KIT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(KIT))
-EXT = Path.home() / "Downloads" / "sarj-ext-data"
+from turn.config import EXT_DIR  # noqa: E402
+
+EXT = EXT_DIR
 BASES = {"camelbert-da": EXT / "camelbert-da", "saudibert": EXT / "saudibert"}
 BASE = BASES["camelbert-da"]
 OUT = KIT / "models" / "student"

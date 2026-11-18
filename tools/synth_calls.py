@@ -30,8 +30,9 @@ from scipy import signal
 KIT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(KIT))
 from ttbench.dataset import write_wav_stereo  # noqa: E402
+from turn.config import EXT_DIR  # noqa: E402
 
-EXT = Path.home() / "Downloads" / "sarj-ext-data"
+EXT = EXT_DIR
 TTS_CACHE = EXT / "tts-cache"
 ESC = EXT / "ESC-50-master"
 SR = 16000

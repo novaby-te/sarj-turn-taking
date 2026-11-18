@@ -15,7 +15,9 @@ from pathlib import Path
 
 import numpy as np
 
-CACHE = Path.home() / "Downloads" / "sarj-ext-data" / "voice-cache"
+from turn.config import EXT_DIR
+
+CACHE = EXT_DIR / "voice-cache"
 VOICES = {"f": "ar-SA-ZariyahNeural", "m": "ar-SA-HamedNeural"}
 FILLERS = ["طيب", "إيه نعم", "أبشر", "طيب، لحظة"]
 

@@ -25,14 +25,12 @@ import time
 import urllib.request
 from pathlib import Path
 
-from turn.config import load_env
-
-load_env()                                           # keys for the demo only: the scored path never imports this module
+from turn.config import EXT_DIR
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 CLOUD_TIMEOUT_S = 8                                  # a live caller is waiting: give up early and use the fallback
-EXT = Path.home() / "Downloads" / "sarj-ext-data"
+EXT = EXT_DIR
 MODELS = {
     "gemma4-26b": EXT / "gemma-4-26b-a4b-4bit",          # Gemma 4 26B-A4B (MoE: 26B knowledge, 4B active per word)
     "gemma4-e4b": EXT / "gemma-4-e4b-4bit",              # Gemma 4 E4B (small and fast)

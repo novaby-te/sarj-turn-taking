@@ -18,7 +18,7 @@ import numpy as np
 KIT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(KIT))
 from tools.sim import simulate  # noqa: E402
-from turn.policy import FEATURES, MODEL_PATH  # noqa: E402
+from turn.policy import ENGINE_POLICY, FEATURES  # noqa: E402
 from ttbench.score import load_labels  # noqa: E402
 
 
@@ -78,7 +78,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--train", default="data/synth")
     ap.add_argument("--model", default="lr", choices=["lr", "lgbm"])
-    ap.add_argument("--out", default=str(MODEL_PATH))
+    ap.add_argument("--out", default=str(ENGINE_POLICY))
     ap.add_argument("--C", type=float, default=0.5)
     ap.add_argument("--no-save", action="store_true")
     a = ap.parse_args(argv)

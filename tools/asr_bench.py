@@ -1,7 +1,7 @@
 """How well and how fast does Whisper hear the callers? Transcribes every caller segment of the dev calls
 (and partial prefixes, as the live system does) and writes analysis/asr_bench.json.
 
-    TT_ASR_MODEL=~/Downloads/sarj-ext-data/whisper-large-v3-turbo-q4 .venv/bin/python -m tools.asr_bench
+    TT_ASR_MODEL=$TT_EXT_DIR/whisper-large-v3-turbo-q4 .venv/bin/python -m tools.asr_bench
 """
 from __future__ import annotations
 

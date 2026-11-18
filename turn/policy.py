@@ -66,8 +66,8 @@ RESUME_P = 0.3           # ...and the full reading says it was not a floor bid
 
 _MODELS = Path(__file__).resolve().parents[1] / "models"
 # the learned layer is trained on the words of ONE ASR engine, so each engine has its own weights
-MODEL_PATH = _MODELS / ("policy-cohere.json" if _asr.BACKEND == "cohere" and (_MODELS / "policy-cohere.json").exists()
-                        else "policy.json")
+ENGINE_POLICY = _MODELS / f"policy-{_asr.BACKEND}.json"
+MODEL_PATH = ENGINE_POLICY if ENGINE_POLICY.exists() else _MODELS / "policy.json"
 FEATURES = ["bid", "content", "bc", "filler", "echoed", "repeated_ambig", "ambig_alone", "question", "n",
             "voiced_s", "rel_db", "only_bc", "agent_q_prev", "since_agent_start_s", "first_word_bid", "spk_sim", "cand_age_s", "logprob", "echo_ratio",
             # levels 1-3 (how it sounds, relative to the caller's own voice) + the agent's own intonation before the overlap
