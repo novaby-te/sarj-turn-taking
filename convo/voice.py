@@ -26,6 +26,8 @@ VOICES = {"f": "ar-SA-ZariyahNeural", "m": "ar-SA-HamedNeural"}
 FILLERS = ["طيب", "إيه نعم", "أبشر", "طيب، لحظة"]
 RATE = 24000                 # playback quality: 16 kHz sounds like an old phone line
 CACHE_CHARS = 120            # fixed lines are kept on disk so they play at once next time
+ELEVEN_URL = "https://api.elevenlabs.io/v1"
+ELEVEN_MODEL = "eleven_flash_v2_5"
 GEMINI_TTS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions"
 GEMINI_TTS_MODEL = "gemini-3.8-flash-tts"
 GEMINI_VOICES = {"m": "Orus", "f": "Aoede"}     # the same voices as the live replies
@@ -92,6 +94,35 @@ def _gemini_tts(text: str, gender: str) -> np.ndarray:
     return x if sr == RATE else signal.resample_poly(x, RATE, sr).astype(np.int16)
 
 
+_eleven_voices: dict = {}
+
+
+def eleven_ready() -> bool:
+    return bool(os.environ.get("ELEVENLABS_API_KEY"))
+
+
+def _eleven_voice(gender: str) -> str:
+    """ELEVENLABS_VOICE_ID when set, otherwise the first voice of the right gender in the account."""
+    chosen = os.environ.get("ELEVENLABS_VOICE_ID")
+    if chosen:
+        return chosen
+    if gender not in _eleven_voices:
+        req = urllib.request.Request(f"{ELEVEN_URL}/voices", headers={"xi-api-key": os.environ["ELEVENLABS_API_KEY"]})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            voices = json.load(r)["voices"]
+        want = "male" if gender == "m" else "female"
+        _eleven_voices[gender] = next((v["voice_id"] for v in voices if v.get("labels", {}).get("gender") == want), voices[0]["voice_id"])
+    return _eleven_voices[gender]
+
+
+def _eleven(text: str, gender: str) -> np.ndarray:
+    body = json.dumps({"text": text, "model_id": ELEVEN_MODEL, "language_code": "ar"}).encode()
+    headers = {"xi-api-key": os.environ["ELEVENLABS_API_KEY"], "Content-Type": "application/json"}
+    url = f"{ELEVEN_URL}/text-to-speech/{_eleven_voice(gender)}?output_format=pcm_{RATE}"
+    with urllib.request.urlopen(urllib.request.Request(url, body, headers), timeout=15) as r:
+        return np.frombuffer(r.read(), dtype="<i2").copy()
+
+
 def _live_line(text: str, gender: str) -> Path:
     return CACHE / f"{_key('gemini-tts', GEMINI_VOICES.get(gender, GEMINI_VOICES['f']), text)}.npy"
 
@@ -113,6 +144,18 @@ async def tts(text: str, gender: str = "f", engine: str = "edge") -> tuple[np.nd
             CACHE.mkdir(parents=True, exist_ok=True)
             np.save(f, x)
             return x, "gemini"
+        except Exception:
+            engine = "edge"
+    if engine == "eleven":
+        f = CACHE / f"{_key('eleven', gender, text)}.npy"
+        if f.exists():
+            return np.load(f), "eleven"
+        try:
+            x = await asyncio.to_thread(_eleven, text, gender)
+            if len(text) < CACHE_CHARS:
+                CACHE.mkdir(parents=True, exist_ok=True)
+                np.save(f, x)
+            return x, "eleven"
         except Exception:
             engine = "edge"
     if engine == "say" and not mac:                  # no macOS «say» on Windows / Linux: use Edge

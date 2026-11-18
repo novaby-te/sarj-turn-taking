@@ -31,6 +31,8 @@ from .scenarios import SCENARIOS, as_male, system_prompt
 SILENCE_NUDGE_MS = 7000      # caller silent this long after the agent finished → a gentle «معي؟»
 ECHO_MARGIN = 8.0            # the caller must be this many times (≈9 dB) louder than the agent's echo
 FILLER_AFTER_S = 0.9         # if the first sentence is not ready by then, say «طيب…» like a person would
+INTERRUPT_SETTLE_MS = 600    # the caller has been quiet this long after interrupting: answer now
+STRAY_SOUND_MS = 200         # less voiced sound than this after a stop never completes a turn
 LIVE_CHUNK_BYTES = 9600      # 200 ms of 24 kHz audio: enough to ride out small network gaps
 LIVE_ERRORS = (OSError, KeyError, websockets.WebSocketException)
 
@@ -56,7 +58,7 @@ class Conversation:
         self.engine = engine
         self.reply_engine = "edge" if engine == "live" else engine   # used when the live voice is unavailable
         self.live = None
-        self.sc = SCENARIOS[scenario] if engine in ("edge", "live") else as_male(SCENARIOS[scenario])
+        self.sc = SCENARIOS[scenario] if engine in ("edge", "live", "eleven") else as_male(SCENARIOS[scenario])
         self.tt = policy.TurnTaker()
         self.tt.on_scenario_start()
         self.history = [{"role": "system", "content": system_prompt(self.sc)}]
@@ -157,7 +159,7 @@ class Conversation:
                 started = True
         except LIVE_ERRORS as e:
             print(f"live voice failed: {type(e).__name__}", flush=True)
-            self.live = None
+            self.shutdown()
             return started
         finally:
             if self.live is not None:
@@ -385,13 +387,20 @@ class Conversation:
         elif dec == "TAKE_TURN" and self.state == "listening":
             start = self.interrupted_at if self.interrupted_at is not None else (self.tt.turn["start"] if self.tt.turn else self.ms - 3000)
             await self.caller_finished(start)
-        elif self.state == "listening" and self.interrupted_at is not None and self.tt.turn is None \
-                and self.ms - self.stop_ms > 900 and self.tt.vad.prob < 0.3:
-            await self.caller_finished(self.interrupted_at)     # a short «لحظة» that ended before we stopped
+        elif self.state == "listening" and self.interrupted_at is not None and self._interruption_over():
+            await self.caller_finished(self.interrupted_at)     # a short «كم قيمتها؟» that ended around the stop
         elif self.state == "listening" and self.listen_since is not None and not self.tt.turn \
                 and self.ms - self.listen_since > SILENCE_NUDGE_MS and len(self.history) > 1:
             self.listen_since = self.ms
             self.task = asyncio.create_task(self.reply("(العميل ساكت ما رد. تأكد بلطف إنه معك)", False))
+
+    def _interruption_over(self) -> bool:
+        """The caller interrupted briefly and went quiet. A stray sound after the stop must not keep the agent waiting."""
+        turn = self.tt.turn
+        if turn is not None and turn["voiced"] >= STRAY_SOUND_MS:
+            return False                                  # a real turn: the end-of-turn logic will answer it
+        last_sound = max(self.stop_ms, turn["last"]) if turn is not None else self.stop_ms
+        return self.ms - last_sound > INTERRUPT_SETTLE_MS and self.tt.vad.prob < 0.3
 
     def _is_echo(self, r: dict) -> bool:
         text = r.get("text", "")
@@ -423,8 +432,11 @@ class Conversation:
         text = r.get("text", "").strip()
         last_agent = next((m["content"] for m in reversed(self.history) if m["role"] == "assistant"), "")
         a = lexicon.analyse(text, last_agent + " " + self.turn_text)
-        if not text or a["hallucination"] or not a["words"] or a["echoed"] / max(1, a["n"]) >= 0.6:
+        own_voice = a["echoed"] / max(1, a["n"]) >= 0.6 and (not interrupted or a["n"] >= 5)   # a short question may reuse the agent's words
+        if not text or a["hallucination"] or not a["words"] or own_voice:
             self.tt.turn = None
+            if interrupted:                                   # the agent stopped for the caller: never leave them in silence
+                self.task = asyncio.create_task(self.reply("(قاطعك العميل بس ما سمعت كلامه بوضوح. اعتذر باختصار واطلب منه يعيد)", False))
             return                                            # noise, not words: keep listening
         only_ack = a["bid"] == 0 and a["content"] == 0 and not a["repeated_ambig"] and not a["question"]
         if interrupted and only_ack and self.remaining:
