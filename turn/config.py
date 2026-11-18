@@ -19,3 +19,7 @@ def load_env(path: Path = KIT / ".env") -> None:
         value = value.strip().strip("'\"")
         if value:
             os.environ.setdefault(key.strip(), value)
+
+
+load_env()
+EXT_DIR = Path(os.environ.get("TT_EXT_DIR") or Path.home() / "Downloads" / "sarj-ext-data").expanduser()   # big models and data live outside git

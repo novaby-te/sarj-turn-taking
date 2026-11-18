@@ -12,7 +12,7 @@ for arg in "$@"; do
     --local-brain) LOCAL_BRAIN=1 ;;
   esac
 done
-EXT="$HOME/Downloads/sarj-ext-data"          # big files live outside git
+EXT="${TT_EXT_DIR:-$HOME/Downloads/sarj-ext-data}"          # big files live outside git
 mkdir -p "$EXT"
 
 echo "1/4  Python 3.12 environment"
@@ -50,7 +50,7 @@ fi
 
 echo "3/4  Generated training/test calls (GitHub release data-v1)"
 if [[ "$NO_DATA" != 1 ]]; then
-  for set in synth synth-test dev-aug; do
+  for set in synth synth-test dev-aug novel-test; do
     if [ ! -f "data/$set/manifest.json" ]; then
       gh release download data-v1 -R o6lq/sarj-turn-taking -p "$set.zip" -D /tmp --clobber
       unzip -q -o "/tmp/$set.zip" -d data && rm "/tmp/$set.zip"

@@ -2,7 +2,7 @@
 #   powershell -ExecutionPolicy Bypass -File setup_windows.ps1
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
-$EXT = Join-Path $HOME "Downloads\sarj-ext-data"          # big files live outside git (same place as on the Mac)
+$EXT = if ($env:TT_EXT_DIR) { $env:TT_EXT_DIR } else { Join-Path $HOME "Downloads\sarj-ext-data" }          # big files live outside git (same place as on the Mac)
 New-Item -ItemType Directory -Force -Path $EXT | Out-Null
 
 Write-Host "1/5  Python 3.12 environment"
@@ -21,7 +21,7 @@ if (-not (Test-Path models\student\sem.onnx)) { gh release download models-v1 -R
 if (-not (Test-Path models\student\tokenizer.json)) { gh release download models-v1 -R o6lq/sarj-turn-taking -p student-tokenizer.json -O models\student\tokenizer.json }
 
 Write-Host "4/5  Generated test calls (GitHub release data-v1)"
-foreach ($set in "synth-test", "dev-aug") {
+foreach ($set in "synth-test", "dev-aug", "novel-test") {
   if (-not (Test-Path "data\$set\manifest.json")) {
     gh release download data-v1 -R o6lq/sarj-turn-taking -p "$set.zip" -D $env:TEMP --clobber
     Expand-Archive -Force (Join-Path $env:TEMP "$set.zip") -DestinationPath data

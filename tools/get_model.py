@@ -3,7 +3,7 @@
 Only weight formats that cannot run code are accepted (safetensors / onnx / npz / gguf); pickle files (.bin, .pt,
 .pth, .ckpt) are refused. Big files go through tools/fetch.py (parallel ranges, resumable).
 
-    .venv/bin/python -m tools.get_model mlx-community/gemma-4-26b-a4b-it-4bit ~/Downloads/sarj-ext-data/gemma-4-26b-a4b-4bit
+    .venv/bin/python -m tools.get_model mlx-community/gemma-4-26b-a4b-it-4bit $TT_EXT_DIR/gemma-4-26b-a4b-4bit
 """
 from __future__ import annotations
 

@@ -11,7 +11,9 @@ from pathlib import Path
 
 import numpy as np
 
-CAMPP = Path.home() / "Downloads" / "sarj-ext-data" / "spk" / "campp.onnx"
+from .config import EXT_DIR
+
+CAMPP = EXT_DIR / "spk" / "campp.onnx"
 _ex = None
 _res = None
 BACKEND = "campp" if CAMPP.exists() else "resemblyzer"

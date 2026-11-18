@@ -21,8 +21,10 @@ from pathlib import Path
 
 import numpy as np
 
+from .config import EXT_DIR
+
 KIT = Path(__file__).resolve().parents[1]
-EXT = Path.home() / "Downloads" / "sarj-ext-data"
+EXT = EXT_DIR
 COHERE = Path(os.environ.get("TT_COHERE_MODEL", str(EXT / "cohere-ar-mlx8")))
 def _default_backend() -> str:
     import sys

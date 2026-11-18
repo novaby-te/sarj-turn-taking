@@ -8,7 +8,9 @@ from pathlib import Path
 
 import numpy as np
 
-MODEL = Path.home() / "Downloads" / "sarj-ext-data" / "smart-turn" / "smart-turn-v3.2-cpu.onnx"
+from .config import EXT_DIR
+
+MODEL = EXT_DIR / "smart-turn" / "smart-turn-v3.2-cpu.onnx"
 _sess = None
 _fe = None
 
