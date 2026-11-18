@@ -95,6 +95,7 @@ td.num{font-variant-numeric:tabular-nums;text-align:center}
   </div>
   <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button class="go" id="go">ابدأ المكالمة</button><button class="ghost" id="end">أنهِ المكالمة</button>
     <span class="hint">جرّب: «إيه» · «إيه والله صادق» · «كم القيمة؟» · «لا لا لحظة، الأحد ما يناسبني» · «مو مهتم» · وكح أو شغّل تلفزيون جنبك</span></div>
+  <div id="micwarn" class="hint bad" hidden>المايك ما يوصّل أي صوت. سكّر تبويبات العرض الثانية، واقفل Chrome بالكامل بـ Cmd+Q وافتحه من جديد. إذا استمرت المشكلة: إعدادات النظام ← الخصوصية والأمان ← الميكروفون ← فعّل Google Chrome.</div>
   <div class="two">
     <div class="card"><div id="state" class="state">جاهز</div><div id="chat" style="margin-top:10px"></div></div>
     <div class="card">
@@ -211,7 +212,23 @@ class P extends AudioWorkletProcessor {
   }
 }
 registerProcessor('p', P);`;
-let ctx, node, ws, srcNode = null, bub = null;
+let ctx, node, ws, srcNode = null, bub = null, micSilent = 0;
+function closeMic() {                        // release the microphone so another tab or call can use it
+  if (!srcNode) return;
+  srcNode.mediaStream.getTracks().forEach(t => t.stop()); srcNode.disconnect(); srcNode = null;
+}
+async function openMic() {                   // a fresh microphone for every call; the browser removes the agent's voice from it
+  closeMic(); micSilent = 0; $('#micwarn').hidden = true;
+  const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: false, autoGainControl: true, channelCount: 1}});
+  srcNode = ctx.createMediaStreamSource(stream); srcNode.connect(node);
+}
+function checkMic(buffer) {                  // three seconds of pure digital silence means no sound reaches the page
+  const s = new Int16Array(buffer); let peak = 0;
+  for (let i = 1; i < s.length; i += 2) peak = Math.max(peak, Math.abs(s[i]));
+  micSilent = peak === 0 ? micSilent + 1 : 0;
+  $('#micwarn').hidden = micSilent < 150;
+}
+window.addEventListener('pagehide', closeMic);
 let upPrev = 0, upPos = 0;                   // live voice: 24 kHz stream to the page's rate, continuous across chunks
 function upsample(b64) {
   const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -230,16 +247,13 @@ async function ensureAudio() {
     node.connect(ctx.destination);
     node.port.onmessage = e => {
       const d = e.data; if (!ws || ws.readyState !== 1) return;
-      if (d.frame) ws.send(d.frame);
+      if (d.frame) { checkMic(d.frame); ws.send(d.frame); }
       if (d.chunkEnded !== undefined) ws.send(JSON.stringify({type: 'played', id: d.chunkEnded}));
       if (d.idle) ws.send(JSON.stringify({type: 'idle'}));
       if (d.stopped) ws.send(JSON.stringify({type: 'stopped', id: d.stopped.id, played: d.stopped.played}));
     };
   }
-  if (!srcNode) {                            // the browser removes the agent's voice from the mic on laptop speakers
-    const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: false, autoGainControl: true, channelCount: 1}});
-    srcNode = ctx.createMediaStreamSource(stream); srcNode.connect(node);
-  }
+  await openMic();
 }
 fetch('/scenarios').then(r => r.json()).then(d => {
   for (const [k, v] of Object.entries(d.scenarios)) $('#scen').insertAdjacentHTML('beforeend', `<option value="${k}">${esc(v)}</option>`);
@@ -302,9 +316,9 @@ $('#go').onclick = async () => {
     }
   };
   const sock = ws;
-  ws.onclose = () => { if (ws !== sock) return; node.port.postMessage({stop: true}); $('#go').disabled = false; setState('', 'انتهت المكالمة'); };
+  ws.onclose = () => { if (ws !== sock) return; closeMic(); node.port.postMessage({stop: true}); $('#go').disabled = false; setState('', 'انتهت المكالمة'); };
 };
-$('#end').onclick = () => { if (node) node.port.postMessage({stop: true}); if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'convo_end'})); $('#go').disabled = false; setState('', 'انتهت'); };
+$('#end').onclick = () => { closeMic(); if (node) node.port.postMessage({stop: true}); if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'convo_end'})); $('#go').disabled = false; setState('', 'انتهت'); };
 
 // ------------------------------------------------ replay of Sarj's calls with the model's decisions
 fetch('/calls').then(r => r.json()).then(cs => { for (const c of cs) $('#rcall').insertAdjacentHTML('beforeend', `<option value="${c.sid}">${c.sid} — ${esc(c.text.slice(0, 80))}…</option>`); });
