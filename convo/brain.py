@@ -1,6 +1,8 @@
-"""The agent's brain: a local language model behind an OpenAI-style HTTP server (mlx_lm.server), in its own
-process so it never competes with Whisper inside our process. Streams the reply sentence by sentence so the
-voice can start on the first sentence while the rest is still being written.
+"""The agent's brain: Gemini in the cloud by default, or a local language model behind an OpenAI-style HTTP server
+(mlx_lm.server), in its own process so it never competes with Whisper inside our process. Streams the reply sentence
+by sentence so the voice can start on the first sentence while the rest is still being written.
+
+  gemini                   - the Gemini API (needs GEMINI_API_KEY in .env); Claude Haiku takes over if it fails
 
 Models (tested on this Mac, Apple M5 24 GB):
   gemma-3-12b-it-qat-4bit  - best Arabic of the ones that fit (default once downloaded)
@@ -11,6 +13,7 @@ Models (tested on this Mac, Apple M5 24 GB):
 """
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
@@ -22,6 +25,13 @@ import time
 import urllib.request
 from pathlib import Path
 
+from turn.config import load_env
+
+load_env()                                           # keys for the demo only: the scored path never imports this module
+
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
+CLOUD_TIMEOUT_S = 8                                  # a live caller is waiting: give up early and use the fallback
 EXT = Path.home() / "Downloads" / "sarj-ext-data"
 MODELS = {
     "gemma4-26b": EXT / "gemma-4-26b-a4b-4bit",          # Gemma 4 26B-A4B (MoE: 26B knowledge, 4B active per word)
@@ -34,24 +44,37 @@ PORT = 8780
 _proc = None
 
 
-def available() -> dict:
-    ok = {}
+def _claude_ready() -> bool:
+    return bool(os.environ.get("ANTHROPIC_API_KEY") or shutil.which("claude"))
+
+
+def _available() -> dict:
+    ok = {"gemini": bool(os.environ.get("GEMINI_API_KEY"))}
     for k, p in MODELS.items():
         # count the shards by name («model-00002-of-00002»): some repos ship a stale index.json (Gemma QAT does)
         shards = sorted(p.glob("model*.safetensors"))
         m = re.search(r"of-(\d+)", shards[0].name) if shards else None
         ok[k] = bool(shards) and (len(shards) == int(m.group(1)) if m else True)
     for k in CLAUDE:
-        ok[k] = bool(os.environ.get("ANTHROPIC_API_KEY") or shutil.which("claude"))
+        ok[k] = _claude_ready()
     if os.environ.get("TT_BRAIN_URL"):              # LM Studio / Ollama (Windows): an OpenAI-compatible server
         ok["local-url"] = True
     return ok
 
 
+def available() -> dict:
+    """Every brain and whether it can run, the default first so the demo page selects it."""
+    ok, first = _available(), default_model()
+    return {first: ok.get(first, False), **ok}
+
+
 def default_model() -> str:
-    av = available()
-    return os.environ.get("TT_BRAIN") or next((k for k in ("gemma4-26b", "gemma-12b", "gemma4-e4b", "qwen3-14b", "local-url",
-                                                         "claude-haiku", "claude-opus") if av.get(k)), "local-url")
+    """TT_BRAIN when it can run; otherwise cloud brains come first, so the big local model is only the last resort."""
+    av, wanted = _available(), os.environ.get("TT_BRAIN")
+    if wanted and av.get(wanted):
+        return wanted
+    return next((k for k in ("gemini", "local-url", "claude-haiku", "claude-opus", "gemma4-26b", "gemma-12b", "gemma4-e4b",
+                             "qwen3-14b") if av.get(k)), wanted or "gemini")
 
 
 def _up() -> bool:
@@ -69,7 +92,7 @@ def start(model: str | None = None) -> str:
     if _proc and _proc.poll() is None and globals().get("_current") == model:
         return model
     stop()
-    if model in CLAUDE or model == "local-url":       # nothing to start here
+    if model in CLAUDE or model in ("local-url", "gemini"):       # nothing to start here
         _current = model
         return model
     extra = ["--chat-template-args", '{"enable_thinking": false}'] if model.startswith("gemma4") else []   # no thinking pause
@@ -133,40 +156,61 @@ def _current_is_gemma() -> bool:
     return str(globals().get("_current", "")).startswith("gemma")
 
 
+def _endpoint() -> tuple[str, dict, float]:
+    """The URL, headers and timeout of the OpenAI-style server behind the current brain."""
+    headers = {"Content-Type": "application/json"}
+    if globals().get("_current") == "gemini":
+        headers["Authorization"] = f"Bearer {os.environ.get('GEMINI_API_KEY', '')}"
+        return GEMINI_URL, headers, CLOUD_TIMEOUT_S
+    if os.environ.get("TT_BRAIN_KEY"):
+        headers["Authorization"] = f"Bearer {os.environ['TT_BRAIN_KEY']}"
+    base = os.environ.get("TT_BRAIN_URL", f"http://127.0.0.1:{PORT}").rstrip("/")
+    return f"{base}/v1/chat/completions", headers, 60
+
+
 def stream(messages: list[dict], max_tokens: int = 120, temperature: float = 0.6):
     """Yield text pieces as the model writes them."""
     messages = normalize(messages)
-    if globals().get("_current") in CLAUDE:
+    current = globals().get("_current", "")
+    if current in CLAUDE:
         yield from _claude_stream(messages, max_tokens)
         return
-    if globals().get("_current", "").startswith("qwen3") and messages and messages[0]["role"] == "system":
+    if current.startswith("qwen3") and messages and messages[0]["role"] == "system":
         messages = [{"role": "system", "content": messages[0]["content"] + "\n/no_think"}] + messages[1:]
     payload = {"messages": messages, "max_tokens": max_tokens, "temperature": temperature, "stream": True}
-    if globals().get("_current") == "local-url":
+    if current == "local-url":
         payload["model"] = os.environ.get("TT_BRAIN_MODEL", "local-model")
-    body = json.dumps(payload).encode()
-    base = os.environ.get("TT_BRAIN_URL", f"http://127.0.0.1:{PORT}").rstrip("/")
-    req = urllib.request.Request(f"{base}/v1/chat/completions", body, {"Content-Type": "application/json"})
-    in_think = False
-    with urllib.request.urlopen(req, timeout=60) as r:
-        for raw in r:
-            line = raw.decode("utf-8", "ignore").strip()
-            if not line.startswith("data:") or line == "data: [DONE]":
-                continue
-            try:
-                d = json.loads(line[5:])["choices"][0].get("delta", {}).get("content") or ""
-            except (ValueError, KeyError, IndexError):
-                continue
-            if "<think>" in d:
-                in_think = True
-            if in_think:
-                if "</think>" in d:
-                    in_think = False
-                    d = d.split("</think>", 1)[1]
-                else:
+    elif current == "gemini":
+        payload["model"] = os.environ.get("GEMINI_MODEL", GEMINI_MODEL)
+    url, headers, timeout = _endpoint()
+    req = urllib.request.Request(url, json.dumps(payload).encode(), headers)
+    in_think = started = False
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            for raw in r:
+                line = raw.decode("utf-8", "ignore").strip()
+                if not line.startswith("data:") or line == "data: [DONE]":
                     continue
-            if d:
-                yield d
+                try:
+                    d = json.loads(line[5:])["choices"][0].get("delta", {}).get("content") or ""
+                except (ValueError, KeyError, IndexError):
+                    continue
+                if "<think>" in d:
+                    in_think = True
+                if in_think:
+                    if "</think>" in d:
+                        in_think = False
+                        d = d.split("</think>", 1)[1]
+                    else:
+                        continue
+                if d:
+                    started = True
+                    yield d
+    except (OSError, http.client.HTTPException) as e:
+        if current != "gemini" or started or not _claude_ready():   # half a sentence was already spoken: do not restart it
+            raise
+        print(f"Gemini failed ({type(e).__name__} {getattr(e, 'code', '')}), using Claude Haiku", flush=True)
+        yield from _claude_stream(messages, max_tokens, "claude-haiku")
 
 
 _SENT = re.compile(r"(.+?[\.\!\؟\?…]+|.{22,}?[،,])(\s+|$)", re.S)
@@ -195,9 +239,9 @@ def clean(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
-def _claude_stream(messages: list[dict], max_tokens: int):
+def _claude_stream(messages: list[dict], max_tokens: int, name: str | None = None):
     """Claude as the brain. Thinking cannot be switched off on Opus 5.5, so effort is set to low for speed."""
-    model_id = CLAUDE[_current]
+    model_id = CLAUDE[name or _current]
     sys_txt = messages[0]["content"] if messages and messages[0]["role"] == "system" else ""
     conv = [m for m in messages if m["role"] != "system"]
     if os.environ.get("ANTHROPIC_API_KEY"):
