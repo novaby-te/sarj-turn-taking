@@ -29,6 +29,28 @@ def test_no_words_cannot_stop_the_agent():
     assert not call(words(0))._real_words()
 
 
+def after_stop(turn, quiet_ms=700, vad=0.1):
+    conv = Conversation.__new__(Conversation)
+    conv.tt = SimpleNamespace(turn=turn, vad=SimpleNamespace(prob=vad))
+    conv.stop_ms = 10000
+    conv.ms = 10000 + quiet_ms
+    return conv
+
+
+def test_a_short_interruption_gets_an_answer():
+    assert after_stop(None)._interruption_over()
+
+
+def test_a_stray_sound_after_the_stop_does_not_block_the_answer():
+    assert after_stop({"voiced": 60, "last": 10000})._interruption_over()
+
+
+def test_the_agent_waits_while_the_caller_is_still_talking():
+    assert not after_stop(None, vad=0.9)._interruption_over()
+    assert not after_stop(None, quiet_ms=300)._interruption_over()
+    assert not after_stop({"voiced": 800, "last": 10600})._interruption_over()
+
+
 def test_short_comma_phrases_stay_in_one_sentence():
     assert brain._SENT.match("حياك الله، حبيت أذكرك بالدفعة") is None
     assert brain._SENT.match("حياك الله، حبيت أذكرك بالدفعة. ").group(1) == "حياك الله، حبيت أذكرك بالدفعة."

@@ -16,7 +16,7 @@ MODEL = os.environ.get("TT_LIVE_MODEL", "gemini-2.5-flash-native-audio-latest")
 VOICES = {"m": "Orus", "f": "Aoede"}
 RATE = 24000
 CONNECT_TIMEOUT_S = 6
-FIRST_SOUND_TIMEOUT_S = 8
+FIRST_SOUND_TIMEOUT_S = 5
 NEXT_SOUND_TIMEOUT_S = 5
 
 
