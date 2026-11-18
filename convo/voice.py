@@ -20,10 +20,12 @@ from turn.config import EXT_DIR
 CACHE = EXT_DIR / "voice-cache"
 VOICES = {"f": "ar-SA-ZariyahNeural", "m": "ar-SA-HamedNeural"}
 FILLERS = ["طيب", "إيه نعم", "أبشر", "طيب، لحظة"]
+RATE = 24000                 # playback quality: 16 kHz sounds like an old phone line
+CACHE_CHARS = 120            # fixed lines are kept on disk so they play at once next time
 
 
 def _key(engine, voice, text):
-    return hashlib.sha1(f"{engine}|{voice}|{text}".encode()).hexdigest()
+    return hashlib.sha1(f"{engine}|{voice}|{RATE}|{text}".encode()).hexdigest()
 
 
 async def _edge(text: str, voice: str, timeout: float = 8.0) -> np.ndarray:
@@ -33,7 +35,7 @@ async def _edge(text: str, voice: str, timeout: float = 8.0) -> np.ndarray:
 
     async def go():
         b = b""
-        async for ch in edge_tts.Communicate(text, voice, rate="+5%").stream():
+        async for ch in edge_tts.Communicate(text, voice).stream():
             if ch["type"] == "audio":
                 b += ch["data"]
         return b
@@ -41,7 +43,7 @@ async def _edge(text: str, voice: str, timeout: float = 8.0) -> np.ndarray:
     x, sr = sf.read(io.BytesIO(data), dtype="float32")
     if x.ndim > 1:
         x = x.mean(1)
-    return (np.clip(signal.resample_poly(x, 16000, sr), -1, 1) * 32767 * 0.9).astype(np.int16)
+    return (np.clip(signal.resample_poly(x, RATE, sr), -1, 1) * 32767 * 0.9).astype(np.int16)
 
 
 _best = None
@@ -63,13 +65,13 @@ def _say(text: str) -> np.ndarray:
     with tempfile.TemporaryDirectory() as d:
         out = Path(d) / "x.wav"
         subprocess.run(["say", "-v", best_say_voice(), "-r", "185", "-o", str(out), "--file-format=WAVE",
-                        "--data-format=LEI16@16000", text], check=True, capture_output=True)
+                        f"--data-format=LEI16@{RATE}", text], check=True, capture_output=True)
         x, _ = sf.read(out, dtype="int16")
     return x
 
 
 async def tts(text: str, gender: str = "f", engine: str = "edge") -> tuple[np.ndarray, str]:
-    """Returns (16 kHz int16 audio, engine actually used). Never raises."""
+    """Returns (int16 audio at RATE, engine actually used). Never raises."""
     import sys
     mac = sys.platform == "darwin"
     if engine == "say" and not mac:                  # no macOS «say» on Windows / Linux: use Edge
@@ -83,14 +85,14 @@ async def tts(text: str, gender: str = "f", engine: str = "edge") -> tuple[np.nd
         try:
             x = await _edge(text, voice)
             CACHE.mkdir(parents=True, exist_ok=True)
-            if len(text) < 40:
+            if len(text) < CACHE_CHARS:
                 np.save(f, x)
             return x, "edge"
         except Exception:
             if not mac:
-                return np.zeros(1600, np.int16), "none"
+                return np.zeros(RATE // 10, np.int16), "none"
     x = await asyncio.to_thread(_say, text)
-    if len(text) < 40:
+    if len(text) < CACHE_CHARS:
         CACHE.mkdir(parents=True, exist_ok=True)
         np.save(f, x)
     return x, "say"

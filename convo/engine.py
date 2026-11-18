@@ -36,7 +36,7 @@ def wav_b64(x: np.ndarray) -> str:
     with wave.open(b, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
-        w.setframerate(16000)
+        w.setframerate(voice.RATE)
         w.writeframes(x.astype("<i2").tobytes())
     return base64.b64encode(b.getvalue()).decode()
 
@@ -88,7 +88,7 @@ class Conversation:
             return
         cid = self.next_id
         self.next_id += 1
-        self.chunks[cid] = {"text": text, "n": len(x), "filler": filler, "played": False}
+        self.chunks[cid] = {"text": text, "n": round(len(x) * 16000 / voice.RATE), "filler": filler, "played": False}   # the browser counts at 16 kHz
         self.browser_idle = False
         if self.state == "thinking" or not self.tt.agent_active:
             self.state = "speaking"
@@ -335,7 +335,7 @@ class Conversation:
         recent = self.echo_flags[-n:]
         if recent and sum(1 for e in recent if not e) / len(recent) < 0.3:
             return False                                 # mostly the agent's own voice coming back
-        return f["bid"] >= 1 or f["repeated_ambig"] or f["content"] >= 2
+        return True
 
     async def caller_finished(self, start_ms: float):
         audio = self.tt._audio_since(max(start_ms - 150, self.ms - 29000))
@@ -371,9 +371,9 @@ class Conversation:
         parts = [p.strip() + "،" for p in self.sc["first_point"].split("،") if p.strip()]
         parts[-1] = parts[-1].rstrip("،")
         lines, cur = [], ""
-        for p in parts:                                        # group into natural phrases of ~8-14 words
+        for p in parts:                                        # whole phrases: short pieces sound choppy
             cur = (cur + " " + p).strip()
-            if len(cur.split()) >= 8:
+            if len(cur.split()) >= 14:
                 lines.append(cur)
                 cur = ""
         if cur:

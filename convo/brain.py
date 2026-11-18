@@ -211,7 +211,7 @@ def stream(messages: list[dict], max_tokens: int = 120, temperature: float = 0.6
         yield from _claude_stream(messages, max_tokens, "claude-haiku")
 
 
-_SENT = re.compile(r"(.+?[\.\!\؟\?…]+|.{22,}?[،,])(\s+|$)", re.S)
+_SENT = re.compile(r"(.+?[\.\!\؟\?…]+|.{70,}?[،,])(\s+|$)", re.S)     # split at commas only in long sentences
 
 
 def sentences(messages: list[dict]):

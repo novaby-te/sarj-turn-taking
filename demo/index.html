@@ -91,8 +91,7 @@ td.num{font-variant-numeric:tabular-nums;text-align:center}
   <div class="ctrl">
     <div><label>المكالمة</label><select id="scen"></select></div>
     <div><label>عقل الوكيل</label><select id="model"></select></div>
-    <div><label>الصوت</label><select id="eng"><option value="say">ماجد (محلي، سريع)</option><option value="edge">حامد السعودي (إنترنت، أبطأ)</option></select></div>
-    <div><label>المايك</label><select id="mic"><option value="hp">سماعة رأس (الأفضل)</option><option value="spk">سماعات اللابتوب</option></select></div>
+    <div><label>الصوت</label><select id="eng"><option value="edge">صوت سعودي طبيعي (إنترنت)</option><option value="say">ماجد (بدون إنترنت، آلي)</option></select></div>
   </div>
   <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button class="go" id="go">ابدأ المكالمة</button><button class="ghost" id="end">أنهِ المكالمة</button>
     <span class="hint">جرّب: «إيه» · «إيه والله صادق» · «كم القيمة؟» · «لا لا لحظة، الأحد ما يناسبني» · «مو مهتم» · وكح أو شغّل تلفزيون جنبك</span></div>
@@ -212,7 +211,7 @@ class P extends AudioWorkletProcessor {
   }
 }
 registerProcessor('p', P);`;
-let ctx, node, ws, srcNode = null, micMode = null, bub = null;
+let ctx, node, ws, srcNode = null, bub = null;
 const st = {stops: [], replies: [], res: 0};
 async function ensureAudio() {
   if (!ctx) {
@@ -228,11 +227,9 @@ async function ensureAudio() {
       if (d.stopped) ws.send(JSON.stringify({type: 'stopped', id: d.stopped.id, played: d.stopped.played}));
     };
   }
-  const m = $('#mic').value;
-  if (micMode !== m) {
-    if (srcNode) { srcNode.mediaStream.getTracks().forEach(t => t.stop()); srcNode.disconnect(); }
-    const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: m === 'spk', noiseSuppression: false, autoGainControl: true, channelCount: 1}});
-    srcNode = ctx.createMediaStreamSource(stream); srcNode.connect(node); micMode = m;
+  if (!srcNode) {                            // the browser removes the agent's voice from the mic on laptop speakers
+    const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: false, autoGainControl: true, channelCount: 1}});
+    srcNode = ctx.createMediaStreamSource(stream); srcNode.connect(node);
   }
 }
 fetch('/scenarios').then(r => r.json()).then(d => {
@@ -290,7 +287,8 @@ $('#go').onclick = async () => {
       $('#cal').textContent = m.knows ? `يعرف صوتك: علوك المعتاد ${m.ref} dB · ضجيج الغرفة ${m.floor} dB` : 'الوكيل يتعلّم صوتك من أول جواب («إيه نعم، هلا»).';
     }
   };
-  ws.onclose = () => { $('#go').disabled = false; };
+  const sock = ws;
+  ws.onclose = () => { if (ws !== sock) return; node.port.postMessage({stop: true}); $('#go').disabled = false; setState('', 'انتهت المكالمة'); };
 };
 $('#end').onclick = () => { if (node) node.port.postMessage({stop: true}); if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'convo_end'})); $('#go').disabled = false; setState('', 'انتهت'); };
 
