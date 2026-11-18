@@ -43,6 +43,9 @@ BID = {norm(w) for w in """
 سوري عفوا لوسمحت لو سمحت سمحت يااخي اخي اخوي خويي
 غلط خطا ماطلبت
 لاحظه لحضه افوان عفوان سوري
+عذرا اعذرني اعذريني معذره سامحني
+وقف قف توقف اسكت اسكتي اقطع اقاطع اقاطعك بقاطعك بقطع
+عنجد جد معقول
 """.split()} - {"اي"}
 WEAK_BID = {norm(w) for w in "مش ما مو مب".split()}
 # «خلاص» and «طيب» are the brief's ambiguous pair: repeated or followed by more words = floor bid
