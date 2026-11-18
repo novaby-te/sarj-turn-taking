@@ -376,8 +376,9 @@ Submit the current `main` tag. Record per-category results in `EXPERIMENTS.md`, 
 | `TT_ASR_PROMPT`, `TT_ASR_CTX`, `TT_ASR_CACHE` | see asr.py | ASR tuning |
 | `TT_SEM`, `TT_SEM_DIR` | `1`, `models/student` | Meaning student |
 | `TT_SIM` | unset | `1` inside the simulator |
-| `TT_BRAIN` | auto | Demo brain: `local-url`, `claude-haiku`, `gemma4-26b`… |
-| `TT_BRAIN_URL`, `TT_BRAIN_MODEL`, `TT_BRAIN_KEY` | — | OpenAI-compatible endpoint, e.g. `https://openrouter.ai/api`, `google/gemma-4-26b-a4b-it` |
+| `TT_BRAIN` | auto | Demo brain: `gemini`, `local-url`, `claude-haiku`, `gemma4-26b`… |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | —, `gemini-3.5-flash-lite` | Gemini API demo brain |
+| `TT_BRAIN_URL`, `TT_BRAIN_MODEL`, `TT_BRAIN_KEY` | — | Any other OpenAI-compatible endpoint |
 | `ANTHROPIC_API_KEY` | — | Claude brain / teacher |
 | `TT_SLOWBRAIN` (planned) | `0` | Optional LLM RESUME confirmation |
 
@@ -486,8 +487,7 @@ Tag format: `git tag -a vX.Y -m "dev NN.N · dev-aug NN.N · novel NN.N"`, and t
 | Smart Turn v3.2 | L6 optional | BSD-2 | optional |
 | onnxruntime, numpy, websockets | runtime | MIT / BSD / BSD | yes |
 | Claude (Anthropic API) | teacher labels; optional demo brain | commercial API | **no** |
-| Gemma 4 26B via OpenRouter | demo brain | Gemma terms | **no** |
-| Gemini Flash (optional) | slow-brain / offline error labelling | commercial API | **no** (off) |
+| Gemini API (`gemini-3.5-flash-lite`) | demo brain; optional offline error labelling | commercial API | **no** |
 | Edge TTS, ElevenLabs | synthetic test voices, demo voice | ToS (ElevenLabs free = non-commercial) | **no** |
 | ESC-50 | noise for augmentation | CC BY-NC | **no** |
 
