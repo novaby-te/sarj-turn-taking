@@ -7,10 +7,14 @@ brain is still thinking, the way a person says «طيب…» before answering.
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import io
+import json
+import os
 import subprocess
 import tempfile
+import urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -20,10 +24,16 @@ from turn.config import EXT_DIR
 CACHE = EXT_DIR / "voice-cache"
 VOICES = {"f": "ar-SA-ZariyahNeural", "m": "ar-SA-HamedNeural"}
 FILLERS = ["طيب", "إيه نعم", "أبشر", "طيب، لحظة"]
+RATE = 24000                 # playback quality: 16 kHz sounds like an old phone line
+CACHE_CHARS = 120            # fixed lines are kept on disk so they play at once next time
+GEMINI_TTS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions"
+GEMINI_TTS_MODEL = "gemini-3.8-flash-tts"
+GEMINI_VOICES = {"m": "Orus", "f": "Aoede"}     # the same voices as the live replies
+GEMINI_STYLE = "موظف خدمة عملاء سعودي في مكالمة هاتفية، لهجة سعودية طبيعية، نبرة دافئة وهادئة وسرعة كلام عادية"
 
 
 def _key(engine, voice, text):
-    return hashlib.sha1(f"{engine}|{voice}|{text}".encode()).hexdigest()
+    return hashlib.sha1(f"{engine}|{voice}|{RATE}|{text}".encode()).hexdigest()
 
 
 async def _edge(text: str, voice: str, timeout: float = 8.0) -> np.ndarray:
@@ -33,7 +43,7 @@ async def _edge(text: str, voice: str, timeout: float = 8.0) -> np.ndarray:
 
     async def go():
         b = b""
-        async for ch in edge_tts.Communicate(text, voice, rate="+5%").stream():
+        async for ch in edge_tts.Communicate(text, voice).stream():
             if ch["type"] == "audio":
                 b += ch["data"]
         return b
@@ -41,7 +51,7 @@ async def _edge(text: str, voice: str, timeout: float = 8.0) -> np.ndarray:
     x, sr = sf.read(io.BytesIO(data), dtype="float32")
     if x.ndim > 1:
         x = x.mean(1)
-    return (np.clip(signal.resample_poly(x, 16000, sr), -1, 1) * 32767 * 0.9).astype(np.int16)
+    return (np.clip(signal.resample_poly(x, RATE, sr), -1, 1) * 32767 * 0.9).astype(np.int16)
 
 
 _best = None
@@ -63,15 +73,48 @@ def _say(text: str) -> np.ndarray:
     with tempfile.TemporaryDirectory() as d:
         out = Path(d) / "x.wav"
         subprocess.run(["say", "-v", best_say_voice(), "-r", "185", "-o", str(out), "--file-format=WAVE",
-                        "--data-format=LEI16@16000", text], check=True, capture_output=True)
+                        f"--data-format=LEI16@{RATE}", text], check=True, capture_output=True)
         x, _ = sf.read(out, dtype="int16")
     return x
 
 
+def _gemini_tts(text: str, gender: str) -> np.ndarray:
+    import soundfile as sf
+    from scipy import signal
+    content = [{"type": "text", "text": text, "annotations": [{"type": "speech_metadata", "style": GEMINI_STYLE}]}]
+    body = {"model": GEMINI_TTS_MODEL, "input": [{"type": "user_input", "content": content}], "response_format": {"type": "audio"},
+            "generation_config": {"speech_config": [{"voice": GEMINI_VOICES.get(gender, GEMINI_VOICES["f"])}]}}
+    headers = {"x-goog-api-key": os.environ["GEMINI_API_KEY"], "Content-Type": "application/json"}
+    with urllib.request.urlopen(urllib.request.Request(GEMINI_TTS_URL, json.dumps(body).encode(), headers), timeout=30) as r:
+        steps = json.load(r)["steps"]
+    data = next(c["data"] for s in steps if s["type"] == "model_output" for c in s["content"] if c["type"] == "audio")
+    x, sr = sf.read(io.BytesIO(base64.b64decode(data)), dtype="int16")
+    return x if sr == RATE else signal.resample_poly(x, RATE, sr).astype(np.int16)
+
+
+def _live_line(text: str, gender: str) -> Path:
+    return CACHE / f"{_key('gemini-tts', GEMINI_VOICES.get(gender, GEMINI_VOICES['f']), text)}.npy"
+
+
+def has_live_line(text: str, gender: str) -> bool:
+    return _live_line(text, gender).exists()
+
+
 async def tts(text: str, gender: str = "f", engine: str = "edge") -> tuple[np.ndarray, str]:
-    """Returns (16 kHz int16 audio, engine actually used). Never raises."""
+    """Returns (int16 audio at RATE, engine actually used). Never raises."""
     import sys
     mac = sys.platform == "darwin"
+    if engine == "live":                             # a fixed line in the live voice, generated once
+        f = _live_line(text, gender)
+        if f.exists():
+            return np.load(f), "gemini"
+        try:
+            x = await asyncio.to_thread(_gemini_tts, text, gender)
+            CACHE.mkdir(parents=True, exist_ok=True)
+            np.save(f, x)
+            return x, "gemini"
+        except Exception:
+            engine = "edge"
     if engine == "say" and not mac:                  # no macOS «say» on Windows / Linux: use Edge
         engine = "edge"
     voice = VOICES.get(gender, VOICES["f"]) if engine == "edge" else best_say_voice()
@@ -83,14 +126,14 @@ async def tts(text: str, gender: str = "f", engine: str = "edge") -> tuple[np.nd
         try:
             x = await _edge(text, voice)
             CACHE.mkdir(parents=True, exist_ok=True)
-            if len(text) < 40:
+            if len(text) < CACHE_CHARS:
                 np.save(f, x)
             return x, "edge"
         except Exception:
             if not mac:
-                return np.zeros(1600, np.int16), "none"
+                return np.zeros(RATE // 10, np.int16), "none"
     x = await asyncio.to_thread(_say, text)
-    if len(text) < 40:
+    if len(text) < CACHE_CHARS:
         CACHE.mkdir(parents=True, exist_ok=True)
         np.save(f, x)
     return x, "say"

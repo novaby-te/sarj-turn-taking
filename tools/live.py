@@ -150,7 +150,28 @@ class H(BaseHTTPRequestHandler):
         self.send_error(404)
 
 
+_active = {"ws": None, "convo": None}      # one call at a time: two calls would talk over each other
+
+
 async def ws_handler(ws):
+    try:
+        await _serve(ws)
+    finally:
+        if _active["ws"] is ws:
+            _end_call()
+
+
+def _end_call():
+    convo = _active["convo"]
+    if convo is not None:
+        convo.state = "ended"
+        if convo.task and not convo.task.done():
+            convo.task.cancel()
+        convo.shutdown()
+    _active.update(ws=None, convo=None)
+
+
+async def _serve(ws):
     from turn import policy
     tt = None
     frames_a, frames_c = [], []
@@ -213,10 +234,16 @@ async def ws_handler(ws):
         if msg["type"] == "convo_start":
             from convo import brain, voice
             from convo.engine import Conversation
+            previous = _active["ws"]
+            if previous is not None and previous is not ws:     # a second tab or a new call replaces the running one
+                _end_call()
+                await previous.close()
             await send({"type": "status", "state": "loading", "text": "يجهز العقل (النموذج اللغوي)…"})
             name = await asyncio.to_thread(brain.start, msg.get("model") or None)
-            await voice.warm_fillers(SCEN_GENDER.get(msg.get("scenario", "payment"), "f"), msg.get("engine", "edge"))
+            if msg.get("engine") != "live":
+                await voice.warm_fillers(SCEN_GENDER.get(msg.get("scenario", "payment"), "f"), msg.get("engine", "edge"))
             convo = Conversation(send, msg.get("scenario", "payment"), msg.get("engine", "edge"))
+            _active.update(ws=ws, convo=convo)
             await send({"type": "status", "state": "ready", "model": name})
             asyncio.create_task(convo.start())
             continue
@@ -234,6 +261,7 @@ async def ws_handler(ws):
                 convo.state = "ended"
                 if convo.task and not convo.task.done():
                     convo.task.cancel()
+                convo.shutdown()
                 await send({"type": "summary", "stats": convo.stats})
                 convo = None
             continue
@@ -349,7 +377,7 @@ def main():
     async def run():
         async with serve(ws_handler, "127.0.0.1", WS_PORT, max_size=2 ** 20):
             print(f"open http://127.0.0.1:{HTTP_PORT}", flush=True)
-            url = f"http://127.0.0.1:{HTTP_PORT}"
+            url = f"http://127.0.0.1:{HTTP_PORT}/demo"
             if Path("/Applications/Google Chrome.app").exists():   # Chrome handles mic + 16 kHz audio best
                 import subprocess
                 subprocess.run(["open", "-a", "Google Chrome", url])

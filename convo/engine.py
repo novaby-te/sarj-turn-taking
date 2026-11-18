@@ -19,16 +19,20 @@ import time
 import wave
 
 import numpy as np
+import websockets
 
 from turn import lexicon, policy
 from turn.asr import transcribe
 
 from . import brain, voice
+from .live_voice import LiveVoice
 from .scenarios import SCENARIOS, as_male, system_prompt
 
 SILENCE_NUDGE_MS = 7000      # caller silent this long after the agent finished → a gentle «معي؟»
 ECHO_MARGIN = 8.0            # the caller must be this many times (≈9 dB) louder than the agent's echo
 FILLER_AFTER_S = 0.9         # if the first sentence is not ready by then, say «طيب…» like a person would
+LIVE_CHUNK_BYTES = 9600      # 200 ms of 24 kHz audio: enough to ride out small network gaps
+LIVE_ERRORS = (OSError, KeyError, websockets.WebSocketException)
 
 
 def wav_b64(x: np.ndarray) -> str:
@@ -36,7 +40,7 @@ def wav_b64(x: np.ndarray) -> str:
     with wave.open(b, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
-        w.setframerate(16000)
+        w.setframerate(voice.RATE)
         w.writeframes(x.astype("<i2").tobytes())
     return base64.b64encode(b.getvalue()).decode()
 
@@ -45,12 +49,14 @@ class Conversation:
     def __init__(self, send, scenario: str = "payment", engine: str = "edge"):
         self.events: list = []
         async def _send(m, _orig=send):
-            if m.get("type") in ("say", "stop", "status", "chat"):
-                self.events.append({"t": self.ms, **{k: v for k, v in m.items() if k != "wav"}})
+            if m.get("type") in ("say", "pcm", "stop", "status", "chat"):
+                self.events.append({"t": self.ms, **{k: v for k, v in m.items() if k not in ("wav", "pcm")}})
             await _orig(m)
         self.send = _send                        # async fn(dict) → browser (and logged)
         self.engine = engine
-        self.sc = SCENARIOS[scenario] if engine == "edge" else as_male(SCENARIOS[scenario])
+        self.reply_engine = "edge" if engine == "live" else engine   # used when the live voice is unavailable
+        self.live = None
+        self.sc = SCENARIOS[scenario] if engine in ("edge", "live") else as_male(SCENARIOS[scenario])
         self.tt = policy.TurnTaker()
         self.tt.on_scenario_start()
         self.history = [{"role": "system", "content": system_prompt(self.sc)}]
@@ -79,16 +85,25 @@ class Conversation:
         self.planned_done = True
 
     # ------------------------------------------------------------------ speaking
-    def synth(self, text: str) -> asyncio.Task:
-        return asyncio.create_task(voice.tts(text, self.sc["gender"], self.engine))
+    def synth(self, text: str, engine: str | None = None) -> asyncio.Task:
+        return asyncio.create_task(voice.tts(text, self.sc["gender"], engine or self.engine))
 
     async def say_chunk(self, text: str, filler: bool = False, audio: asyncio.Task | None = None):
         x, used = await (audio or self.synth(text))
         if self.state not in ("speaking", "thinking"):
             return
+        cid = await self._open_chunk(text, round(len(x) * 16000 / voice.RATE), filler)
+        await self.send({"type": "say", "id": cid, "wav": wav_b64(x), "text": text, "voice": used})
+
+    async def _play_pcm(self, pcm: bytes, text: str):
+        cid = await self._open_chunk(text, round(len(pcm) / 2 * 16000 / voice.RATE), False)
+        await self.send({"type": "pcm", "id": cid, "pcm": base64.b64encode(pcm).decode(), "text": text, "voice": "live"})
+
+    async def _open_chunk(self, text: str, n: int, filler: bool) -> int:
+        """Register audio that is about to play. `n` counts samples at 16 kHz, as the browser reports them."""
         cid = self.next_id
         self.next_id += 1
-        self.chunks[cid] = {"text": text, "n": len(x), "filler": filler, "played": False}
+        self.chunks[cid] = {"text": text, "n": n, "filler": filler, "played": False}
         self.browser_idle = False
         if self.state == "thinking" or not self.tt.agent_active:
             self.state = "speaking"
@@ -106,11 +121,61 @@ class Conversation:
             self.stats.append({"kind": "answer", "ms": round((time.time() - self.t_answer) * 1000)})
             await self.send({"type": "stat", "kind": "answer", "ms": self.stats[-1]["ms"]})
             self.t_answer = None
-        await self.send({"type": "say", "id": cid, "wav": wav_b64(x), "text": text, "voice": used})
+        return cid
+
+    async def _connect_live(self):
+        told = [f"«{' '.join(self.sc['opening'])}»", f"«{self.sc['first_point']}»"]
+        past = [f"{'أنت' if m['role'] == 'assistant' else 'العميل'}: {m['content']}" for m in self.history if m["role"] != "system"]
+        recap = "بدأت المكالمة بقولك: " + " ثم ".join(told) + ("\nسجل المكالمة حتى الآن:\n" + "\n".join(past) if past else "")
+        live = LiveVoice(system_prompt(self.sc) + "\n\n" + recap, self.sc["gender"])
+        await live.connect()
+        self.live = live
+
+    async def _connect_quietly(self):
+        try:
+            await self._connect_live()
+        except LIVE_ERRORS as e:
+            print(f"live voice unavailable: {type(e).__name__}", flush=True)
+
+    async def _stream_live(self, text: str) -> bool:
+        """Speak the reply while it is generated. False means nothing was said, so the text path should answer."""
+        buffered, words, spoken, started = bytearray(), "", "", False
+        try:
+            if self.live is None or self.live.closed:
+                await self._connect_live()
+            async for pcm, piece in self.live.speak(text):
+                if self.state not in ("speaking", "thinking"):
+                    return True
+                buffered += pcm
+                words += piece
+                spoken += piece
+                if len(buffered) >= LIVE_CHUNK_BYTES:
+                    await self._play_pcm(bytes(buffered), words)
+                    buffered, words, started = bytearray(), "", True
+            if buffered and self.state in ("speaking", "thinking"):
+                await self._play_pcm(bytes(buffered), words)
+                started = True
+        except LIVE_ERRORS as e:
+            print(f"live voice failed: {type(e).__name__}", flush=True)
+            self.live = None
+            return started
+        finally:
+            if self.live is not None:
+                self.live.cancel()
+        if "مع السلامة" in spoken:
+            self.ending = True
+        return started
+
+    def shutdown(self):
+        if self.live is not None:
+            asyncio.create_task(self.live.close())
+            self.live = None
 
     async def speak_lines(self, lines: list[str]):
         self.state = "thinking"
         self.planned_done = False
+        if self.engine == "live":
+            lines = [" ".join(lines)]              # one recording: natural flow, no gaps
         tasks = [self.synth(line) for line in lines]          # synthesise all lines at once, speak in order
         for line, t in zip(lines, tasks):
             if self.state not in ("speaking", "thinking"):
@@ -131,6 +196,9 @@ class Conversation:
         msgs = list(self.history) + [{"role": "user", "content": note + user_text}]
         if not user_text.startswith("("):
             self.history.append({"role": "user", "content": user_text})
+        if self.engine == "live" and await self._stream_live(note + user_text):
+            await self._finish_reply()
+            return
         q: asyncio.Queue = asyncio.Queue()
         loop = asyncio.get_running_loop()
 
@@ -157,7 +225,8 @@ class Conversation:
             except asyncio.TimeoutError:
                 if not filler_done:
                     filler_done = True
-                    await self.say_chunk(random.choice(voice.FILLERS[:3]), filler=True)
+                    filler = random.choice(voice.FILLERS[:3])
+                    await self.say_chunk(filler, filler=True, audio=self.synth(filler, self.reply_engine))
                 continue
             if s is None:
                 await flush(True)
@@ -170,15 +239,18 @@ class Conversation:
             if filler_done and said == [] and s.startswith(("طيب", "إيه نعم", "أبشر")) and len(s) < 12:
                 continue
             said.append(s)
-            pending.append((s, self.synth(s)))
+            pending.append((s, self.synth(s, self.reply_engine)))
             await flush(len(said) == 1)                     # the first sentence goes out as soon as it is ready
         await fut
+        if any("مع السلامة" in s for s in said):
+            self.ending = True
+        await self._finish_reply()
+
+    async def _finish_reply(self):
         self.planned_done = True
         if self.state == "thinking":                       # nothing was said at all
             self.state = "listening"
             self.listen_since = self.ms
-        if any("مع السلامة" in s for s in said):
-            self.ending = True
         await self.on_idle(check=True)
 
     # ------------------------------------------------------------------ browser events
@@ -235,6 +307,11 @@ class Conversation:
         rest, self.remaining, self.interrupted_at = self.remaining, "", None
         self.tt.turn = None
         if not rest:
+            return
+        if self.engine == "live":
+            await self.send({"type": "hearing", "text": "", "why": "كان تأييد: يكمّل كلامه"})
+            self.stats.append({"kind": "resume", "ms": self.ms - (self.stop_ms or self.ms)})
+            self.task = asyncio.create_task(self.reply(f"(العميل كان يوافقك بس. كمّل كلامك من النقطة اللي وقفت عندها: «{rest}»)", False))
             return
         words = rest.split()
         lines = [" ".join(words[i:i + 12]) for i in range(0, len(words), 12)]
@@ -335,7 +412,7 @@ class Conversation:
         recent = self.echo_flags[-n:]
         if recent and sum(1 for e in recent if not e) / len(recent) < 0.3:
             return False                                 # mostly the agent's own voice coming back
-        return f["bid"] >= 1 or f["repeated_ambig"] or f["content"] >= 2
+        return True
 
     async def caller_finished(self, start_ms: float):
         audio = self.tt._audio_since(max(start_ms - 150, self.ms - 29000))
@@ -368,12 +445,16 @@ class Conversation:
         self.task = asyncio.create_task(self.reply(text, interrupted))
 
     async def _first_point(self):
+        if self.engine == "live":
+            await self.send({"type": "status", "state": "speaking"})
+            await self.speak_lines([self.sc["first_point"]])
+            return
         parts = [p.strip() + "،" for p in self.sc["first_point"].split("،") if p.strip()]
         parts[-1] = parts[-1].rstrip("،")
         lines, cur = [], ""
-        for p in parts:                                        # group into natural phrases of ~8-14 words
+        for p in parts:                                        # whole phrases: short pieces sound choppy
             cur = (cur + " " + p).strip()
-            if len(cur.split()) >= 8:
+            if len(cur.split()) >= 14:
                 lines.append(cur)
                 cur = ""
         if cur:
@@ -384,6 +465,8 @@ class Conversation:
     async def start(self):
         self.state = "thinking"
         self.planned_done = False
+        if self.engine == "live":
+            asyncio.create_task(self._connect_quietly())
         await self.speak_lines(self.sc["opening"])
 
 
