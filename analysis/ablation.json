@@ -1,0 +1,114 @@
+{
+ "full system": {
+  "novel-test": {
+   "core": 84.07,
+   "false_stops": 10,
+   "misses": 3,
+   "median_ms": 0.0,
+   "p90_ms": 399.3
+  },
+  "dev-aug": {
+   "core": 96.57,
+   "false_stops": 0,
+   "misses": 0,
+   "median_ms": 0.0,
+   "p90_ms": 670.3
+  }
+ },
+ "no echo suppression": {
+  "novel-test": {
+   "core": 83.7,
+   "false_stops": 11,
+   "misses": 3,
+   "median_ms": 0.0,
+   "p90_ms": 622.3
+  },
+  "dev-aug": {
+   "core": 93.56,
+   "false_stops": 2,
+   "misses": 1,
+   "median_ms": 0.0,
+   "p90_ms": 1120.2
+  }
+ },
+ "no level gate": {
+  "novel-test": {
+   "core": 83.73,
+   "false_stops": 11,
+   "misses": 3,
+   "median_ms": 0.0,
+   "p90_ms": 399.3
+  },
+  "dev-aug": {
+   "core": 95.23,
+   "false_stops": 3,
+   "misses": 1,
+   "median_ms": 0.0,
+   "p90_ms": 670.3
+  }
+ },
+ "no speaker check": {
+  "novel-test": {
+   "core": 80.5,
+   "false_stops": 8,
+   "misses": 4,
+   "median_ms": 15.2,
+   "p90_ms": 622.3
+  },
+  "dev-aug": {
+   "core": 96.21,
+   "false_stops": 1,
+   "misses": 0,
+   "median_ms": 0.0,
+   "p90_ms": 600.4
+  }
+ },
+ "rules only (no learned model)": {
+  "novel-test": {
+   "core": 79.8,
+   "false_stops": 13,
+   "misses": 5,
+   "median_ms": 278.3,
+   "p90_ms": 958.2
+  },
+  "dev-aug": {
+   "core": 92.53,
+   "false_stops": 3,
+   "misses": 2,
+   "median_ms": 0.0,
+   "p90_ms": 430.2
+  }
+ },
+ "no meaning model": {
+  "novel-test": {
+   "core": 82.28,
+   "false_stops": 14,
+   "misses": 3,
+   "median_ms": 0.0,
+   "p90_ms": 399.3
+  },
+  "dev-aug": {
+   "core": 96.14,
+   "false_stops": 0,
+   "misses": 0,
+   "median_ms": 0.0,
+   "p90_ms": 1030.2
+  }
+ },
+ "no RESUME": {
+  "novel-test": {
+   "core": 84.07,
+   "false_stops": 10,
+   "misses": 3,
+   "median_ms": 0.0,
+   "p90_ms": 399.3
+  },
+  "dev-aug": {
+   "core": 96.57,
+   "false_stops": 0,
+   "misses": 0,
+   "median_ms": 0.0,
+   "p90_ms": 670.3
+  }
+ }
+}

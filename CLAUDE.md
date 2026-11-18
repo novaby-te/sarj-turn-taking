@@ -11,11 +11,11 @@ Claude Code reads this file automatically whenever the project opens. It says **
 ## 1. Context in one paragraph
 We are a student team in the Sarj AI hackathon. The harness streams a 2-channel call (agent + caller, 16 kHz, 20 ms frames) to `my_system.py` over WebSocket :8765. We decide only **STOP / RESUME / TAKE_TURN**. Full credit needs a STOP within 300 ms of the caller's intent becoming evident. Final rank = 80 % hidden human Arabic benchmark + 20 % judges.
 
-Current scores (`runs/sim-history.csv`, `t0-final`; the real-time number predates it):
+Current scores (`runs/sim-history.csv` and `runs/final-dev-official`):
 
-| dev | dev-aug | novel-test | real-time dev |
-|---|---|---|---|
-| 99.3 | 96.6 | **83.9** | 96.5 |
+| dev | dev-aug | novel-test | blind novel-test-2 | real-time dev |
+|---|---|---|---|---|
+| 99.3 | 96.6 | **84.1** | **85.5** | 99.0 |
 
 The gap is **generalisation**: lexicon errors on new phrasing, not ASR.
 
