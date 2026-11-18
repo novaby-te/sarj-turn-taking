@@ -167,6 +167,7 @@ def _end_call():
         convo.state = "ended"
         if convo.task and not convo.task.done():
             convo.task.cancel()
+        convo.shutdown()
     _active.update(ws=None, convo=None)
 
 
@@ -239,7 +240,8 @@ async def _serve(ws):
                 await previous.close()
             await send({"type": "status", "state": "loading", "text": "يجهز العقل (النموذج اللغوي)…"})
             name = await asyncio.to_thread(brain.start, msg.get("model") or None)
-            await voice.warm_fillers(SCEN_GENDER.get(msg.get("scenario", "payment"), "f"), msg.get("engine", "edge"))
+            if msg.get("engine") != "live":
+                await voice.warm_fillers(SCEN_GENDER.get(msg.get("scenario", "payment"), "f"), msg.get("engine", "edge"))
             convo = Conversation(send, msg.get("scenario", "payment"), msg.get("engine", "edge"))
             _active.update(ws=ws, convo=convo)
             await send({"type": "status", "state": "ready", "model": name})
@@ -259,6 +261,7 @@ async def _serve(ws):
                 convo.state = "ended"
                 if convo.task and not convo.task.done():
                     convo.task.cancel()
+                convo.shutdown()
                 await send({"type": "summary", "stats": convo.stats})
                 convo = None
             continue

@@ -91,7 +91,7 @@ td.num{font-variant-numeric:tabular-nums;text-align:center}
   <div class="ctrl">
     <div><label>المكالمة</label><select id="scen"></select></div>
     <div><label>عقل الوكيل</label><select id="model"></select></div>
-    <div><label>الصوت</label><select id="eng"><option value="edge">صوت سعودي طبيعي (إنترنت)</option><option value="say">ماجد (بدون إنترنت، آلي)</option></select></div>
+    <div><label>الصوت</label><select id="eng"><option value="live">صوت Gemini المباشر (الأسرع والأطبع)</option><option value="edge">صوت سعودي (إنترنت، أبطأ)</option><option value="say">ماجد (بدون إنترنت، آلي)</option></select></div>
   </div>
   <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button class="go" id="go">ابدأ المكالمة</button><button class="ghost" id="end">أنهِ المكالمة</button>
     <span class="hint">جرّب: «إيه» · «إيه والله صادق» · «كم القيمة؟» · «لا لا لحظة، الأحد ما يناسبني» · «مو مهتم» · وكح أو شغّل تلفزيون جنبك</span></div>
@@ -212,6 +212,15 @@ class P extends AudioWorkletProcessor {
 }
 registerProcessor('p', P);`;
 let ctx, node, ws, srcNode = null, bub = null;
+let upPrev = 0, upPos = 0;                   // live voice: 24 kHz stream to the page's rate, continuous across chunks
+function upsample(b64) {
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const s = new Int16Array(bytes.buffer), step = 24000 / ctx.sampleRate, out = [];
+  let pos = upPos;
+  while (pos < s.length) { const i = Math.floor(pos), a = i === 0 ? upPrev : s[i - 1]; out.push((a + (s[i] - a) * (pos - i)) / 32768); pos += step; }
+  upPos = pos - s.length; upPrev = s[s.length - 1];
+  return Float32Array.from(out);
+}
 const st = {stops: [], replies: [], res: 0};
 async function ensureAudio() {
   if (!ctx) {
@@ -264,6 +273,10 @@ $('#go').onclick = async () => {
       const buf = await ctx.decodeAudioData(bytes.buffer);
       node.port.postMessage({enqueue: buf.getChannelData(0).slice(), id: m.id});
       if (!bub) bub = bubble('agent', m.text); else bub.firstChild.textContent += ' ' + m.text;
+    }
+    if (m.type === 'pcm') {
+      node.port.postMessage({enqueue: upsample(m.pcm), id: m.id});
+      if (m.text) { if (!bub) bub = bubble('agent', m.text); else bub.firstChild.textContent += m.text; }
     }
     if (m.type === 'stop') {
       node.port.postMessage({stop: true}); setState('stop', `سكت عشان يسمعك (${m.latency} ms)`);
