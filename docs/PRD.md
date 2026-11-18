@@ -163,7 +163,7 @@ The last official real-time run on `dev` scored 96.5, matching the simulator.
 |---|---|---|
 | D1 | The decision path is 100 % local | Latency is scored on arrival; the venue's internet is not guaranteed; local is easier to defend under "practical applicability" |
 | D2 | No GPU server, and no cloud ASR | Too complex for a 6-day hackathon; local Cohere on MLX takes about 97 ms per read |
-| D3 | The demo brain runs through an API (OpenRouter, Gemma 4 26B) with Claude Haiku as fallback | Frees about 15 GB of RAM; it is outside the scored path; it is declared |
+| D3 | The demo brain runs through the Gemini API (`gemini-3.5-flash-lite`) with Claude Haiku as fallback | Frees about 15 GB of RAM; it is outside the scored path; it is declared |
 | D4 | The mentor's "Gemini as slow brain" idea is **optional, off by default**. It is allowed only to confirm or correct a stop with `RESUME`, and only if the measured round trip fits inside the 460 ms RESUME window. Its default use is offline: labelling errors and generating teacher data | The mentor recommends measuring the round trip first; our distilled student already brings LLM judgement into 7 ms |
 | D5 | Decisions are gated on **unseen** sets (`novel-test`, `dev-aug`, held-out voices), not on `dev` | The hidden set has human, unscripted callers; `dev` has few real interruptions, so we never tune to individual calls |
 | D6 | The lexicon gets two tiers: strong `BID` words stop at once; `CUE` words stop only when meaning confirms | This fixes the largest group of false stops |
@@ -293,4 +293,4 @@ Roles are flexible, but every role has one clear owner. **Every member must be a
 
 ## 16. External services (summary; full register in TECH_SPEC Appendix A)
 
-Cohere Transcribe Arabic (Apache-2.0) · Whisper large-v3-turbo / faster-whisper (MIT) · Silero VAD (MIT) · 3D-Speaker CAM++ via sherpa-onnx (Apache-2.0) · CAMeLBERT-DA (Apache-2.0) · Smart Turn v3.2 (BSD-2, optional) · LLM teacher (Claude) for training data only · Gemma 4 via OpenRouter for the demo brain only · Edge TTS and ElevenLabs for synthetic test voices and demo voice · ESC-50 (CC BY-NC, generation only).
+Cohere Transcribe Arabic (Apache-2.0) · Whisper large-v3-turbo / faster-whisper (MIT) · Silero VAD (MIT) · 3D-Speaker CAM++ via sherpa-onnx (Apache-2.0) · CAMeLBERT-DA (Apache-2.0) · Smart Turn v3.2 (BSD-2, optional) · LLM teacher (Claude) for training data only · the Gemini API for the demo brain only · Edge TTS and ElevenLabs for synthetic test voices and demo voice · ESC-50 (CC BY-NC, generation only).

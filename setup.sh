@@ -1,9 +1,17 @@
 #!/bin/zsh
 # One-time setup on a teammate's Mac (Apple Silicon). Safe to run again: every step skips what already exists.
 #   ./setup.sh            # code + models + our generated data
-#   ./setup.sh --no-data  # skip the ~500 MB of generated calls
+#   ./setup.sh --no-data      # skip the ~500 MB of generated calls
+#   ./setup.sh --local-brain  # also download the 15 GB local agent brain (the default brain is the Gemini API)
 set -e
 cd "$(dirname "$0")"
+NO_DATA=0; LOCAL_BRAIN=0
+for arg in "$@"; do
+  case "$arg" in
+    --no-data) NO_DATA=1 ;;
+    --local-brain) LOCAL_BRAIN=1 ;;
+  esac
+done
 EXT="$HOME/Downloads/sarj-ext-data"          # big files live outside git
 mkdir -p "$EXT"
 
@@ -35,11 +43,13 @@ echo "2c/4 Meaning student (models/student, 110 MB, GitHub release models-v1)"
 mkdir -p models/student
 [ -f models/student/sem.onnx ] || gh release download models-v1 -R o6lq/sarj-turn-taking -p student-sem.onnx -O models/student/sem.onnx
 [ -f models/student/tokenizer.json ] || gh release download models-v1 -R o6lq/sarj-turn-taking -p student-tokenizer.json -O models/student/tokenizer.json
-echo "2d/4 Gemma 4 26B-A4B (agent brain, 15 GB, Apache-2.0)"
-.venv/bin/python -m tools.get_model mlx-community/gemma-4-26b-a4b-it-4bit "$EXT/gemma-4-26b-a4b-4bit"
+if [[ "$LOCAL_BRAIN" == 1 ]]; then
+  echo "2d/4 Gemma 4 26B-A4B (local agent brain, 15 GB, Apache-2.0)"
+  .venv/bin/python -m tools.get_model mlx-community/gemma-4-26b-a4b-it-4bit "$EXT/gemma-4-26b-a4b-4bit"
+fi
 
 echo "3/4  Generated training/test calls (GitHub release data-v1)"
-if [[ "$1" != "--no-data" ]]; then
+if [[ "$NO_DATA" != 1 ]]; then
   for set in synth synth-test dev-aug; do
     if [ ! -f "data/$set/manifest.json" ]; then
       gh release download data-v1 -R o6lq/sarj-turn-taking -p "$set.zip" -D /tmp --clobber
