@@ -94,7 +94,8 @@ class TurnTaker:
             audio, agent_text = payload if isinstance(payload, tuple) else (payload, None)
             r = dict((asr_fn or transcribe)(audio))
             if agent_text is not None and USE_SEM and r.get("text"):
-                r["sem"] = semantic.p_stop(agent_text, r["text"])
+                clean = lexicon._strip_speaker_label(r["text"])[0]
+                r["sem"] = semantic.p_stop(agent_text, clean) if clean.strip() else None
             e = speaker.embed(audio[-16000 * 3:]) if USE_SPEAKER else None
             r["spk"] = e
             r["prof"] = acoustic.segment_profile(audio[-16000 * 3:]) if len(audio) >= 1600 else None
@@ -329,6 +330,8 @@ class TurnTaker:
                 return 0.2, "long, quiet, continuous talk without a floor bid: background"
             return 0.85, f"{f['content']} content words"
         if f["question"] and f["n"] >= 2:
+            if has_sem and sem < SEM_LO:
+                return 0.2, f"looks like a question, but the meaning is an acknowledgement (meaning p={sem:.2f})"
             return 0.8, "question"
         return 0.1, "acknowledgement / filler" if f["n"] else "no words"
 

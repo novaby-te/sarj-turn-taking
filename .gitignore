@@ -19,3 +19,6 @@ models/student*/tokenizer.json
 models/student-camel/
 models/student-saudi/
 analysis/llm_judge_texts.json
+
+.env
+.claude/settings.local.json

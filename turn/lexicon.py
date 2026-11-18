@@ -79,10 +79,21 @@ def cut_loop(words: list[str]) -> list[str]:
     return words
 
 
+_LABEL = re.compile(r'^\s*(?:["“«][^"”»]{1,25}["”»]\s*:|\S+(?:\s\S+)?\s+:|\S{1,12}:(?=\S|\s*$))\s*\)?')
+
+
+def _strip_speaker_label(text: str) -> tuple[str, bool]:
+    m = _LABEL.match(text)
+    return (text[m.end():], True) if m else (text, False)
+
+
 def analyse(text: str, agent_text: str = "") -> dict:
     """Turn the caller's words into simple, explainable features."""
     # Cohere wraps a whole reading in brackets when it is guessing at an unclear sound («(تيم هوليوود)»): unreliable
     bracketed = bool(re.fullmatch(r"\s*[\(\[].*[\)\]]\s*[:.،]?\s*", text or ""))
+    # ...and invents a speaker label when guessing: «"مازن الضراب": …», «أبو عابد :», «رغد:انا…», «زي:»
+    text, labelled = _strip_speaker_label(text or "")
+    bracketed = bracketed or (labelled and not norm(text))
     t = norm(text)
     for tail in TAILS:
         if t.endswith(tail) and len(t) > len(tail):
