@@ -703,5 +703,146 @@
   "saudi": 2,
   "msa": 1,
   "other": 0
+ },
+ "gemini": {
+  "rows": [
+   {
+    "case": "interrupt: amount",
+    "said": "كم القيمة؟",
+    "reply": "هلا بك زود، القيمة ثلاث مية وخمسين ريال، وزي ما كنت أقول لك الدفعة مستحقة يوم الخميس الجاي.",
+    "first_s": 0.8,
+    "total_s": 0.92,
+    "fact_ok": true,
+    "saudi": 1,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "fact: paid already",
+    "said": "أنا دفعت أمس",
+    "reply": "ما شاء الله، يعطيك العافية. ترا السداد ممكن ياخذ يوم عمل لين يظهر عندنا، وإذا ما ظهر بعد كذا نتمنى تتواصل معنا عشان نأكده لك.",
+    "first_s": 0.8,
+    "total_s": 0.81,
+    "fact_ok": true,
+    "saudi": 3,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "unknown: must not invent a discount",
+    "said": "فيه خصم لو سددت اليوم؟",
+    "reply": "والله ما عندي معلومة عن الخصم، بتأكد لك وأرجع لك.",
+    "first_s": 1.33,
+    "total_s": 1.33,
+    "fact_ok": true,
+    "saudi": 0,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "interrupt: offer the alternatives",
+    "said": "لا لا لحظة، الأحد ما يناسبني",
+    "reply": "ولا يهمك، عندي يوم الاثنين الساعة أربع العصر، أو الثلاثاء الساعة تسع الصبح، وش يناسبك أكثر؟",
+    "first_s": 0.76,
+    "total_s": 0.82,
+    "fact_ok": true,
+    "saudi": 1,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "fact: insurance",
+    "said": "الكشف عليه تأمين؟",
+    "reply": "إيه نعم، الكشف مغطى بالتأمين. يناسبك الموعد ولا حاب نغيره؟",
+    "first_s": 0.98,
+    "total_s": 1.01,
+    "fact_ok": true,
+    "saudi": 0,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "fact: doctor's name",
+    "said": "وش اسم الدكتورة؟",
+    "reply": "الدكتورة نورة.",
+    "first_s": 0.91,
+    "total_s": 0.93,
+    "fact_ok": true,
+    "saudi": 0,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "interrupt: offer a change",
+    "said": "بس أنا مو بالبيت بكرة",
+    "reply": "ولا يهمك، يقدر يغير الموعد مرة وحدة مجاناً، تبي نخليه يوم ثاني؟",
+    "first_s": 1.08,
+    "total_s": 1.11,
+    "fact_ok": true,
+    "saudi": 1,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "fact: amount",
+    "said": "كم المبلغ؟",
+    "reply": "المبلغ مية وعشرين ريال ودفع عند الاستلام.",
+    "first_s": 0.96,
+    "total_s": 0.97,
+    "fact_ok": true,
+    "saudi": 0,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "unknown: must not promise today",
+    "said": "تقدر تجيبه اليوم؟",
+    "reply": "والله اليوم ما أقدر، بس بكرة الموعد بين أربع وثمان المسا، وصحيح يحق لك تغير الموعد أو العنوان مرة وحدة مجاناً.",
+    "first_s": 1.81,
+    "total_s": 1.81,
+    "fact_ok": true,
+    "saudi": 0,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "interrupt: respect the no",
+    "said": "مو مهتم الحين الله يعافيك",
+    "reply": "ولا يهمك، أشكرك على وقتك، الله يعطيك العافية، مع السلامة.",
+    "first_s": 1.33,
+    "total_s": 1.33,
+    "fact_ok": true,
+    "saudi": 1,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "fact: no contract",
+    "said": "فيه عقد؟",
+    "reply": "بدون عقد إلزامي نهائياً.",
+    "first_s": 1.03,
+    "total_s": 1.04,
+    "fact_ok": true,
+    "saudi": 0,
+    "msa": 0,
+    "other": 0
+   },
+   {
+    "case": "fact: current price",
+    "said": "كم أدفع الحين على باقتي؟",
+    "reply": "تدفع في باقتك الحالية مية ميقا بمية وتسعين ريال شهرياً.",
+    "first_s": 0.81,
+    "total_s": 0.81,
+    "fact_ok": true,
+    "saudi": 0,
+    "msa": 0,
+    "other": 0
+   }
+  ],
+  "median_first_s": 0.98,
+  "facts_ok": 12,
+  "saudi": 7,
+  "msa": 0,
+  "other": 0
  }
 }
