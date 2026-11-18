@@ -76,6 +76,23 @@ JSON array فقط: [{{"agent": "...", "caller": "...", "label": "STOP", "kind": 
 kind واحد من: answer, overlap_start, clarify, backchannel, filler"""
 
 
+PROMPT_HARD = """اكتب ٤٠ عنصر تدريب لمكالمة هاتفية من شركة لعميل. المجال: {domain}. لهجة العميل: {dialect}.
+التركيز: الحالات الصعبة اللي الكلمات لحالها ما تكفي فيها، والمعنى هو اللي يفرّق.
+«agent» = جملة الوكيل لحظة التداخل (١٠–٣٠ كلمة، لهجة سعودية بيضاء مهذبة).
+التوزيع بالضبط:
+- ١٢ STOP افتتاحية مقاطعة: العميل يبدأ بعبارة تطلب الكلمة بمفردات لهجته الحقيقية (اعتذار قبل المقاطعة، لفت انتباه، تعجب يتبعه طلب)، وأحياناً تنقطع الجملة بعد الافتتاحية مباشرة.
+- ٦ STOP سؤال قصير عن كلام الوكيل نفسه: يذكر شي قاله الوكيل ويستفسر عنه.
+- ٨ KEEP تفكير بصوت عالي: العميل يكلم نفسه وهو يتذكر تاريخ أو رقم أو مكان، بتردد وكلام ناقص، وممكن فيه كلمة سؤال موجهة لنفسه، وما يطلب شي من الوكيل.
+- ٨ KEEP كلام لشخص بالغرفة: يكلم طفله أو زوجته أو زميله عن شي ما له علاقة بالمكالمة، وفيه أمر أو سؤال أو نداء باسم، وواضح إنه مو موجّه للوكيل.
+- ٦ KEEP تأييد يشبه الاعتراض: مجاملة أو موافقة فيها كلمة نفي أو نداء أو دعاء، ومعناها «كمّل».
+قواعد:
+- كلام العميل مثل ما يكتبه نظام التفريغ: بدون تشكيل، و٣٠٪ فيها أخطاء إملاء أو كلمة مسموعة غلط. نوّع الطول من كلمتين إلى ١٢ كلمة.
+- لا تكرر الصياغات، وخلّ كل عنصر مختلف عن غيره.
+- لكل STOP حط «cue»: رقم الكلمة (من ١) اللي عندها السامع يعرف إن العميل يبي الكلمة.
+JSON array فقط: [{{"agent": "...", "caller": "...", "label": "STOP", "kind": "opener", "cue": 2}}, ...]
+kind واحد من: opener, question, thinking, room_talk, backchannel"""
+
+
 def one(job: tuple[int, str, str], model: str, prompt: str = PROMPT) -> str:
     i, dialect, domain = job
     out = OUT / f"{i:04d}.json"
@@ -106,7 +123,7 @@ def main():
     ap.add_argument("--calls", type=int, default=120)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--model", default="claude-opus-5-5")
-    ap.add_argument("--focus", default="", choices=["", "answers"])
+    ap.add_argument("--focus", default="", choices=["", "answers", "hard"])
     ap.add_argument("--offset", type=int, default=0)
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
@@ -115,7 +132,7 @@ def main():
     if a.focus:
         random.Random(13).shuffle(pairs)
     jobs = [(a.offset + i, d, m) for i, (d, m) in enumerate(itertools.islice(itertools.cycle(pairs), a.calls))]
-    prompt = PROMPT_ANSWERS if a.focus == "answers" else PROMPT
+    prompt = {"answers": PROMPT_ANSWERS, "hard": PROMPT_HARD}.get(a.focus, PROMPT)
     with ThreadPoolExecutor(a.workers) as ex:
         for msg in ex.map(lambda j: one(j, a.model, prompt), jobs):
             print(msg, flush=True)
