@@ -25,6 +25,7 @@ from turn import lexicon, policy
 from turn.asr import transcribe
 
 from . import brain, voice
+from .live_score import LiveScore
 from .live_voice import LiveVoice
 from .scenarios import SCENARIOS, as_male, system_prompt
 
@@ -61,6 +62,7 @@ class Conversation:
         self.sc = SCENARIOS[scenario] if engine in ("edge", "live", "eleven") else as_male(SCENARIOS[scenario])
         self.tt = policy.TurnTaker()
         self.tt.on_scenario_start()
+        self.score = LiveScore()
         self.history = [{"role": "system", "content": system_prompt(self.sc)}]
         self.state = "idle"                      # speaking | listening | thinking | ended
         self.chunks: dict[int, dict] = {}        # audio chunks sent for the current agent turn
@@ -167,6 +169,9 @@ class Conversation:
         if "مع السلامة" in spoken:
             self.ending = True
         return started
+
+    async def send_score(self):
+        await self.send({"type": "score", **self.score.snapshot()})
 
     def shutdown(self):
         if self.live is not None:
@@ -360,6 +365,8 @@ class Conversation:
                 continue                                  # the agent's own voice coming back: not the caller
             if r["kind"] == "candidate_end" and r.get("text") and self.state == "speaking":
                 await self.send({"type": "chat", "role": "caller", "text": r["text"], "note": "تأييد — كمّل"})
+                self.score.kept(self.ms, r["text"])
+                await self.send_score()
             if r["kind"] == "asr" and self.state in ("speaking", "listening"):
                 await self.send({"type": "hearing", "text": r.get("text", ""), "why": r.get("why", "")})
         if dec == "STOP" and self.state in ("speaking", "thinking") and not self._real_words():
@@ -371,6 +378,8 @@ class Conversation:
             c = self.tt.cand
             self.interrupted_at = c["start"] if c else self.ms - 600
             self.stats.append({"kind": "stop", "ms": self.ms - self.interrupted_at})
+            self.score.stopped(self.interrupted_at, self.ms, (c or {}).get("text", ""))
+            await self.send_score()
             self.state = "listening"
             if self.task and not self.task.done():
                 self.task.cancel()
@@ -380,6 +389,8 @@ class Conversation:
             self.tt.on_agent_end()
             self.listen_since = self.ms
         elif dec == "RESUME" and self.state == "listening" and self.interrupted_at is not None:
+            self.score.took_back(self.ms)
+            await self.send_score()
             if self.chunks:                                   # the browser has not reported where it stopped yet
                 self.resume_pending = True
             else:
@@ -440,9 +451,14 @@ class Conversation:
             return                                            # noise, not words: keep listening
         only_ack = a["bid"] == 0 and a["content"] == 0 and not a["repeated_ambig"] and not a["question"]
         if interrupted and only_ack and self.remaining:
+            self.score.was_acknowledgement(text)
+            await self.send_score()
             await self.send({"type": "chat", "role": "caller", "text": text, "note": "تأييد — يكمّل"})
             await self._resume()
             return
+        if interrupted:
+            self.score.heard(text)
+            await self.send_score()
         await self.send({"type": "chat", "role": "caller", "text": text, "note": "قاطع" if interrupted else ""})
         self.tt.turn = None
         if self.task and not self.task.done():
@@ -493,7 +509,7 @@ def save_session(conv: "Conversation", folder, d=None):
     d.mkdir(parents=True, exist_ok=True)
     write_wav_stereo(d / "call.wav", np.stack([np.concatenate(conv.rec_a), np.concatenate(conv.rec_c)], 1))
     (d / "trace.json").write_text(json.dumps({"trace": [{k: v for k, v in r.items() if k != "f"} for r in conv.tt.trace],
-                                              "history": conv.history, "stats": conv.stats, "gated_frames": conv.gated},
+                                              "history": conv.history, "stats": conv.stats, "gated_frames": conv.gated, "score": conv.score.snapshot()},
                                              ensure_ascii=False, indent=1), encoding="utf-8")
     (d / "events.json").write_text(json.dumps(conv.events, ensure_ascii=False), encoding="utf-8")
     return d

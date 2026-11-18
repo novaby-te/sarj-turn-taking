@@ -56,6 +56,12 @@ td.num{font-variant-numeric:tabular-nums;text-align:center}
 .pill{display:inline-block;padding:0 9px;border-radius:999px;font-size:12px;background:var(--acc2)}
 .mut{color:var(--muted)}.small{font-size:13px}
 .hint{font-size:13px;color:var(--muted);margin-top:6px}
+.scorehead{display:flex;align-items:center;justify-content:space-between;gap:14px}.corev{font-size:46px;font-weight:800;line-height:1;color:var(--acc);direction:ltr;unicode-bidi:isolate}
+.scgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.scgrid div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--muted)}.scgrid b{display:block;font-size:20px;color:var(--ink);direction:ltr;unicode-bidi:isolate;text-align:start}
+#scevents{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}.scev{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:14px}
+.scev .q{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.scev .a{color:var(--muted);font-size:12px}.scev .c{direction:ltr;unicode-bidi:isolate;font-weight:800;min-width:34px;text-align:center}
+.scbtns{display:flex;gap:4px}.scbtns button{font:inherit;font-size:12px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:3px 9px;cursor:pointer}.scbtns button.on{color:var(--ink);background:var(--acc2);border-color:var(--acc)}
+@media(max-width:640px){.scev{grid-template-columns:minmax(0,1fr) auto}.scbtns{grid-column:1/-1}}
 </style></head><body><div class="wrap">
 <nav>
   <div class="brand">متى <span>يسكت</span> الوكيل</div>
@@ -110,6 +116,11 @@ td.num{font-variant-numeric:tabular-nums;text-align:center}
       <div class="stat" style="margin-top:12px"><div>سكوت بعد المقاطعة<br><b id="sstop">—</b></div><div>أول كلمة بالرد<br><b id="sreply">—</b></div><div>رجع يكمّل<br><b id="sres">٠</b></div></div>
       <div class="hint" id="cal">الوكيل يتعلّم صوتك من أول جواب («إيه نعم، هلا»).</div>
     </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="scorehead"><div><h3>الدرجة الحية للمكالمة</h3><div class="small mut">تقدير بنفس معادلة سرج (Core = 100 × F). إذا قرار الوكيل كان غلط، صحّحه من الأزرار وتتحدث الدرجة.</div></div><div class="corev" id="sccore">—</div></div>
+    <div class="scgrid"><div>الاستجابة R<b id="scr">—</b></div><div>ضبط النفس S<b id="scs">—</b></div><div>F<b id="scf">—</b></div></div>
+    <div id="scevents"><div class="small mut">قاطع الوكيل أو أيّده، وتظهر كل لحظة هنا مع درجتها.</div></div>
   </div>
 </section>
 
@@ -261,6 +272,14 @@ fetch('/scenarios').then(r => r.json()).then(d => {
   if (d.voices && d.voices.eleven) { $('#elevenOpt').disabled = false; $('#elevenOpt').textContent = 'ElevenLabs'; }
   for (const [k, ok] of Object.entries(d.models)) if (ok) $('#model').insertAdjacentHTML('beforeend', `<option value="${k}">${names[k] || k}</option>`);
 });
+const fmt = (v, d) => v === null || v === undefined ? '—' : v.toFixed(d);
+function renderScore(m) {
+  $('#sccore').textContent = fmt(m.core, 1); $('#scr').textContent = fmt(m.R, 2); $('#scs').textContent = fmt(m.S, 2); $('#scf').textContent = fmt(m.F, 2);
+  const did = e => e.action === 'stopped' ? `سكت بعد ${e.latency_ms} ms` : e.action === 'resumed' ? 'سكت ورجع' : 'كمّل';
+  $('#scevents').innerHTML = m.events.slice().reverse().map(e => `<div class="scev"><span class="q">«${esc(e.text || '…')}»</span><span class="a">${did(e)}</span><span class="c ${e.credit >= .99 ? 'good' : e.credit > 0 ? 'warn' : 'bad'}">${e.credit.toFixed(2)}</span><span class="scbtns"><button data-id="${e.id}" data-exp="STOP" class="${e.expected === 'STOP' ? 'on' : ''}">لازم يسكت</button><button data-id="${e.id}" data-exp="KEEP" class="${e.expected === 'KEEP' ? 'on' : ''}">لازم يكمّل</button></span></div>`).join('');
+}
+function resetScore() { renderScore({core: null, R: null, S: null, F: null, events: []}); $('#scevents').innerHTML = '<div class="small mut">قاطع الوكيل أو أيّده، وتظهر كل لحظة هنا مع درجتها.</div>'; }
+$('#scevents').addEventListener('click', e => { const b = e.target.closest('button[data-id]'); if (b && ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'relabel', id: +b.dataset.id, expected: b.dataset.exp})); });
 function setState(cls, t) { $('#state').className = 'state ' + cls; $('#state').textContent = t; }
 function bubble(role, text, tag) { const d = document.createElement('div'); d.className = 'bub ' + role; d.innerHTML = esc(text) + (tag ? `<span class="tag">${esc(tag)}</span>` : ''); $('#chat').append(d); $('#chat').scrollTop = 1e9; return d; }
 const W = (id, v) => { $(id).style.width = Math.max(0, Math.min(100, v)) + '%'; };
@@ -268,7 +287,7 @@ const avg = a => a.length ? Math.round(a.reduce((x, y) => x + y) / a.length) : '
 $('#go').onclick = async () => {
   try { await ensureAudio(); } catch (e) { setState('', 'المتصفح ما سمح بالمايك'); return; }
   await ctx.resume();
-  $('#chat').innerHTML = ''; bub = null; st.stops = []; st.replies = []; st.res = 0;
+  $('#chat').innerHTML = ''; bub = null; st.stops = []; st.replies = []; st.res = 0; resetScore();
   $('#go').disabled = true; node.port.postMessage({stop: true});
   if (ws) { try { ws.onmessage = null; ws.close(); } catch (e) {} }
   ws = new WebSocket('ws://127.0.0.1:8771');
@@ -289,6 +308,7 @@ $('#go').onclick = async () => {
       node.port.postMessage({enqueue: buf.getChannelData(0).slice(), id: m.id});
       if (!bub) bub = bubble('agent', m.text); else bub.firstChild.textContent += ' ' + m.text;
     }
+    if (m.type === 'score') renderScore(m);
     if (m.type === 'pcm') {
       node.port.postMessage({enqueue: upsample(m.pcm), id: m.id});
       if (m.text) { if (!bub) bub = bubble('agent', m.text); else bub.firstChild.textContent += m.text; }
