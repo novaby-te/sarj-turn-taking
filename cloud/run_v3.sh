@@ -8,6 +8,7 @@
 #   TEACHER_MODEL    default claude-opus-5-5 (claude/anthropic) or gemini-3.5-flash-lite (gemini)
 #   CALLS            teacher calls per focus (40 items each), default 60  → 5 focuses × 60 × 40 ≈ 12k new items
 #   EPOCHS           default 3
+#   WORKERS          parallel teacher requests, default 4 (use 2 when the API answers 503 "high demand")
 # The official model in models/student is never touched: the candidate goes to models/student-v3.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -28,7 +29,7 @@ if has teacher; then
   for focus in hard pairs live answers default; do
     f=$focus; [ "$f" = default ] && f=""
     log "teacher: focus=${focus} calls=${CALLS} backend=${BACKEND} model=${MODEL}"
-    python -m tools.teacher_gen --calls "$CALLS" --workers 4 --backend "$BACKEND" --model "$MODEL" --focus "$f" --offset "$off" \
+    python -m tools.teacher_gen --calls "$CALLS" --workers "${WORKERS:-4}" --backend "$BACKEND" --model "$MODEL" --focus "$f" --offset "$off" \
       | tee -a "$OUT/teacher.log" | grep -E "FAILED|ALLDONE" || true
     off=$((off + 1000))
   done
