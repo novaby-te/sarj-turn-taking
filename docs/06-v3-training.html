@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تدريب v3 في السحابة</title>
+<style>
+:root{--bg:#f7f6f3;--card:#fff;--ink:#1b1b1b;--muted:#666;--line:#e4e1db;--acc:#3e3aa8;--soft:#ecebfa;--g:#2e9b63;--r:#d64045;--a:#c98a10;
+--gs:#eaf7ef;--as:#fff4e5;--rs:#fdecef;--bar:#8f8ce0;--bar2:#cfd3dc}
+@media (prefers-color-scheme:dark){:root{--bg:#121214;--card:#1c1c20;--ink:#ececec;--muted:#a0a0a8;--line:#30303a;--acc:#a9a6ff;--soft:#26254a;
+--gs:#16301f;--as:#352a14;--rs:#381a20;--bar:#6c69c9;--bar2:#3a3e48}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"SF Arabic","Geeza Pro",Tahoma,sans-serif;line-height:1.85;font-size:15.5px}
+.w{max-width:980px;margin:0 auto;padding:26px 16px 80px}
+header{background:var(--acc);color:#fff;border-radius:18px;padding:24px 22px}@media (prefers-color-scheme:dark){header{color:#111}}
+header h1{margin:0 0 4px;font-size:26px}
+h2{font-size:21px;margin:36px 0 8px;border-bottom:2px solid var(--line);padding-bottom:4px}
+h3{font-size:17px;margin:4px 0 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:10px 0}
+.g{background:var(--gs)}.am{background:var(--as)}.rd{background:var(--rs)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card)}th,td{border:1px solid var(--line);padding:7px 9px;text-align:right;vertical-align:top}th{background:var(--soft)}
+.tw{overflow-x:auto}
+.muted{color:var(--muted)}code{background:var(--soft);padding:1px 5px;border-radius:5px;direction:ltr;unicode-bidi:isolate;font-size:12.5px}
+.ok{color:var(--g);font-weight:700}.pl{color:var(--a);font-weight:700}.no{color:var(--r);font-weight:700}
+.num{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--acc);color:#fff;align-items:center;justify-content:center;font-weight:800;margin-left:8px;flex:none}
+@media (prefers-color-scheme:dark){.num{color:#111}}
+.row{display:flex;align-items:flex-start;gap:4px}
+.ex{border-right:3px solid var(--acc);padding:4px 12px;margin:8px 0;background:var(--soft);border-radius:6px}
+.cmd{direction:ltr;text-align:left;background:var(--soft);border-radius:8px;padding:10px 12px;font-family:ui-monospace,Menlo,monospace;font-size:13px;overflow-x:auto;white-space:pre}
+.cmp{display:grid;grid-template-columns:150px 1fr 56px;gap:6px 10px;align-items:center;font-size:14px;margin:8px 0}
+.track{background:var(--bar2);border-radius:6px;height:22px;overflow:hidden}.fill{height:100%;background:var(--bar);border-radius:6px}
+.fill.bad{background:var(--r)}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}.flow span{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px}.flow i{color:var(--muted);font-style:normal}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.big{font-size:28px;font-weight:800}
+</style></head><body><div class="w">
+
+<header><h1>تدريب نموذج أذكى (v3) في السحابة</h1>
+<div>وش جهّزت، ووش اكتشفت، وكيف تشغّله من تطبيق Claude · فرع <code>exp/v3-training</code> · 19 نوفمبر 2026</div></header>
+
+<div class="card g" style="margin-top:16px">✅ <b>تعديلات سرعة الرد صارت في <code>main</code></b> (commit <code>8aed372</code>).</div>
+<div class="card am"><b>للعلم:</b> التدريب <b>ما بدأ للحين</b>. جهّزت كل الأدوات، ويبدأ لما تفتح جلسة في السحابة.
+وما شغّلت شي ثقيل على جهازك: بس تحميل 109 MB وثواني معالجة عشان أقيس النموذج الحالي.</div>
+
+<h2>المشكلة اللي نبي نحلها</h2>
+<p>قلت إن الوكيل أحياناً «يصير غبي»:</p>
+<ul>
+<li><b>يوقف وهو مفروض يكمّل:</b> مثلاً لما تقول «إيه» أو «لا والله صادق».</li>
+<li><b>ما يوقف وهو مفروض يوقف:</b> مثلاً لما تقول «عفوا عفوا» أو «استنى».</li>
+<li><b>يوقف وبعدين يرجع يكمّل:</b> لأنه حسب مقاطعتك مجرد موافقة.</li>
+</ul>
+<p>كل هذي قرارات <b>نموذج فهم المعنى</b>، وهو نموذج صغير يقرأ كلامك ويقرر: تبي تتكلم ولا لا؟ وهذا النموذج نقدر ندرّبه في السحابة.</p>
+
+<h2>⚠️ اكتشاف مهم: تأكدوا منه أول</h2>
+<div class="card rd">
+<p style="margin-top:0">ملف نموذج فهم المعنى (<code>models/student/sem.onnx</code>) <b>مو محفوظ في git</b>. يعني الـhash اللي سلّمتوه للمسابقة <b>ما يثبّت النموذج</b>.
+وقست النسخة المنشورة على GitHub بنفس طريقة تشغيل المشروع، والنتيجة <b>أضعف بكثير</b> من الرقم المكتوب في ملفات المشروع:</p>
+
+<div class="cmp"><div>يوقف للمقاطعة الحقيقية<br><span class="muted">المكتوب</span></div><div class="track"><div class="fill" style="width:92.8%"></div></div><b>92.8٪</b></div>
+<div class="cmp"><div><span class="muted">اللي قسته فعلياً</span></div><div class="track"><div class="fill bad" style="width:69.6%"></div></div><b>69.6٪</b></div>
+<div class="cmp"><div>التقييم الإجمالي F<br><span class="muted">المكتوب</span></div><div class="track"><div class="fill" style="width:95.6%"></div></div><b>0.956</b></div>
+<div class="cmp"><div><span class="muted">اللي قسته فعلياً</span></div><div class="track"><div class="fill bad" style="width:81.1%"></div></div><b>0.811</b></div>
+<p class="muted">القياس على 211 لحظة حقيقية من مكالمات dev وdev-aug وsynth-test، بالنص اللي سمعه نظام التفريغ فعلاً.</p>
+
+<p><b>غالباً النسخة اللي على جهاز العرض غير النسخة المنشورة.</b> خلّوا زميل على جهاز العرض يشغّل هالأمر (ثانية وحدة، ما يضغط الجهاز):</p>
+<div class="cmd">shasum -a 256 models/student/sem.onnx</div>
+<ul style="margin-bottom:0">
+<li>لو يبدأ بـ<code>a661b1722ae5ea00</code>: نفس النسخة المنشورة، والنموذج فعلاً أضعف من المكتوب.</li>
+<li>لو مختلف: <b>نسخة جهاز العرض هي اللي لازم تنستخدم في التشغيل النهائي</b>، فاحتفظوا فيها وارفعوها كإصدار <code>models-v1.1</code> عشان السحابة تقارن معها.</li>
+</ul>
+</div>
+
+<h2>وين يغلط النموذج الحالي (اختبار صعب جديد)</h2>
+<p>كتبت <b>63 حالة صعبة جديدة</b> من أنواع الغلطات اللي تصير في الديمو. النموذج المنشور غلط في <b>12</b> منها:</p>
+<div class="tw"><table>
+<tr><th>نوع الغلطة</th><th>الكلام</th><th>وش سوّى</th><th>المفروض</th></tr>
+<tr><td>موافقة فيها «لا»</td><td>«لا لا عادي تفضل»، «لا والله صادق»، «لا مو مشكله»</td><td class="no">وقف</td><td>يكمّل</td></tr>
+<tr><td>بداية مقاطعة</td><td>«عفوا عفوا»، «اقول»، «استنى استنى»</td><td class="no">كمّل</td><td>يوقف</td></tr>
+<tr><td>سؤال قصير</td><td>«السبت هذا ولا الجاي»، «وين القسم هذا»، «بلا حدود يعني كم»</td><td class="no">كمّل</td><td>يوقف</td></tr>
+<tr><td>جواب سؤال الوكيل</td><td>«الاثنين احسن»، «ايه الاحد زين»</td><td class="no">كمّل</td><td>يوقف</td></tr>
+<tr><td>موافقة ثم سؤال</td><td>«طيب واذا ما دفعت»</td><td class="no">كمّل</td><td>يوقف</td></tr>
+</table></div>
+<p class="muted">وصح في: كلمة الموافقة الوحدة، والتفكير بصوت عالي، والكلام لشخص في الغرفة، وصدى صوت الوكيل، والكلام الفاضي من التفريغ.</p>
+
+<h2>وش جهّزت (٥ أشياء)</h2>
+
+<div class="card"><div class="row"><span class="num">١</span><div>
+<h3>بيانات تدريب صعبة وكثيرة</h3>
+<p>تقريباً <b>12 ألف مثال جديد</b> يكتبها ويصنّفها نموذج كبير (Claude أو Gemini)، بـ14 لهجة و12 مجال شغل. وفيها نوعين جدد:</p>
+<ul>
+<li><b>أزواج متقابلة:</b> نفس بداية الكلام، مرة معناها «كمّل» ومرة «أبي أتكلم».
+<div class="ex">«طيب» ← كمّل · «طيب وإذا تأخرت؟» ← وقّف<br>«لا عادي كمّل» ← كمّل · «لا مو أنا صاحب الطلب» ← وقّف</div>
+هذا يعلّم النموذج يفهم المعنى بدل ما يحفظ كلمات.</li>
+<li><b>غلطات الديمو الحقيقية:</b> كلمة موافقة وحدة، وصوت الوكيل راجع من السماعة، وكلام فاضي يكتبه التفريغ على الضجيج.</li>
+</ul>
+<p class="muted">الملف: <code>tools/teacher_gen.py</code></p>
+</div></div></div>
+
+<div class="card"><div class="row"><span class="num">٢</span><div>
+<h3>اختبار صعب جديد</h3>
+<p><b>63 حالة نصية</b> (اللي في الجدول فوق)، و<b>160 مكالمة صوتية</b> بنفس صيغة بيانات سرج (صوتين، 16 kHz، نفس ملفات التصنيف)، كلها فيها ضجيج، وأغلبها بصوت خط هاتف، وبجمل جديدة.</p>
+<p class="muted">الملفات: <code>tools/hard_bank.py</code>، <code>tools/synth_calls.py --hard</code></p>
+</div></div></div>
+
+<div class="card"><div class="row"><span class="num">٣</span><div>
+<h3>حماية من الغش</h3>
+<p>أي جملة تدريب قريبة من جمل الاختبار <b>تنشال تلقائياً</b>، حتى لو تغيّرت الهمزة أو التاء المربوطة. كذا نتيجة الاختبار تبقى صادقة.</p>
+<p class="muted">الملف: <code>tools/decontam.py</code></p>
+</div></div></div>
+
+<div class="card"><div class="row"><span class="num">٤</span><div>
+<h3>بوابة جودة</h3>
+<p>آخر محاولة تدريب (التجربة #42) رفعت الدرجة، لكنها <b>ضاعفت مرات الوقوف الغلط</b> (11 ← 23)، وانرفضت.
+عشان كذا النسخة الجديدة ما تنقبل إلا بثلاث شروط:</p>
+<ol style="margin:0">
+<li>ما تزيد مرات الوقوف الغلط على كلام حقيقي.</li>
+<li>أحسن إجمالاً.</li>
+<li>غلطاتها أقل في الاختبار الصعب.</li>
+</ol>
+<p class="muted">الملف: <code>tools/student_eval.py</code></p>
+</div></div></div>
+
+<div class="card"><div class="row"><span class="num">٥</span><div>
+<h3>سكربتات السحابة</h3>
+<p>سكربت يجهّز جهاز السحابة، وسكربت يشغّل كل المراحل بالترتيب. ولو انقطعت الجلسة، يكمّل من مكانه.</p>
+<div class="flow"><span>تجهيز</span><i>←</i><span>توليد البيانات</span><i>←</i><span>تنظيف</span><i>←</i><span>تدريب</span><i>←</i><span>قياس + بوابة</span><i>←</i><span>مكالمات صعبة</span><i>←</i><span>رفع النتائج</span></div>
+<p class="muted">الملفات: <code>cloud/setup_linux.sh</code>، <code>cloud/run_v3.sh</code>، <code>docs/CLOUD_TRAINING.md</code></p>
+</div></div></div>
+
+<div class="kpis">
+<div class="card"><div class="muted">أمثلة تدريب جديدة</div><div class="big">≈ 12,000</div></div>
+<div class="card"><div class="muted">الوقت في السحابة</div><div class="big">3–5 ساعات</div></div>
+<div class="card"><div class="muted">ضغط على جهازك</div><div class="big ok">صفر</div></div>
+</div>
+
+<h2>كيف تشغّله من تطبيق Claude</h2>
+<div class="card">
+<ol style="margin:0">
+<li>افتح <b>claude.ai/code</b>، أو تبويب Code في التطبيق، وسوّ جلسة جديدة على الريبو <code>o6lq/sarj-turn-taking</code>.</li>
+<li>في إعدادات بيئة الجلسة (Environment)، حط <b>مفتاح Gemini أو Anthropic كسر</b>، مو في الريبو:
+  <ul><li><code>GEMINI_API_KEY</code> مع <code>TEACHER_BACKEND=gemini</code>، أو</li>
+  <li><code>ANTHROPIC_API_KEY</code> مع <code>TEACHER_BACKEND=anthropic</code>.</li></ul>
+  ولو بصمة النموذج على جهاز العرض طلعت مختلفة، أضف كمان <code>BASE_TAG=models-v1.1</code>.</li>
+<li>الصق هالطلب في الجلسة:</li>
+</ol>
+<div class="ex">اقرأ CLAUDE.md و docs/CLOUD_TRAINING.md. اشتغل على فرع <code>exp/v3-training</code> فقط، ولا تلمس main ولا models/student ولا turn/.
+شغّل <code>bash cloud/setup_linux.sh</code>، وبعدها <code>bash cloud/run_v3.sh</code>. لو انقطعت الجلسة، أعد تشغيل <code>run_v3.sh</code>.
+بعد مرحلة eval، اعرض لي جدول الرسمي ضد v3 من <code>runs/v3/student-eval.json</code>، واذكر نتيجة البوابة.
+لو البوابة فشلت، حلّل الغلطات واقترح تعديل واحد على البيانات، وأعد التدريب مرة وحدة بس. لو فشلت مرتين، وقف وقل لي.
+في الآخر سجّل النتائج في docs/EXPERIMENTS.md (#56)، وارفع الفرع والحزمة.</div>
+</div>
+
+<h2>قبل ما يعتمد النموذج الجديد</h2>
+<div class="card am">
+<p style="margin-top:0"><b>القياس الرسمي لازم مرة وحدة على جهاز العرض (M5)، مو على جهازك.</b> السبب: أداة تفريغ الصوت اللي يستخدمها المشروع (Cohere) تشتغل على أجهزة Apple بس، والسحابة ما فيها.</p>
+<p>ينقبل النموذج الجديد بس لو:</p>
+<ul>
+<li>درجات dev-aug وnovel-test ما نزلت أكثر من 0.3.</li>
+<li>مرات الوقوف الغلط ما زادت.</li>
+<li>نتيجة الاختبار الصعب صارت أحسن.</li>
+</ul>
+<p style="margin-bottom:0">وحتى لو نجح، <b>ما يدخل النسخة المجمّدة للمسابقة</b> إلا إذا سمح المنظمين بتحديث، أو في الجولات اللي بعدها.</p>
+</div>
+
+<h2>وش أحتاج منك</h2>
+<div class="tw"><table>
+<tr><th>#</th><th>المطلوب</th><th>مين</th></tr>
+<tr><td>١</td><td>أمر البصمة على جهاز العرض (ثانية وحدة)، وتقول لي وش طلع</td><td>زميل عنده جهاز العرض</td></tr>
+<tr><td>٢</td><td>تفتح جلسة السحابة وتحط المفتاح وتلصق الطلب</td><td>أنت</td></tr>
+<tr><td>٣</td><td>بعد ما يخلص التدريب: قياس واحد على جهاز العرض</td><td>زميل عنده جهاز العرض</td></tr>
+</table></div>
+
+</div></body></html>
