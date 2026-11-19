@@ -98,6 +98,9 @@ def main():
     ap.add_argument("--agent-trunc", type=float, default=0.0, help="share of rows with a truncated agent sentence")
     ap.add_argument("--anchor", default=None, help="student folder whose probabilities are also learned")
     ap.add_argument("--anchor-w", type=float, default=0.5)
+    ap.add_argument("--anchor-mode", default="all", choices=["all", "agree"],
+                    help="agree: learn the anchor only where it agrees with the teacher label (the official student "
+                         "misses most openers and questions; copying it there would copy that bias)")
     ap.add_argument("--lr", type=float, default=3e-5)
     a = ap.parse_args()
     BASE, OUT = BASES[a.base], Path(a.out)
@@ -116,6 +119,10 @@ def main():
         anc = Student(Path(a.anchor))
         t1 = time.time()
         soft = [anc.p_stop(r[0], r[1]) for r in tr]
+        if a.anchor_mode == "agree":                                 # disagreement: fall back to the teacher label
+            n_dis = sum((q > 0.5) != (r[2] == 1) for q, r in zip(soft, tr))
+            soft = [q if (q > 0.5) == (r[2] == 1) else float(r[2]) for q, r in zip(soft, tr)]
+            print(f"anchor agree-only: {n_dis} disagreeing rows use the teacher label", flush=True)
         print(f"anchor {a.anchor}: {len(soft)} rows in {time.time() - t1:.0f}s, w={a.anchor_w}", flush=True)
     print(f"train {len(tr)} (STOP {sum(r[2] for r in tr)}) · val {len(va)}", flush=True)
 
@@ -226,7 +233,8 @@ def main():
     ms = (time.perf_counter() - t1) * 1000 / max(1, len(bank))
     res = {"val_acc": float(((pv > 0.5) == yv).mean()), "ms_per_call": round(ms, 2), "n_train": len(tr),
            "recipe": {"epochs": a.epochs, "lr": a.lr, "agent_trunc": a.agent_trunc, "anchor": a.anchor,
-                      "anchor_w": a.anchor_w if a.anchor else None}}
+                      "anchor_w": a.anchor_w if a.anchor else None,
+                      "anchor_mode": a.anchor_mode if a.anchor else None}}
     for name, sets in (("held_out", ("dev", "dev-aug", "synth-test")), ("all", ("dev", "dev-aug", "synth-test", "synth"))):
         idx = [i for i, b in enumerate(bank) if b["set"] in sets]
         y = np.array([bank[i]["intent"] for i in idx])
