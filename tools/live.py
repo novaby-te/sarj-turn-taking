@@ -132,6 +132,8 @@ class H(BaseHTTPRequestHandler):
             return self._send((KIT / "tools" / "live.html").read_bytes(), "text/html; charset=utf-8")
         if u.path == "/demo":
             return self._send((KIT / "demo" / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if u.path == "/preflight":
+            return self._send(json.dumps(preflight(), ensure_ascii=False).encode(), "application/json")
         if u.path == "/results":
             return self._send(json.dumps(results(), ensure_ascii=False).encode(), "application/json")
         if u.path == "/scenarios":
@@ -252,6 +254,7 @@ async def _serve(ws):
                 await voice.warm_fillers(SCEN_GENDER.get(msg.get("scenario", "payment"), "f"), msg.get("engine", "edge"))
             convo = Conversation(send, msg.get("scenario", "payment"), msg.get("engine", "edge"))
             convo.mic = msg.get("mic")                    # the real microphone settings, kept with the session
+            convo.preflight = dict(LAST_PREFLIGHT) or None
             _active.update(ws=ws, convo=convo)
             await send({"type": "status", "state": "ready", "model": name})
             asyncio.create_task(convo.start())
@@ -335,6 +338,74 @@ def clarity(x: np.ndarray) -> dict:
     lo = P[(f >= 300) & (f < 1000)].sum()
     return {"clarity_db": round(float(10 * np.log10(hi / lo)), 1),
             "level_db": round(float(20 * np.log10(np.sqrt(np.mean(y ** 2)) / 32768)), 1)}
+
+
+LAST_PREFLIGHT: dict = {}
+ASR_RED_MS, VOICE_RED_S, FREE_RED_GB = 250, 1.5, 3.0
+
+
+def _free_memory_gb() -> float | None:
+    """Memory that is free or quickly reclaimable, without extra packages."""
+    try:
+        import subprocess
+        if sys.platform == "darwin":
+            out = subprocess.run(["vm_stat"], capture_output=True, text=True, timeout=5).stdout
+            page = int(re.search(r"page size of (\d+)", out).group(1))
+            pages = sum(int(re.search(rf"{k}:\s+(\d+)", out).group(1)) for k in ("Pages free", "Pages inactive", "Pages speculative"))
+            return round(pages * page / 2 ** 30, 1)
+        if sys.platform.startswith("linux"):
+            return round(int(re.search(r"MemAvailable:\s+(\d+)", Path("/proc/meminfo").read_text()).group(1)) / 2 ** 20, 1)
+    except Exception:
+        return None
+    return None
+
+
+def _thermal() -> str | None:
+    if sys.platform != "darwin":
+        return None
+    import subprocess
+    out = subprocess.run(["pmset", "-g", "therm"], capture_output=True, text=True, timeout=5).stdout
+    limit = re.search(r"CPU_Speed_Limit\s*=\s*(\d+)", out)
+    if limit:
+        return "ok" if int(limit.group(1)) >= 100 else f"slowed to {limit.group(1)}%"
+    return "warning" if re.search(r"(?i)warning level", out) and not re.search(r"(?i)no thermal warning", out) else "ok"
+
+
+def preflight() -> dict:
+    """Is this laptop ready for a live demo right now?"""
+    from turn import asr, semantic
+    x = read_wav_stereo(KIT / "data" / "dev" / "audio" / "GI-D01.wav")[:, 1]
+    speech = x[16000:16000 * 4]
+    reads = sorted(asr.transcribe(speech, use_cache=False, priority="urgent")["ms"] for _ in range(5))
+    t0 = time.perf_counter()
+    semantic.p_stop("حبيت أذكرك بالدفعة", "كم المبلغ")
+    meaning_ms = round((time.perf_counter() - t0) * 1000, 1)
+    voice_s = None
+    try:
+        from convo.live_voice import LiveVoice
+
+        async def first_sound():
+            v = LiveVoice("أنت موظف خدمة عملاء سعودي. رد بكلمة وحدة.", "f")
+            await v.connect()
+            t = time.perf_counter()
+            async for _ in v.speak("هلا"):
+                break
+            await v.close()
+            return round(time.perf_counter() - t, 2)
+        voice_s = asyncio.run(first_sound())
+    except Exception as e:
+        voice_s = f"failed: {type(e).__name__}"
+    free = _free_memory_gb()
+    result = {"time": time.strftime("%H:%M:%S"),
+              "asr_p90_ms": reads[-1], "asr_ok": reads[-1] <= ASR_RED_MS,
+              "meaning_ms": meaning_ms,
+              "voice_first_sound_s": voice_s, "voice_ok": isinstance(voice_s, float) and voice_s <= VOICE_RED_S,
+              "thermal": _thermal(), "free_memory_gb": free, "memory_ok": free is None or free >= FREE_RED_GB}
+    result["thermal_ok"] = result["thermal"] in (None, "ok")
+    result["all_ok"] = all(result[k] for k in ("asr_ok", "voice_ok", "memory_ok", "thermal_ok"))
+    LAST_PREFLIGHT.clear()
+    LAST_PREFLIGHT.update(result)
+    return result
 
 
 def save_try(fa, fc, agent_text, expected, agent_end_ms, trace):
