@@ -442,8 +442,12 @@ class Conversation:
         interrupted = self.interrupted_at is not None
         self.interrupted_at = None
         self.t_eot = self.t_answer = time.time()
-        r = await asyncio.to_thread(transcribe, audio, False)
-        text = r.get("text", "").strip()
+        turn = self.tt.turn
+        if not interrupted and turn and turn.get("text") and turn.get("text_at", -1) >= turn["last"]:
+            text = turn["text"]                                 # the turn-taker already read the whole turn
+        else:
+            text = (await asyncio.to_thread(transcribe, audio, False)).get("text", "")
+        text = lexicon.clean_asr(text)[0].strip()
         last_agent = next((m["content"] for m in reversed(self.history) if m["role"] == "assistant"), "")
         a = lexicon.analyse(text, last_agent + " " + self.turn_text)
         own_voice = a["echoed"] / max(1, a["n"]) >= 0.6 and (not interrupted or a["n"] >= 5)   # a short question may reuse the agent's words
@@ -512,7 +516,7 @@ def save_session(conv: "Conversation", folder, d=None):
     d.mkdir(parents=True, exist_ok=True)
     write_wav_stereo(d / "call.wav", np.stack([np.concatenate(conv.rec_a), np.concatenate(conv.rec_c)], 1))
     (d / "trace.json").write_text(json.dumps({"trace": [{k: v for k, v in r.items() if k != "f"} for r in conv.tt.trace],
-                                              "history": conv.history, "stats": conv.stats, "gated_frames": conv.gated, "score": conv.score.snapshot(), "mic": getattr(conv, "mic", None)},
+                                              "history": conv.history, "stats": conv.stats, "gated_frames": conv.gated, "score": conv.score.snapshot(), "mic": getattr(conv, "mic", None), "preflight": getattr(conv, "preflight", None)},
                                              ensure_ascii=False, indent=1), encoding="utf-8")
     (d / "events.json").write_text(json.dumps(conv.events, ensure_ascii=False), encoding="utf-8")
     return d
