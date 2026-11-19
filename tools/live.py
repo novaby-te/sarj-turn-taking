@@ -376,7 +376,9 @@ def preflight() -> dict:
     from turn import asr, semantic
     x = read_wav_stereo(KIT / "data" / "dev" / "audio" / "GI-D01.wav")[:, 1]
     speech = x[16000:16000 * 4]
+    asr.transcribe(speech, use_cache=False)          # warm: the first read also loads the model
     reads = sorted(asr.transcribe(speech, use_cache=False, priority="urgent")["ms"] for _ in range(5))
+    semantic.p_stop("هلا", "هلا")
     t0 = time.perf_counter()
     semantic.p_stop("حبيت أذكرك بالدفعة", "كم المبلغ")
     meaning_ms = round((time.perf_counter() - t0) * 1000, 1)
