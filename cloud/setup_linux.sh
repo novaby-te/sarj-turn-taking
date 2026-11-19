@@ -5,6 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 KIT=$(pwd)
 export TT_EXT_DIR="${TT_EXT_DIR:-$HOME/sarj-ext-data}"
+# Hugging Face's Xet transfer server (cas-server.xethub.hf.co) is often not on a cloud allowlist: use plain HTTPS
+export HF_HUB_DISABLE_XET=1
 mkdir -p "$TT_EXT_DIR" data models runs
 REL=https://github.com/o6lq/sarj-turn-taking/releases/download
 PY=$(command -v python3.12 || command -v python3.11 || command -v python3)
@@ -50,9 +52,14 @@ for s in synth synth-test dev-aug novel-test; do fetch_set "$s"; done
 
 # 5) ESC-50 noises for generating new calls (CC BY-NC 3.0, research use)
 if [ ! -f "$TT_EXT_DIR/ESC-50-master/meta/esc50.csv" ]; then
-  curl -fsSL -o "$TT_EXT_DIR/esc50.zip" https://github.com/karolpiczak/ESC-50/archive/refs/heads/master.zip
-  python -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" "$TT_EXT_DIR/esc50.zip" "$TT_EXT_DIR"
-  rm "$TT_EXT_DIR/esc50.zip"
+  # cloud sessions refuse the codeload.github.com zip, but serve a plain git clone of a public repo
+  if curl -fsSL -o "$TT_EXT_DIR/esc50.zip" https://github.com/karolpiczak/ESC-50/archive/refs/heads/master.zip; then
+    python -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" "$TT_EXT_DIR/esc50.zip" "$TT_EXT_DIR"
+    rm "$TT_EXT_DIR/esc50.zip"
+  else
+    rm -f "$TT_EXT_DIR/esc50.zip"
+    git clone -q --depth 1 https://github.com/karolpiczak/ESC-50 "$TT_EXT_DIR/ESC-50-master"
+  fi
 fi
 
 # 6) the teacher data the official student was trained on, when the team has published it (optional)
