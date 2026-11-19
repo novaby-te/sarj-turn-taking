@@ -432,6 +432,9 @@ class Conversation:
         recent = self.echo_flags[-n:]
         if recent and sum(1 for e in recent if not e) / len(recent) < 0.3:
             return False                                 # mostly the agent's own voice coming back
+        words = lexicon.analyse(c.get("text", ""), getattr(self, "turn_text", ""))
+        if words["single_ack"] or words["fluent_msa"]:
+            return False                                 # one «أيوه/نعم/طيب», or formal Arabic nobody said: keep talking
         return True
 
     async def caller_finished(self, start_ms: float):
@@ -509,7 +512,7 @@ def save_session(conv: "Conversation", folder, d=None):
     d.mkdir(parents=True, exist_ok=True)
     write_wav_stereo(d / "call.wav", np.stack([np.concatenate(conv.rec_a), np.concatenate(conv.rec_c)], 1))
     (d / "trace.json").write_text(json.dumps({"trace": [{k: v for k, v in r.items() if k != "f"} for r in conv.tt.trace],
-                                              "history": conv.history, "stats": conv.stats, "gated_frames": conv.gated, "score": conv.score.snapshot()},
+                                              "history": conv.history, "stats": conv.stats, "gated_frames": conv.gated, "score": conv.score.snapshot(), "mic": getattr(conv, "mic", None)},
                                              ensure_ascii=False, indent=1), encoding="utf-8")
     (d / "events.json").write_text(json.dumps(conv.events, ensure_ascii=False), encoding="utf-8")
     return d
