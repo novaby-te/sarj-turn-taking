@@ -102,6 +102,10 @@ def main():
                     help="agree: learn the anchor only where it agrees with the teacher label (the official student "
                          "misses most openers and questions; copying it there would copy that bias)")
     ap.add_argument("--lr", type=float, default=3e-5)
+    ap.add_argument("--quant", default="dynamic", choices=["dynamic", "dynamic_pc", "none"],
+                    help="dynamic: int8 as before. dynamic_pc: per-channel int8 (closer to fp32). none: ship fp32 "
+                         "(about 4x larger and slower, but exactly what was trained)")
+    ap.add_argument("--keep-fp32", action="store_true", help="also keep sem_fp32.onnx next to sem.onnx")
     a = ap.parse_args()
     BASE, OUT = BASES[a.base], Path(a.out)
     import torch
@@ -216,8 +220,13 @@ def main():
         torch.onnx.export(Wrap(model), args, str(fp32), input_names=names, output_names=["logits"],
                           dynamic_axes=dyn | {"logits": {0: "b"}}, opset_version=17)
     from onnxruntime.quantization import QuantType, quantize_dynamic
-    quantize_dynamic(str(fp32), str(OUT / "sem.onnx"), weight_type=QuantType.QInt8)
-    fp32.unlink()
+    if a.quant == "none":
+        import shutil
+        shutil.copy(fp32, OUT / "sem.onnx")
+    else:
+        quantize_dynamic(str(fp32), str(OUT / "sem.onnx"), weight_type=QuantType.QInt8, per_channel=a.quant == "dynamic_pc")
+    if not a.keep_fp32:
+        fp32.unlink()
     for f in (OUT / "hf_tok").glob("*"):
         f.unlink()
     (OUT / "hf_tok").rmdir()
@@ -234,7 +243,7 @@ def main():
     res = {"val_acc": float(((pv > 0.5) == yv).mean()), "ms_per_call": round(ms, 2), "n_train": len(tr),
            "recipe": {"epochs": a.epochs, "lr": a.lr, "agent_trunc": a.agent_trunc, "anchor": a.anchor,
                       "anchor_w": a.anchor_w if a.anchor else None,
-                      "anchor_mode": a.anchor_mode if a.anchor else None}}
+                      "anchor_mode": a.anchor_mode if a.anchor else None, "quant": a.quant}}
     for name, sets in (("held_out", ("dev", "dev-aug", "synth-test")), ("all", ("dev", "dev-aug", "synth-test", "synth"))):
         idx = [i for i, b in enumerate(bank) if b["set"] in sets]
         y = np.array([bank[i]["intent"] for i in idx])
