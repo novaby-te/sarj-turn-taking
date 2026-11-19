@@ -7,12 +7,15 @@ recognition really writes: no diacritics, some spelling noise, sometimes a mishe
 
     .venv/bin/python -m tools.teacher_gen --calls 120 --workers 4          # -> data/teacher/raw/*.json
 Runs through the Claude Code CLI on the user's subscription (no API key needed). Resumable: finished calls are kept.
+Other teachers: --backend anthropic (ANTHROPIC_API_KEY) or --backend gemini (GEMINI_API_KEY; --model gemini-...).
+v3 focuses: --focus pairs (minimal pairs: same start, KEEP vs STOP) and --focus live (the live-demo failure kinds).
 """
 from __future__ import annotations
 
 import argparse
 import itertools
 import json
+import os
 import random
 import re
 import subprocess
@@ -93,18 +96,66 @@ JSON array فقط: [{{"agent": "...", "caller": "...", "label": "STOP", "kind": 
 kind واحد من: opener, question, thinking, room_talk, backchannel"""
 
 
-def one(job: tuple[int, str, str], model: str, prompt: str = PROMPT) -> str:
+PROMPT_PAIRS = """اكتب ٤٠ عنصر تدريب لمكالمة هاتفية من شركة لعميل. المجال: {domain}. لهجة العميل: {dialect}.
+التركيز: أزواج متقابلة. كل زوج = عنصرين بنفس جملة الوكيل، وكلام العميل يبدأ بنفس الكلمة أو الكلمتين، بس واحد معناه «كمّل» (KEEP) والثاني «أبي الكلمة» (STOP).
+اكتب ٢٠ زوج، ونوّع البدايات: تأييد («إيه»، «طيب»، «تمام»، «زين»، «أوكي»)، نفي («لا»)، نداء («يا أخي»)، دعاء («الله يعافيك»)، تفكير («امم»)، كلمة سؤال.
+أمثلة على الفكرة بس (لا تنسخها): «طيب» ↔ «طيب وإذا تأخرت؟» · «لا عادي كمّل» ↔ «لا مو أنا صاحب الطلب».
+«agent» = جملة الوكيل لحظة التداخل (١٠–٣٠ كلمة، لهجة سعودية بيضاء مهذبة). كلام العميل مثل ما يكتبه نظام التفريغ: بدون تشكيل، و٣٠٪ فيها أخطاء إملاء.
+لكل STOP حط «cue»: رقم الكلمة (من ١) اللي عندها السامع يعرف إن العميل يبي الكلمة. الزوجين ورا بعض في المصفوفة.
+JSON array فقط: [{{"agent": "...", "caller": "...", "label": "KEEP", "kind": "pair_keep"}}, {{"agent": "...", "caller": "...", "label": "STOP", "kind": "pair_stop", "cue": 2}}, ...]"""
+
+
+PROMPT_LIVE = """اكتب ٤٠ عنصر تدريب لمكالمة هاتفية من شركة لعميل. المجال: {domain}. لهجة العميل: {dialect}.
+التركيز: الأخطاء اللي تصير في المكالمات الحقيقية على مايك لابتوب.
+التوزيع بالضبط:
+- ٨ KEEP كلمة وحدة أو كلمتين تأييد أو شكر أو «نعم»، بالشكل اللي يكتبه نظام التفريغ (أحياناً ناقصة حرف أو ملصوقة).
+- ٦ KEEP كلام الوكيل نفسه راجع من سماعة اللابتوب للمايك: مقطع من جملة الوكيل («agent») بكلماته، ناقص أو مشوّه شوي.
+- ٦ KEEP تفريغ غلط على ضجيج: جملة فصحى طويلة ما لها علاقة، أو اسم متحدث مع نقطتين، أو تكرار حرف أو كلمة، أو عبارة ترجمة فيديو.
+- ١٠ STOP مقاطعة حقيقية تبدأ بكلمة تأييد ثم طلب أو اعتراض أو سؤال.
+- ١٠ STOP مقاطعة قصيرة جداً (كلمة إلى ثلاث) واضحة إنها طلب للكلمة.
+«agent» = جملة الوكيل لحظة التداخل (١٠–٣٠ كلمة، لهجة سعودية بيضاء مهذبة). لا تكرر الصياغات.
+لكل STOP حط «cue»: رقم الكلمة (من ١) اللي عندها السامع يعرف إن العميل يبي الكلمة.
+JSON array فقط: [{{"agent": "...", "caller": "...", "label": "KEEP", "kind": "single_ack"}}, ...]
+kind واحد من: single_ack, echo, asr_noise, ack_then_bid, short_bid"""
+
+
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+
+
+def ask(backend: str, model: str, prompt: str) -> str:
+    """One teacher answer as text. claude = the Claude Code CLI; anthropic / gemini = their HTTP APIs."""
+    if backend == "claude":
+        cmd = ["claude", "-p", "--model", model, "--effort", "low", "--tools", "", "--system-prompt", SYSTEM,
+               "--no-session-persistence", "--strict-mcp-config", "--setting-sources", "", prompt]
+        return subprocess.run(cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600).stdout
+    if backend == "anthropic":
+        import anthropic
+        r = anthropic.Anthropic().messages.create(model=model, max_tokens=16000, system=SYSTEM,
+                                                  messages=[{"role": "user", "content": prompt}])
+        return "".join(b.text for b in r.content if b.type == "text")
+    import urllib.request
+    body = {"model": model, "temperature": 0.9, "max_tokens": 16000,
+            "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}]}
+    req = urllib.request.Request(GEMINI_URL, json.dumps(body).encode(), {
+        "Content-Type": "application/json", "Authorization": f"Bearer {os.environ['GEMINI_API_KEY']}"})
+    with urllib.request.urlopen(req, timeout=600) as r:
+        return json.load(r)["choices"][0]["message"]["content"]
+
+
+def one(job: tuple[int, str, str], model: str, prompt: str = PROMPT, backend: str = "claude") -> str:
     i, dialect, domain = job
     out = OUT / f"{i:04d}.json"
     if out.exists():
         return "skip"
-    cmd = ["claude", "-p", "--model", model, "--effort", "low", "--tools", "", "--system-prompt", SYSTEM,
-           "--no-session-persistence", "--strict-mcp-config", "--setting-sources", "",
-           prompt.format(dialect=dialect, domain=domain)]
     for attempt in range(3):
         t0 = time.time()
-        r = subprocess.run(cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600)
-        m = re.search(r"\[.*\]", r.stdout, re.S)
+        try:
+            text = ask(backend, model, prompt.format(dialect=dialect, domain=domain))
+        except Exception as e:                                # network / quota: try again, then give up on this call
+            print(f"{i}: {type(e).__name__} {e}", flush=True)
+            time.sleep(5 * (attempt + 1))
+            continue
+        m = re.search(r"\[.*\]", text, re.S)
         try:
             items = json.loads(m.group(0)) if m else []
         except ValueError:
@@ -123,7 +174,8 @@ def main():
     ap.add_argument("--calls", type=int, default=120)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--model", default="claude-opus-5-5")
-    ap.add_argument("--focus", default="", choices=["", "answers", "hard"])
+    ap.add_argument("--backend", default="claude", choices=["claude", "anthropic", "gemini"])
+    ap.add_argument("--focus", default="", choices=["", "answers", "hard", "pairs", "live"])
     ap.add_argument("--offset", type=int, default=0)
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
@@ -132,9 +184,9 @@ def main():
     if a.focus:
         random.Random(13).shuffle(pairs)
     jobs = [(a.offset + i, d, m) for i, (d, m) in enumerate(itertools.islice(itertools.cycle(pairs), a.calls))]
-    prompt = {"answers": PROMPT_ANSWERS, "hard": PROMPT_HARD}.get(a.focus, PROMPT)
+    prompt = {"answers": PROMPT_ANSWERS, "hard": PROMPT_HARD, "pairs": PROMPT_PAIRS, "live": PROMPT_LIVE}.get(a.focus, PROMPT)
     with ThreadPoolExecutor(a.workers) as ex:
-        for msg in ex.map(lambda j: one(j, a.model, prompt), jobs):
+        for msg in ex.map(lambda j: one(j, a.model, prompt, a.backend), jobs):
             print(msg, flush=True)
     n = sum(len(json.loads(p.read_text())) for p in OUT.glob("*.json"))
     print(f"ALLDONE {n} items", flush=True)

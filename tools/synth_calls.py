@@ -36,6 +36,7 @@ EXT = EXT_DIR
 TTS_CACHE = EXT / "tts-cache"
 ESC = EXT / "ESC-50-master"
 SR = 16000
+HARD = False
 
 CALLER_VOICES = {
     "ar-SA-HamedNeural": ("sa-najdi", "m"), "ar-SA-ZariyahNeural": ("sa-najdi", "f"),
@@ -301,8 +302,9 @@ def plan(i, rng):
          "c_rate": f"{int(rng.integers(-12, 13)):+d}%", "c_pitch": f"{int(rng.integers(-25, 26)):+d}Hz",
          "a0": rng.choice(A0).format(a=rng.choice(AGENTS), c=rng.choice(COMPANIES), t=(cn := CALLERS[rng.integers(len(CALLERS))])[0], n=cn[1]),
          "a1": rng.choice(A1_QUESTIONS if kind == "EOT" else A1), "u0": rng.choice(U0)}
-    cond = rng.choice(["quiet", "quiet", "ac-hum", "car", "street", "household", "cafe"])
-    p["cond"] = [cond] + (["phone-nb"] if rng.random() < 0.45 else [])
+    conds = ["ac-hum", "car", "street", "household", "cafe"] if HARD else ["quiet", "quiet", "ac-hum", "car", "street", "household", "cafe"]
+    cond = rng.choice(conds)
+    p["cond"] = [cond] + (["phone-nb"] if rng.random() < (0.75 if HARD else 0.45) else [])
     if kind == "GI":
         p["u1"] = [rng.choice(STOP_LINES)]
     elif kind == "BC":
@@ -567,7 +569,10 @@ def main(argv=None):
     ap.add_argument("--voices", default=None, help="comma list of locale tags to keep, e.g. SA,KW,BH,AE")
     ap.add_argument("--exclude-voices", default=None, help="comma list of locale tags to drop, e.g. QA,OM")
     ap.add_argument("--bank", default=None, help="JSON sentence bank replacing ours (novel-phrasing test sets)")
+    ap.add_argument("--hard", action="store_true", help="harder conditions: always a noise bed, mostly phone band")
     a = ap.parse_args(argv)
+    global HARD
+    HARD = a.hard
     if a.bank:
         global A1, STOP_LINES, BC_LINES, FILLERS, SIDE_SPEECH, TV_LINES, TALKOVER, AM_LINES
         b = json.loads(Path(a.bank).read_text(encoding="utf-8"))

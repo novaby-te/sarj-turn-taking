@@ -24,3 +24,4 @@ analysis/llm_judge_texts.json
 .claude/settings.local.json
 
 models/_archive/
+data/hard-test/
