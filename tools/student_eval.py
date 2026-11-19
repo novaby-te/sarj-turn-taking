@@ -77,6 +77,9 @@ def evaluate(student: Student, items: list[dict]) -> dict:
     for k, i in enumerate(items):
         by[i["cat"]].append(k)
     res["by_category"] = {c: metrics(p[ix], y[ix]) for c, ix in sorted(by.items())}
+    # report only (the gate stays at 0.5): turn/policy.py acts on the meaning score at SEM_LO 0.25 (veto: «not for
+    # the agent») and SEM_HI 0.90 (stop although no bid word was heard), so a new student must also behave there
+    res["at_policy_points"] = {"stop_ge_0.90": metrics(p, y, 0.90), "veto_lt_0.25": metrics(p, y, 0.25)}
     res["errors"] = [{"agent": items[k]["agent"][-60:], "text": items[k]["text"], "y": int(y[k]), "p": round(float(p[k]), 3),
                       "cat": items[k]["cat"]} for k in range(len(items)) if (p[k] > 0.5) != (y[k] == 1)]
     return res

@@ -21,10 +21,17 @@ pip install -q numpy scipy soundfile onnxruntime onnx tokenizers "transformers>=
     edge-tts websockets pytest scikit-learn faster-whisper anthropic
 
 # 2) the base model the student is fine-tuned from (CAMeLBERT-DA, Apache-2.0)
-if [ ! -f "$TT_EXT_DIR/camelbert-da/config.json" ]; then
+# check the WEIGHTS, not config.json: a half-finished download leaves config.json behind without weights.
+# The repo has only pytorch_model.bin; tools/train_student.py loads safetensors, so convert once.
+if [ ! -f "$TT_EXT_DIR/camelbert-da/model.safetensors" ]; then
   python - <<PY
+import os
 from huggingface_hub import snapshot_download
-snapshot_download("CAMeL-Lab/bert-base-arabic-camelbert-da", local_dir="$TT_EXT_DIR/camelbert-da")
+from transformers import AutoModelForMaskedLM
+d = "$TT_EXT_DIR/camelbert-da"
+snapshot_download("CAMeL-Lab/bert-base-arabic-camelbert-da", local_dir=d, allow_patterns=["*.json", "*.txt", "pytorch_model.bin"])
+AutoModelForMaskedLM.from_pretrained(d, use_safetensors=False).save_pretrained(d, safe_serialization=True)
+os.remove(os.path.join(d, "pytorch_model.bin"))
 PY
 fi
 

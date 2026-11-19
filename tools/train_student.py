@@ -10,6 +10,15 @@ Validation = teacher files never trained on (whole dialect x domain calls). Test
 segment bank from sets the student never saw (dev, dev-aug, synth-test) + all 381 for comparison with Claude.
 
     .venv/bin/python -m tools.train_student            # -> models/student/{sem.onnx, tokenizer.json, meta.json}
+
+v3 options (both off by default, so the official recipe is unchanged):
+  --agent-trunc P   with probability P a training row sees only the first words of the agent sentence. At run time
+                    turn/policy.py passes heard_context(): the previous sentence + the part spoken SO FAR, not the
+                    end of a sentence the caller has not heard yet. This closes that train/run gap.
+  --anchor DIR      also learn the probabilities of an existing student (e.g. models/student-base) on every row:
+                    loss = (1-W)*CE(teacher label) + W*CE(anchor probability), W = --anchor-w. Keeps what the
+                    official student knows (its teacher data is not published) while adding the new teacher data,
+                    so the new student does not drift into extra false stops (the failure of EXPERIMENTS #42).
 """
 from __future__ import annotations
 
@@ -41,6 +50,12 @@ def noisy(t: str) -> str:
     for op in rng.sample(ops, rng.randint(1, 2)):
         t = op(t)
     return t
+
+
+def trunc_agent(agent: str) -> str:
+    """The agent sentence as heard when the caller cuts in: its first k words (k >= 3)."""
+    w = agent.split()
+    return " ".join(w[:rng.randint(3, len(w))]) if len(w) > 4 else agent
 
 
 def teacher_rows() -> tuple[list, list]:
@@ -80,6 +95,10 @@ def main():
     ap.add_argument("--out", default=str(OUT))
     ap.add_argument("--epochs", type=int, default=3)
     ap.add_argument("--from-ckpt", action="store_true", help="skip training, export the saved checkpoint")
+    ap.add_argument("--agent-trunc", type=float, default=0.0, help="share of rows with a truncated agent sentence")
+    ap.add_argument("--anchor", default=None, help="student folder whose probabilities are also learned")
+    ap.add_argument("--anchor-w", type=float, default=0.5)
+    ap.add_argument("--lr", type=float, default=3e-5)
     a = ap.parse_args()
     BASE, OUT = BASES[a.base], Path(a.out)
     import torch
@@ -88,7 +107,16 @@ def main():
     bank = bank_rows()
     tr += [(b["agent"], b["text"], int(b["intent"]), "real_asr") for b in bank if b["set"] == "synth" and b["text"].strip()]
     tr += [(b["agent"], b["text"], int(b["intent"]), "real_asr") for b in bank if b["set"] == "synth" and b["text"].strip()]
+    if a.agent_trunc > 0:
+        tr += [(trunc_agent(r[0]), r[1], r[2], r[3] + "_trunc") for r in tr if rng.random() < a.agent_trunc]
     rng.shuffle(tr)
+    soft = None
+    if a.anchor:                                                    # anchor probabilities, same input as at run time
+        from tools.student_eval import Student
+        anc = Student(Path(a.anchor))
+        t1 = time.time()
+        soft = [anc.p_stop(r[0], r[1]) for r in tr]
+        print(f"anchor {a.anchor}: {len(soft)} rows in {time.time() - t1:.0f}s, w={a.anchor_w}", flush=True)
     print(f"train {len(tr)} (STOP {sum(r[2] for r in tr)}) · val {len(va)}", flush=True)
 
     tok = AutoTokenizer.from_pretrained(str(BASE), use_fast=True)
@@ -105,7 +133,11 @@ def main():
             b = [rows[j] for j in idx[i:i + bs]]
             enc = tok([" ".join(r[0].split()[-24:]) or "." for r in b], [r[1] for r in b],
                       truncation=True, max_length=MAX_LEN, padding=True, return_tensors="pt")
-            yield {k: v.to(dev) for k, v in enc.items()}, torch.tensor([r[2] for r in b], device=dev)
+            y = torch.tensor([r[2] for r in b], device=dev)
+            if soft is not None and shuffle:
+                yield {k: v.to(dev) for k, v in enc.items()}, (y, torch.tensor([soft[j] for j in idx[i:i + bs]], device=dev))
+            else:
+                yield {k: v.to(dev) for k, v in enc.items()}, y
 
     def evaluate(rows):
         model.eval()
@@ -116,7 +148,7 @@ def main():
         model.train()
         return np.concatenate(ps) if ps else np.zeros(0)
 
-    epochs, bs, lr = (0 if a.from_ckpt else a.epochs), 32, 3e-5
+    epochs, bs, lr = (0 if a.from_ckpt else a.epochs), 32, a.lr
     steps = max(1, epochs * ((len(tr) + bs - 1) // bs))
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, s / (0.06 * steps)) * max(0.0, (steps - s) / steps))
@@ -125,7 +157,14 @@ def main():
     pv, yv = evaluate(va), np.array([r[2] for r in va])
     for ep in range(epochs):
         for x, y in batches(tr, bs, True):
-            loss = torch.nn.functional.cross_entropy(model(**x).logits, y)
+            if isinstance(y, tuple):                                # hard teacher label + anchor probability
+                y, q = y
+                logp = torch.log_softmax(model(**x).logits, -1)
+                hard = torch.nn.functional.nll_loss(logp, y)
+                anchor = -(q * logp[:, 1] + (1 - q) * logp[:, 0]).mean()
+                loss = (1 - a.anchor_w) * hard + a.anchor_w * anchor
+            else:
+                loss = torch.nn.functional.cross_entropy(model(**x).logits, y)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step(); sched.step(); opt.zero_grad()
@@ -134,7 +173,9 @@ def main():
                 print(f"  ep {ep} step {step}/{steps} loss {loss.item():.3f} {time.time() - t0:.0f}s", flush=True)
         pv = evaluate(va)
         yv = np.array([r[2] for r in va])
-        print(f"  epoch {ep}: val acc {((pv > 0.5) == yv).mean():.3f}", flush=True)
+        vR = ((pv > 0.5) & (yv == 1)).sum() / max(1, (yv == 1).sum())
+        vS = ((pv <= 0.5) & (yv == 0)).sum() / max(1, (yv == 0).sum())
+        print(f"  epoch {ep}: val acc {((pv > 0.5) == yv).mean():.3f} R {vR:.3f} S {vS:.3f}", flush=True)
 
     # ---------------- export: ONNX fp32 -> int8, tokenizer.json, check they agree
     OUT.mkdir(parents=True, exist_ok=True)
@@ -183,7 +224,9 @@ def main():
     t1 = time.perf_counter()
     sp = [semantic.p_stop(b["agent"], b["text"]) for b in bank]
     ms = (time.perf_counter() - t1) * 1000 / max(1, len(bank))
-    res = {"val_acc": float(((pv > 0.5) == yv).mean()), "ms_per_call": round(ms, 2), "n_train": len(tr)}
+    res = {"val_acc": float(((pv > 0.5) == yv).mean()), "ms_per_call": round(ms, 2), "n_train": len(tr),
+           "recipe": {"epochs": a.epochs, "lr": a.lr, "agent_trunc": a.agent_trunc, "anchor": a.anchor,
+                      "anchor_w": a.anchor_w if a.anchor else None}}
     for name, sets in (("held_out", ("dev", "dev-aug", "synth-test")), ("all", ("dev", "dev-aug", "synth-test", "synth"))):
         idx = [i for i, b in enumerate(bank) if b["set"] in sets]
         y = np.array([bank[i]["intent"] for i in idx])
