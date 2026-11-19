@@ -94,7 +94,7 @@ class TurnTaker:
             audio, agent_text = payload if isinstance(payload, tuple) else (payload, None)
             r = dict((asr_fn or transcribe)(audio))
             if agent_text is not None and USE_SEM and r.get("text"):
-                clean = lexicon._strip_speaker_label(r["text"])[0]
+                clean = lexicon.clean_asr(r["text"])[0]
                 r["sem"] = semantic.p_stop(agent_text, clean) if clean.strip() else None
             e = speaker.embed(audio[-16000 * 3:]) if USE_SPEAKER else None
             r["spk"] = e
