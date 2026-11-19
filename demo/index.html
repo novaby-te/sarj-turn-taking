@@ -98,9 +98,12 @@ td.num{font-variant-numeric:tabular-nums;text-align:center}
     <div><label>المكالمة</label><select id="scen"></select></div>
     <div><label>عقل الوكيل</label><select id="model"></select></div>
     <div><label>الصوت</label><select id="eng"><option value="live">صوت Gemini المباشر (الأسرع والأطبع)</option><option value="eleven" id="elevenOpt" disabled>ElevenLabs (يحتاج مفتاح)</option><option value="edge">صوت سعودي (إنترنت، أبطأ)</option><option value="say">ماجد (بدون إنترنت، آلي)</option></select></div>
+    <div><label>المايك</label><select id="mic"><option value="hp">سماعة رأس (الأفضل)</option><option value="spk">سماعات اللابتوب</option></select></div>
   </div>
   <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button class="go" id="go">ابدأ المكالمة</button><button class="ghost" id="end">أنهِ المكالمة</button>
     <span class="hint">جرّب: «إيه» · «إيه والله صادق» · «كم القيمة؟» · «لا لا لحظة، الأحد ما يناسبني» · «مو مهتم» · وكح أو شغّل تلفزيون جنبك</span></div>
+  <div id="spkwarn" class="hint warn" hidden>السماعة الخارجية تقلل دقة المقاطعة — استخدم سماعة رأس.</div>
+  <div id="levelinfo" class="hint"></div>
   <div id="micwarn" class="hint bad" hidden>المايك ما يوصّل أي صوت. سكّر تبويبات العرض الثانية، واقفل Chrome بالكامل بـ Cmd+Q وافتحه من جديد. إذا استمرت المشكلة: إعدادات النظام ← الخصوصية والأمان ← الميكروفون ← فعّل Google Chrome.</div>
   <div class="two">
     <div class="card"><div id="state" class="state">جاهز</div><div id="chat" style="margin-top:10px"></div></div>
@@ -223,16 +226,35 @@ class P extends AudioWorkletProcessor {
   }
 }
 registerProcessor('p', P);`;
-let ctx, node, ws, srcNode = null, bub = null, micSilent = 0;
+let ctx, node, ws, srcNode = null, bub = null, micSilent = 0, micSettings = null, levelProbe = null;
 function closeMic() {                        // release the microphone so another tab or call can use it
   if (!srcNode) return;
   srcNode.mediaStream.getTracks().forEach(t => t.stop()); srcNode.disconnect(); srcNode = null;
 }
 async function openMic() {                   // a fresh microphone for every call; the browser removes the agent's voice from it
   closeMic(); micSilent = 0; $('#micwarn').hidden = true;
-  const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: false, autoGainControl: true, channelCount: 1}});
+  const speakers = $('#mic').value === 'spk';     // headset: the raw microphone; speakers: echo cancellation, never automatic gain
+  const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: speakers, noiseSuppression: false, autoGainControl: false, channelCount: 1}});
+  micSettings = stream.getAudioTracks()[0].getSettings();
   srcNode = ctx.createMediaStreamSource(stream); srcNode.connect(node);
 }
+function micLevelCheck() {                    // 3 s of the caller's voice: warn when it is too quiet or clipping
+  return new Promise(resolve => {
+    const levels = []; let peak = 0;
+    levelProbe = buffer => { const s = new Int16Array(buffer); let sum = 0;
+      for (let i = 1; i < s.length; i += 2) { sum += s[i] * s[i]; peak = Math.max(peak, Math.abs(s[i])); }
+      levels.push(10 * Math.log10(sum / (s.length / 2) / (32768 * 32768) + 1e-12)); };
+    setState('think', 'فحص المايك: قل «هلا، معك سعود»');
+    setTimeout(() => {
+      levelProbe = null; levels.sort((a, b) => a - b);
+      const p95 = levels.length ? levels[Math.floor(levels.length * 0.95)] : -120;
+      const note = p95 < -40 ? 'صوتك واطي جدًا: قرّب المايك أو ارفع مستواه.' : peak >= 32000 ? 'الصوت يتقطّع من قوته: بعّد المايك شوي.' : 'مستوى المايك ممتاز.';
+      $('#levelinfo').textContent = `فحص المايك: ${p95.toFixed(0)} dBFS · ${note}`;
+      resolve({p95_dbfs: Math.round(p95), clipping: peak >= 32000});
+    }, 3000);
+  });
+}
+$('#mic').addEventListener('change', () => { $('#spkwarn').hidden = $('#mic').value !== 'spk'; });
 function checkMic(buffer) {                  // three seconds of pure digital silence means no sound reaches the page
   const s = new Int16Array(buffer); let peak = 0;
   for (let i = 1; i < s.length; i += 2) peak = Math.max(peak, Math.abs(s[i]));
@@ -257,7 +279,8 @@ async function ensureAudio() {
     node = new AudioWorkletNode(ctx, 'p', {numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]});
     node.connect(ctx.destination);
     node.port.onmessage = e => {
-      const d = e.data; if (!ws || ws.readyState !== 1) return;
+      const d = e.data; if (d.frame && levelProbe) levelProbe(d.frame);
+      if (!ws || ws.readyState !== 1) return;
       if (d.frame) { checkMic(d.frame); ws.send(d.frame); }
       if (d.chunkEnded !== undefined) ws.send(JSON.stringify({type: 'played', id: d.chunkEnded}));
       if (d.idle) ws.send(JSON.stringify({type: 'idle'}));
@@ -289,9 +312,11 @@ $('#go').onclick = async () => {
   await ctx.resume();
   $('#chat').innerHTML = ''; bub = null; st.stops = []; st.replies = []; st.res = 0; resetScore();
   $('#go').disabled = true; node.port.postMessage({stop: true});
+  const level = await micLevelCheck();
   if (ws) { try { ws.onmessage = null; ws.close(); } catch (e) {} }
   ws = new WebSocket('ws://127.0.0.1:8771');
-  ws.onopen = () => ws.send(JSON.stringify({type: 'convo_start', scenario: $('#scen').value, engine: $('#eng').value, model: $('#model').value}));
+  ws.onopen = () => ws.send(JSON.stringify({type: 'convo_start', scenario: $('#scen').value, engine: $('#eng').value, model: $('#model').value,
+                                           mic: {mode: $('#mic').value, settings: micSettings, level}}));
   ws.onmessage = async e => {
     const m = JSON.parse(e.data);
     if (m.type === 'status') {
