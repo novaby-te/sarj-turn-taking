@@ -82,6 +82,39 @@ def teacher_rows() -> tuple[list, list]:
     return tr, va
 
 
+def sensitive_layers(fp32: Path, tok, va: list, max_rows: int = 200, tol: float = 0.005) -> list[str]:
+    """Feed-forward output MatMuls whose int8 version alone moves P(STOP) by more than `tol` on validation rows.
+    These take the large post-GELU activations; int8 there squashed v3b's probabilities (mean shift 0.20 on the
+    teacher validation files, acknowledgement median 0.02 -> 0.32). Keeping them fp32 brought the shift to 0.013."""
+    import onnx
+    import onnxruntime as ort
+    from onnxruntime.quantization import QuantType, quantize_dynamic
+    g = onnx.load(str(fp32)).graph
+    inits = {i.name for i in g.initializer}
+    weight_mm = [n.name for n in g.node if n.op_type == "MatMul" and any(x in inits for x in n.input)]
+    ffn_out = [n for n in weight_mm if "/output/dense/" in n and "attention" not in n]
+    feeds = []
+    for r in va[:: max(1, len(va) // max_rows)][:max_rows]:
+        e = tok(" ".join(r[0].split()[-24:]) or ".", r[1], truncation=True, max_length=MAX_LEN)
+        feeds.append({k: np.array([e[k]], dtype=np.int64) for k in ("input_ids", "attention_mask", "token_type_ids")})
+
+    def probs(path):
+        s = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+        z = np.array([s.run(None, f)[0][0] for f in feeds])
+        z = np.exp(z - z.max(1, keepdims=True))
+        return z[:, 1] / z.sum(1)
+    ref, tmp, out = probs(fp32), fp32.with_name("one_layer.onnx"), []
+    for n in ffn_out:
+        quantize_dynamic(str(fp32), str(tmp), weight_type=QuantType.QInt8, per_channel=True,
+                         nodes_to_exclude=[m for m in weight_mm if m != n])
+        d = float(np.abs(probs(tmp) - ref).mean())
+        if d > tol:
+            out.append(n)
+        print(f"  quant check {n.split('/')[4]}: shift {d:.3f}{' -> keep fp32' if d > tol else ''}", flush=True)
+    tmp.unlink(missing_ok=True)
+    return out
+
+
 def bank_rows() -> list[dict]:
     p = KIT / "analysis" / "llm_judge.json"
     return json.loads(p.read_text())["_items"] if p.exists() else []
@@ -102,9 +135,10 @@ def main():
                     help="agree: learn the anchor only where it agrees with the teacher label (the official student "
                          "misses most openers and questions; copying it there would copy that bias)")
     ap.add_argument("--lr", type=float, default=3e-5)
-    ap.add_argument("--quant", default="dynamic", choices=["dynamic", "dynamic_pc", "none"],
-                    help="dynamic: int8 as before. dynamic_pc: per-channel int8 (closer to fp32). none: ship fp32 "
-                         "(about 4x larger and slower, but exactly what was trained)")
+    ap.add_argument("--quant", default="dynamic", choices=["dynamic", "dynamic_pc", "mixed", "none"],
+                    help="dynamic: int8 as before. dynamic_pc: per-channel int8. mixed: per-channel int8 except the "
+                         "feed-forward output layers that move P(STOP) on validation (BERT's outlier layers). "
+                         "none: ship fp32 (about 4x larger and slower, but exactly what was trained)")
     ap.add_argument("--keep-fp32", action="store_true", help="also keep sem_fp32.onnx next to sem.onnx")
     a = ap.parse_args()
     BASE, OUT = BASES[a.base], Path(a.out)
@@ -118,7 +152,7 @@ def main():
         tr += [(trunc_agent(r[0]), r[1], r[2], r[3] + "_trunc") for r in tr if rng.random() < a.agent_trunc]
     rng.shuffle(tr)
     soft = None
-    if a.anchor:                                                    # anchor probabilities, same input as at run time
+    if a.anchor and not a.from_ckpt:                                # anchor probabilities, same input as at run time
         from tools.student_eval import Student
         anc = Student(Path(a.anchor))
         t1 = time.time()
@@ -220,9 +254,14 @@ def main():
         torch.onnx.export(Wrap(model), args, str(fp32), input_names=names, output_names=["logits"],
                           dynamic_axes=dyn | {"logits": {0: "b"}}, opset_version=17)
     from onnxruntime.quantization import QuantType, quantize_dynamic
+    skipped = []
     if a.quant == "none":
         import shutil
         shutil.copy(fp32, OUT / "sem.onnx")
+    elif a.quant == "mixed":
+        skipped = sensitive_layers(fp32, tok, va)
+        quantize_dynamic(str(fp32), str(OUT / "sem.onnx"), weight_type=QuantType.QInt8, per_channel=True,
+                         nodes_to_exclude=skipped)
     else:
         quantize_dynamic(str(fp32), str(OUT / "sem.onnx"), weight_type=QuantType.QInt8, per_channel=a.quant == "dynamic_pc")
     if not a.keep_fp32:
@@ -243,7 +282,8 @@ def main():
     res = {"val_acc": float(((pv > 0.5) == yv).mean()), "ms_per_call": round(ms, 2), "n_train": len(tr),
            "recipe": {"epochs": a.epochs, "lr": a.lr, "agent_trunc": a.agent_trunc, "anchor": a.anchor,
                       "anchor_w": a.anchor_w if a.anchor else None,
-                      "anchor_mode": a.anchor_mode if a.anchor else None, "quant": a.quant}}
+                      "anchor_mode": a.anchor_mode if a.anchor else None, "quant": a.quant,
+                      "fp32_layers": len(skipped)}}
     for name, sets in (("held_out", ("dev", "dev-aug", "synth-test")), ("all", ("dev", "dev-aug", "synth-test", "synth"))):
         idx = [i for i, b in enumerate(bank) if b["set"] in sets]
         y = np.array([bank[i]["intent"] for i in idx])
