@@ -8,6 +8,7 @@
 #   TEACHER_MODEL    default claude-opus-5-5 (claude/anthropic) or gemini-3.5-flash-lite (gemini)
 #   CALLS            teacher calls per focus (40 items each), default 60  → 5 focuses × 60 × 40 ≈ 12k new items
 #   EPOCHS           default 3
+#   FOCUSES          teacher focuses to run, default "hard pairs live answers default" (also: offtopic)
 #   WORKERS          parallel teacher requests, default 4 (use 2 when the API answers 503 "high demand")
 # The official model in models/student is never touched: the candidate goes to models/student-v3.
 set -euo pipefail
@@ -25,13 +26,13 @@ has () { [[ " $STAGES " == *" $1 "* ]]; }
 
 if has teacher; then
   # new files start at 5000 so they never overwrite the team's original teacher files (0000-0999)
-  off=5000
-  for focus in hard pairs live answers default; do
+  # each focus has a fixed file range, so a later run with FOCUSES="offtopic default" only fills those ranges
+  for focus in ${FOCUSES:-hard pairs live answers default}; do
+    case $focus in hard) off=5000;; pairs) off=6000;; live) off=7000;; answers) off=8000;; default) off=9000;; offtopic) off=10000;; *) echo "unknown focus $focus"; exit 2;; esac
     f=$focus; [ "$f" = default ] && f=""
     log "teacher: focus=${focus} calls=${CALLS} backend=${BACKEND} model=${MODEL}"
     python -m tools.teacher_gen --calls "$CALLS" --workers "${WORKERS:-4}" --backend "$BACKEND" --model "$MODEL" --focus "$f" --offset "$off" \
       | tee -a "$OUT/teacher.log" | grep -E "FAILED|ALLDONE" || true
-    off=$((off + 1000))
   done
 fi
 

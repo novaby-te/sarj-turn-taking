@@ -119,6 +119,23 @@ JSON array فقط: [{{"agent": "...", "caller": "...", "label": "KEEP", "kind": 
 kind واحد من: single_ack, echo, asr_noise, ack_then_bid, short_bid"""
 
 
+# v3 round 2 (EXPERIMENTS #56): v3 learned «fluent words = wants the floor» because the data had many STOP questions
+# and openers but few KEEP items of fluent talk that is NOT for the agent. Contrastive pairs teach relevance instead.
+PROMPT_OFFTOPIC = """اكتب ٤٠ عنصر تدريب لمكالمة هاتفية من شركة لعميل. المجال: {domain}. لهجة العميل: {dialect}.
+التركيز: كلام **مرتب ومفهوم** يوصل للمايك وقت كلام الوكيل، والسؤال الوحيد: هل هو موجّه للوكيل ولا لا؟
+اكتبها **أزواج**: كل زوج له نفس «agent»، عنصر KEEP وعنصر STOP بطول وأسلوب متقارب.
+التوزيع بالضبط (٢٠ زوج):
+- ٦ أزواج: KEEP جملة كاملة ما لها علاقة بالمكالمة كأنها من تلفزيون أو راديو أو إعلان أو نشرة، أو تفريغ غلط على ضجيج يطلع جملة مرتبة غريبة (موضوع ثاني تماماً). STOP جملة بنفس الطول تسأل أو تعترض على شي **في كلام الوكيل**.
+- ٥ أزواج: KEEP العميل يفكّر بصوت عالي ويكلم نفسه بكلمات محتوى (يدوّر على تاريخ أو رقم أو ورقة، يحسب، يتذكر) بدون ما يطلب شي من الوكيل. STOP نفس الموضوع بس موجّه للوكيل كسؤال أو طلب صريح.
+- ٤ أزواج: KEEP كلام لشخص ثاني بالمكان (طفل، زوج، زميل، سواق) فيه أسماء وأوامر يومية. STOP كلام للوكيل يقاطعه.
+- ٣ أزواج: KEEP تحية أو مجاملة أو تأييد طويل شوي («الله يعطيك العافية كمّل» وأشباهها) أو تأييد مشوّه من التفريغ. STOP تحية تتبعها مباشرة طلب.
+- ٢ زوج: KEEP كلام الوكيل راجع كصدى بس متغيّر كلمة أو كلمتين بشكل يخليه يبان جملة جديدة. STOP العميل يكرر رقم أو اسم من كلام الوكيل عشان يصححه.
+«agent» = جملة الوكيل لحظة التداخل (١٠–٣٠ كلمة، لهجة سعودية بيضاء مهذبة). لا تكرر الصياغات، ونوّع المواضيع.
+لكل STOP حط «cue»: رقم الكلمة (من ١) اللي عندها السامع يعرف إن العميل يبي الكلمة.
+JSON array فقط: [{{"agent": "...", "caller": "...", "label": "KEEP", "kind": "offtopic_media"}}, ...]
+kind واحد من: offtopic_media, thinking_content, room_talk, polite_ack, echo_variant, pair_stop"""
+
+
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
 
 
@@ -175,7 +192,7 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--model", default="claude-opus-5-5")
     ap.add_argument("--backend", default="claude", choices=["claude", "anthropic", "gemini"])
-    ap.add_argument("--focus", default="", choices=["", "answers", "hard", "pairs", "live"])
+    ap.add_argument("--focus", default="", choices=["", "answers", "hard", "pairs", "live", "offtopic"])
     ap.add_argument("--offset", type=int, default=0)
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
@@ -184,7 +201,8 @@ def main():
     if a.focus:
         random.Random(13).shuffle(pairs)
     jobs = [(a.offset + i, d, m) for i, (d, m) in enumerate(itertools.islice(itertools.cycle(pairs), a.calls))]
-    prompt = {"answers": PROMPT_ANSWERS, "hard": PROMPT_HARD, "pairs": PROMPT_PAIRS, "live": PROMPT_LIVE}.get(a.focus, PROMPT)
+    prompt = {"answers": PROMPT_ANSWERS, "hard": PROMPT_HARD, "pairs": PROMPT_PAIRS, "live": PROMPT_LIVE,
+              "offtopic": PROMPT_OFFTOPIC}.get(a.focus, PROMPT)
     with ThreadPoolExecutor(a.workers) as ex:
         for msg in ex.map(lambda j: one(j, a.model, prompt, a.backend), jobs):
             print(msg, flush=True)
